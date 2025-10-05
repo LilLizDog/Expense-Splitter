@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from .core.supabase_client import supabase
 
 app = FastAPI(title="Expense Splitter API")
 
@@ -9,3 +10,7 @@ def read_root():
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+@app.get("/supabase-health")
+def supabase_health():
+    return {"connected": True}
