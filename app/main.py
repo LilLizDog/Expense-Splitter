@@ -4,7 +4,7 @@
 
 from fastapi import FastAPI                 # main FastAPI class to make our app
 from .core.supabase_client import supabase  # connects our app to Supabase (database)
-from .routers import groups, expenses,balances       # brings in the /groups, /expenses and /balances route files we made
+from .routers import groups, expenses,balances, auth       # brings in the /groups, /expenses and /balances route files we made
 
 # create the main app object
 app = FastAPI(title="Expense Splitter API")  # title just shows up on the docs page
@@ -43,3 +43,6 @@ app.include_router(expenses.router)   # links all /expenses endpoints into our m
 
 # add the /balances routes from the balances.py file
 app.include_router(balances.router)   # links all /balances endpoints into our main app
+
+# add the /auth routes from the auth.py file
+app.include_router(auth.router)       # links all /auth endpoints into our main app
