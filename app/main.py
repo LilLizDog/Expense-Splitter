@@ -7,10 +7,19 @@ from fastapi.responses import HTMLResponse  # used to return HTML pages
 from fastapi.templating import Jinja2Templates  # for rendering HTML templates
 # from fastapi.staticfiles import StaticFiles  # to serve static files like CSS/JS  (might not need this)
 from .core.supabase_client import supabase  # connects our app to Supabase (database)
-from .routers import groups, expenses,balances, auth       # brings in the /groups, /expenses and /balances route files we made
+from .routers import auth_router, balances_router, expenses_router, groups_router  # brings in the /groups, /expenses and /balances route files we made
 
 # create the main app object
 app = FastAPI(title="Expense Splitter API")  # title just shows up on the docs page
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+app.include_router(auth_router)
+app.include_router(balances_router)
+app.include_router(expenses_router)
+app.include_router(groups_router)
 
 #setup teplate rendering for HTML pages (app/templates folder)
 templates = Jinja2Templates(directory="app/templates")
@@ -39,6 +48,15 @@ def health():
 def supabase_health():
     # later, we’ll actually check connection status here
     return {"connected": True}
+
+@app.get("/test-supabase")
+def test_supabase_connection():
+    try:
+        data = supabase.table("expenses").select("*").limit(1).execute()
+        return {"connected" : True, "data_preview" : data.data}
+    except Exception as e:
+        return {"connected": False, "error" : str(e)}
+    
 
 # ------------------------
 # CONNECT OTHER ROUTES
