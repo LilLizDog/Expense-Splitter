@@ -2,6 +2,18 @@
 # Test routes for "balances" so we can wire things up. No DB yet.
 
 from fastapi import APIRouter  # helps us group related routes
+from ..core.supabase_client import supabase
+
+router = APIRouter(prefix = "/balances", tags = ["balances"])
+
+@router.get("/ping-db")
+def balances_ping_db():
+    try:
+        supabase.functions
+        return{"ok" : True}
+    except Exception as e:
+        return {"ok" : False, "error" : str(e)}
+    
 
 # all routes here start with /balances
 router = APIRouter(

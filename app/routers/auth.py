@@ -1,7 +1,18 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
+from ..core.supabase_client import supabase 
 
+router = APIRouter(prefix = "/auth", tags=["auth"])
+
+@router.get("/ping-db")
+def auth_ping_db():
+    try:
+        supabase.auth.get_session()
+        return{"ok" : True}
+    except Exception as e:
+        return {"ok" : False, "error" : str(e)}
+    
 # this sets up a router for authentificaation routes (signup and login)
 router = APIRouter(
     prefix="/auth",

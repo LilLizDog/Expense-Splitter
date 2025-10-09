@@ -2,12 +2,20 @@
 # This file sets up a test route for groups so we can check that routing works.
 
 from fastapi import APIRouter  # helps us create separate sections of routes
+from ..core.supabase_client import supabase  # lets us talk to Supabase
+
+
 
 # All routes in this file will start with /groups
-router = APIRouter(
-    prefix="/groups",
-    tags=["groups"]  # this just adds a "groups" label on the docs page
-)
+router = APIRouter(prefix="/groups", tags=["groups"])  # this just adds a "groups" label on the docs page
+
+@router.get("/ping-db")
+def groups_ping_db():
+    try:
+        _ = supabase.postgrest
+        return {"ok" : True}
+    except Exception as e:
+        return {"ok" : False, "error" : str(e)}
 
 # This creates a GET route (basically means we’re just reading or viewing data)
 @router.get("/", summary="Get all groups (test route)")

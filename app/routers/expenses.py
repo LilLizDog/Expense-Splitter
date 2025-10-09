@@ -5,7 +5,18 @@
 from fastapi import APIRouter  # lets us make small route sections
 from pydantic import BaseModel, Field #lets us define and validate input shapes
 from datetime import date  # lets us store just the data (no time)
+from ..core.supabase_client import supabase  # lets us talk to Supabase
 
+router = APIRouter(prefix = "/expenses", tags = ["expenses"])
+
+@router.get("/ping-db")
+def expenses_ping_db():
+    try:
+        _ = supabase.storage
+        return {"ok" : True}
+    except Exception as e:
+        return {"ok" : False, "error" : str(e)}
+    
 # ALL ROUTES IN THIS FILE WILL START WITH /expenses
 router = APIRouter(
     prefix="/expenses",
