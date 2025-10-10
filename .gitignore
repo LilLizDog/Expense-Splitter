@@ -3,3 +3,7 @@
 
 __pycache__/
 *.pyc
+Expense-Splitter/
+.venv/
+__pycache__/
+*.pyc
