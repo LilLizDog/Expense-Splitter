@@ -1,107 +1,76 @@
 # FILE: app/main.py
-# This is the main entry point for our FastAPI app.
-# It connects everything — routes, Supabase setup, and basic health checks.
+# Main FastAPI entry point. Wires routes, templates, and health checks.
 
-from fastapi import FastAPI, Request          # main FastAPI class + request object
-from fastapi.responses import HTMLResponse  # used to return HTML pages
-from fastapi.templating import Jinja2Templates  # for rendering HTML templates
-# from fastapi.staticfiles import StaticFiles  # to serve static files like CSS/JS  (might not need this)
-from .core.supabase_client import supabase  # connects our app to Supabase (database)
-from .routers import auth_router, balances_router, expenses_router, groups_router  # brings in the /groups, /expenses and /balances route files we made
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
+# from fastapi.staticfiles import StaticFiles
+from .core.supabase_client import supabase
 
-# create the main app object
-app = FastAPI(title="Expense Splitter API")  # title just shows up on the docs page
+# import router modules; use module.router below
+from .routers import groups, expenses, balances, auth
 
-@app.get("/health")
-def health():
-    return {"status": "ok"}
+app = FastAPI(title="Expense Splitter API")
 
-app.include_router(auth_router)
-app.include_router(balances_router)
-app.include_router(expenses_router)
-app.include_router(groups_router)
-
-#setup teplate rendering for HTML pages (app/templates folder)
+# template engine (expects HTML files under app/templates)
 templates = Jinja2Templates(directory="app/templates")
 
-# static folder if we add CSS or JS file later(keep in mind to uncomment the import as well)
-# app.mount("/static", StaticFiles(directory="app/static"), name="static")
-
 # ------------------------
-# BASIC TEST ROUTES
+# HEALTH + BASIC CHECKS
 # ------------------------
 
-# simple root route to test if app is running
-@app.get("/")
-def read_root():
-    # returns a basic test message
-    return {"message": "Hello, Debugging Divas!"}
-
-# another quick route to check app health
 @app.get("/health")
 def health():
-    # if this shows "ok", the app is working fine
     return {"status": "ok"}
 
-# route to test if Supabase connection works (just a placeholder for now)
 @app.get("/supabase-health")
 def supabase_health():
-    # later, we’ll actually check connection status here
+    # placeholder; replace with a real ping later
     return {"connected": True}
 
 @app.get("/test-supabase")
 def test_supabase_connection():
     try:
         data = supabase.table("expenses").select("*").limit(1).execute()
-        return {"connected" : True, "data_preview" : data.data}
+        return {"connected": True, "data_preview": data.data}
     except Exception as e:
-        return {"connected": False, "error" : str(e)}
-    
+        return {"connected": False, "error": str(e)}
 
 # ------------------------
-# CONNECT OTHER ROUTES
+# API ROUTERS
 # ------------------------
 
-# add the /groups routes from the groups.py file
-app.include_router(groups.router)     # links all /groups endpoints into our main app
-
-# add the /expenses routes from the expenses.py file
-app.include_router(expenses.router)   # links all /expenses endpoints into our main app
-
-# add the /balances routes from the balances.py file
-app.include_router(balances.router)   # links all /balances endpoints into our main app
-
-# add the /auth routes from the auth.py file
-app.include_router(auth.router)       # links all /auth endpoints into our main app
+app.include_router(groups.router)
+app.include_router(expenses.router)
+app.include_router(balances.router)
+app.include_router(auth.router)
 
 # ------------------------
 # FRONTEND HTML ROUTES
 # ------------------------
 
-# main login page
+# login page
 @app.get("/", response_class=HTMLResponse)
 async def get_login(request: Request):
-    # displays login page
     return templates.TemplateResponse("login.html", {"request": request})
 
-# alternate login routes
+# login aliases
 @app.get("/login", response_class=HTMLResponse)
 async def get_login_alias(request: Request):
-    # serves same login page at /login
     return templates.TemplateResponse("login.html", {"request": request})
 
 @app.get("/login.html", response_class=HTMLResponse)
 async def get_login_html(request: Request):
-    # handles direct reference to login.html
     return templates.TemplateResponse("login.html", {"request": request})
 
 # signup page
 @app.get("/signup", response_class=HTMLResponse)
 async def get_signup(request: Request):
-    # displays signup page
     return templates.TemplateResponse("signup.html", {"request": request})
 
 @app.get("/signup.html", response_class=HTMLResponse)
 async def get_signup_html(request: Request):
-    # handles direct reference to signup.html
     return templates.TemplateResponse("signup.html", {"request": request})
+
+# static files (enable if needed)
+# app.mount("/static", StaticFiles(directory="app/static"), name="static")
