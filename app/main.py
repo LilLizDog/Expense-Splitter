@@ -79,6 +79,30 @@ async def get_signup(request: Request):
 @app.get("/signup.html", response_class=HTMLResponse)
 async def get_signup_html(request: Request):
     return templates.TemplateResponse("signup.html", {"request": request})
+# dashboard page
+@app.get("/dashboard", response_class=HTMLResponse)
+async def get_dashboard(request: Request):
+    """
+    Dashboard view (static data for now).
+    - Renders dashboard.html with mock values that match the template.
+    - Replace these with real Supabase data later.
+    """
+    mock_data = {
+        "user_name": "Preet",
+        "wallet_balance": 25.50,          # set negative to see red styling
+        "balance_class": "positive",      # or "negative"
+        "recent_tx": [
+            {"name": "Pizza Night", "amount": 18.25, "sign": "-", "date": "2025-10-29", "group": "Roommates"},
+            {"name": "Uber to AWM", "amount": 9.60,  "sign": "-", "date": "2025-10-28", "group": "AWM"},
+            {"name": "Reimbursement from Liz", "amount": 12.40, "sign": "+", "date": "2025-10-27", "group": "CS3300"},
+        ],
+        "notifications": [
+            "Grace added an expense in Roommates",
+            "Liz requested settlement ($12.40)",
+            "Invite: Join Group 'CS3300 Team'",
+        ],
+    }
+    return templates.TemplateResponse("dashboard.html", {"request": request, **mock_data})
 
 # static files (enable if needed)
 # app.mount("/static", StaticFiles(directory="app/static"), name="static")
