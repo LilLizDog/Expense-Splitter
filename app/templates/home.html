@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Home</title>
+</head>
+<body>
+  <h2>Welcome!</h2>
+  <p>You are logged in.</p>
+  <button id="logout">Logout</button>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+
+    const supabaseUrl = 'https://ntivhddzzdldypdlcoqy.supabase.co'
+    const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50aXZoZGR6emRsZHlwZGxjb3F5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk2MTA4MTgsImV4cCI6MjA3NTE4NjgxOH0.2uyS6DAhbKJi2iXotnKjWygGvO6XQ1YqGWDRsjgErcw'
+
+    const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+    document.getElementById('logout').addEventListener('click', async () => {
+      await supabase.auth.signOut()
+      localStorage.removeItem('session')
+      window.location.href = 'login.html'
+    })
+  </script>
+</body>
+</html>
