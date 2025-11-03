@@ -35,7 +35,7 @@ class ExpenseCreate(BaseModel):
     amount: float = Field(..., gt=0, description="Amount paid (must be > 0)")
     description: Optional[str] = Field(None, description="Short note about the expense")
     expense_date: date = Field(default_factory=date.today, description="Date of the expense")
-    member_ids: List[int] = Field(..., min_items=1, description="Member IDs sharing this expense")
+    member_ids: List[int] = Field(..., min_length=1, description="Member IDs sharing this expense")
     split_type: Optional[str] = Field("equal", description="Split type (equal/custom)")
 
 # ----------------------------------
