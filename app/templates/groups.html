@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Groups</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <a href="/dashboard.html">Dashboard</a>
+            <a href="/groups.html">Groups</a>
+        </nav>
+    </header>
+
+    <main>
+        <h1>Your Expense Groups</h1>
+
+        <!-- Group creation form -->
+        <form id="create-group-form">
+            <input type="text" id="group-name" placeholder="Group Name" required>
+            <textarea id="group-description" placeholder="Description"></textarea>
+            <button type="submit">Create Group</button>
+        </form>
+
+        <!-- List of groups -->
+        <ul id="groups-list"></ul>
+    </main>
+
+    <script type="module" src="groups.js"></script>
+</body>
+</html>
