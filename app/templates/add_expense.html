@@ -153,16 +153,56 @@
       box-shadow: 0 10px 30px rgba(0,0,0,.08); padding:10px;
     }
     .dd-head{ display:flex; gap:10px; align-items:center; margin-bottom:8px; }
-    .dd-check{ display:flex; align-items:center; gap:8px; user-select:none; }
-    .dd-search{
-      flex:1; padding:8px 10px; border:1px solid #e5e7eb; border-radius:10px; font-size:14px;
+    .dd-check{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      user-select:none;
+      flex:0 0 auto;        /* don't let this item shrink */
+      white-space:nowrap;   /* keep "Select all" on one line */
+    }
+    .dd-check input[type="checkbox"]{
+      margin:0 6px 0 2px;   /* tidy spacing */
     }
 
-    .dd-list{ max-height:240px; overflow:auto; padding:6px 2px; }
+    .dd-search{
+      flex:1 1 auto;        /* grow and shrink to use remaining space */
+      min-width:0;          /* allow proper shrinking without wrapping .dd-check */
+      padding:8px 10px;
+      border:1px solid #e5e7eb;
+      border-radius:10px;
+      font-size:14px;
+    }
+
+   .dd-list{
+      /* list is a left-aligned vertical stack; no centering */
+      display:flex;
+      flex-direction:column;
+      align-items:flex-start;
+      max-height:240px;
+      overflow:auto;
+      padding:6px 2px;
+      text-align:left;
+    }
+
     .dd-item{
-      display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:8px; cursor:pointer;
+      /* compact row that does NOT stretch full width */
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:6px 8px;
+      border-radius:8px;
+      cursor:pointer;
+      justify-content:flex-start;
+      width:max-content;          
+      max-width:100%;
     }
     .dd-item:hover{ background:#f3f4f6; }
+    /* tighten checkbox + name */
+    .dd-item input[type="checkbox"]{ margin:0 8px 0 2px; }
+    .dd-item span{ flex:0 0 auto; display:inline-block; }
+
+
     .dd-actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:8px; }
     .dd-primary{ padding:8px 12px; border-radius:10px; border:1px solid #111; background:#111; color:#fff; }
     .dd-link{ background:transparent; border:none; color:#6B7280; padding:8px; cursor:pointer; }
@@ -290,7 +330,7 @@
 
           <!-- Actions -->
           <div class="actions">
-            <button class="btn primary" disabled>Save Expense (coming soon)</button>
+            <button class="btn primary" disabled>Save Expense</button>
           </div>
         </form>
       </section>
@@ -489,8 +529,89 @@
       clear.addEventListener('click', ()=>{
         setCheckedByIds([]); // uncheck all and sync
       });
-      done.addEventListener('click', closePanel);
+            done.addEventListener('click', closePanel);
     })();
+
+/* ───────────────────────────────── Add Expense submit wiring (mock)
+   - Wires the Save button.
+   - Validates required fields and selected members.
+   - Calls POST /expenses with JSON payload.
+   - On success: alert, reset UI, redirect to /dashboard.
+*/
+document.addEventListener('DOMContentLoaded', function () {
+  const form = document.getElementById('expenseForm');
+  const saveBtn = document.querySelector('.btn.primary'); // same class used in markup
+  const memberHidden = document.getElementById('memberHiddenInputs');
+  const memberBtn = document.getElementById('memberBtn');
+
+  if (!form || !saveBtn) return;
+
+  // enable the Save button now that the endpoint exists
+  saveBtn.disabled = false;
+
+  form.addEventListener('submit', async function (e) {
+    e.preventDefault(); // prevent default form navigation
+
+    // read required fields
+    const groupEl = document.getElementById('group');
+    const amountEl = document.getElementById('total');
+    const descEl = document.getElementById('description');
+    const dateEl = document.getElementById('date');
+
+    const group_id = parseInt((groupEl?.value || '0'), 10);
+    const amount = parseFloat((amountEl?.value || '0'));
+    const description = (descEl?.value || '').trim();
+    const expense_date = dateEl?.value || '';
+
+    // collect selected members mirrored as hidden inputs (name="member_ids")
+    const member_ids = memberHidden
+      ? [...memberHidden.querySelectorAll('input[name="member_ids"]')].map(i => parseInt(i.value, 10))
+      : [];
+
+    // temporary payer until auth is wired
+    const payer = 'Preet';
+
+    // minimal validation
+    if (!group_id || !amount || !description || !expense_date || member_ids.length === 0) {
+      alert('Please fill all required fields and select at least one member.');
+      return;
+    }
+
+    // basic submit UX
+    saveBtn.disabled = true;
+    const oldLabel = saveBtn.textContent;
+    saveBtn.textContent = 'Saving…';
+
+    try {
+      const res = await fetch('/expenses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ group_id, payer, amount, description, expense_date, member_ids })
+      });
+      const json = await res.json().catch(() => ({}));
+
+      if (!res.ok || !json?.ok) {
+        const msg = json?.detail || json?.error || `Save failed (${res.status}).`;
+        throw new Error(msg);
+      }
+
+      alert('Expense created!');
+      // reset form and member UI
+      form.reset();
+      if (memberHidden) memberHidden.innerHTML = '';
+      if (memberBtn) memberBtn.textContent = 'Select members';
+
+      // redirect to dashboard
+      window.location.href = '/dashboard';
+    } catch (err) {
+      console.error(err);
+      alert(err.message || 'Save failed. Please try again.');
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = oldLabel;
+    }
+  });
+});
   </script>
 </body>
 </html>

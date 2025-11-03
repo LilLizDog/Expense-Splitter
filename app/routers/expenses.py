@@ -1,90 +1,126 @@
 # FILE: app/routers/expenses.py
-# This file has the test routes for "expenses".
-# Nothing connects to the database yet — just basic setup for now.
+# Routes for "expenses".
+# For now this uses an in-memory store (no database yet).
 
-from fastapi import APIRouter  # lets us make small route sections
-from pydantic import BaseModel, Field #lets us define and validate input shapes
-from datetime import date  # lets us store just the data (no time)
-from ..core.supabase_client import supabase  # lets us talk to Supabase
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
+from datetime import date
+from typing import List, Optional
+from ..core.supabase_client import supabase
 
-router = APIRouter(prefix = "/expenses", tags = ["expenses"])
+# All routes in this file start with /expenses
+router = APIRouter(prefix="/expenses", tags=["expenses"])
 
 @router.get("/ping-db")
 def expenses_ping_db():
+    """Simple connectivity check to the Supabase client."""
     try:
-        _ = supabase.storage
-        return {"ok" : True}
+        _ = supabase.postgrest
+        return {"ok": True}
     except Exception as e:
-        return {"ok" : False, "error" : str(e)}
-    
-# ALL ROUTES IN THIS FILE WILL START WITH /expenses
-router = APIRouter(
-    prefix="/expenses",
-    tags=["expenses"]  # this will show as "expenses" in the docs
-)
+        return {"ok": False, "error": str(e)}
 
-# ----------------------------
-# MODEL - STRUCTURE FOR EXPENSE DATA
-# ----------------------------
+# ----------------------------------
+# In-memory mock storage (module-level)
+# ----------------------------------
+# This lets list/gets work even before any POST happens.
+_FAKE_DB = {"expenses": [], "participants": [], "next_id": 1}
+
+# ----------------------------------
+# Request model for creating expenses
+# ----------------------------------
 class ExpenseCreate(BaseModel):
-    group_id: int = Field(..., description = "which group this expense belongs to")
-    payer: str = Field(..., min_length =1, description = "name of the person who paid")
-    amount: float = Field(..., gt = 0, description = "how much was paid (must be >0)")
-    description: str | None = Field(None, description = "short note about the expense")
-    expense_date: date = Field(default_factory=date.today, description = "the date when the expense was made") # This would assign today's date as default if none is provided
-    
-    
-    #Note: For now, I kept these fields simple, we can add more fields later (like currency or split type)
+    group_id: int = Field(..., description="Group that this expense belongs to")
+    payer: str = Field(..., min_length=1, description="Name of the person who paid")
+    amount: float = Field(..., gt=0, description="Amount paid (must be > 0)")
+    description: Optional[str] = Field(None, description="Short note about the expense")
+    expense_date: date = Field(default_factory=date.today, description="Date of the expense")
+    member_ids: List[int] = Field(..., min_items=1, description="Member IDs sharing this expense")
+    split_type: Optional[str] = Field("equal", description="Split type (equal/custom)")
 
-# ----------------------------
-# TEST ROUTE 1 – GET ALL EXPENSES
-# ----------------------------
-@router.get("/", summary="List expenses (test)")
+# ----------------------------------
+# List all expenses (mock)
+# ----------------------------------
+@router.get("/", summary="List expenses (mock)")
 def list_expenses():
-    """
-    WHEN SOMEONE VISITS /expenses → this function runs.
-    RIGHT NOW, IT JUST SENDS BACK A SIMPLE JSON RESPONSE.
-    LATER, WE WILL REPLACE THIS WITH REAL DATA FROM SUPABASE.
-    """
+    """Returns all expenses currently in the in-memory store."""
     return {
-        "ok": True,               # means the request worked fine
-        "resource": "expenses",   # tells what type of data this is
-        "data": []                # empty for now, will be filled later
+        "ok": True,
+        "resource": "expenses",
+        "data": _FAKE_DB["expenses"],
     }
 
+# ----------------------------------
+# List recent expenses (mock)
+# ----------------------------------
+@router.get("/recent", summary="List recent expenses (mock)")
+def list_recent(limit: int = 5):
+    """Returns the most recent 'limit' expenses (newest first)."""
+    rows = _FAKE_DB["expenses"][-limit:][::-1]
+    return {"ok": True, "data": rows}
 
-# ----------------------------
-# TEST ROUTE 2 – GET ONE EXPENSE BY ID
-# ----------------------------
+# ----------------------------------
+# Get one expense by id (mock)
+# ----------------------------------
 @router.get("/{expense_id}", summary="Get one expense (test)")
 def get_expense(expense_id: int):
-    """
-    WHEN SOMEONE VISITS /expenses/1 OR ANY NUMBER → THIS FUNCTION RUNS.
-    RIGHT NOW, IT JUST SENDS BACK THE SAME ID TO CONFIRM ROUTING WORKS.
-    """
+    """Echoes the id to confirm routing works."""
     return {
         "ok": True,
         "resource": "expenses",
-        "data": {"id": expense_id}  # shows which ID was sent
+        "data": {"id": expense_id},
     }
 
-
-# ----------------------------
-# TEST ROUTE 3 – CREATE AN EXPENSE (POST)
-# ----------------------------
-@router.post("/", summary="Create expense (accepts JSON)")
+# ----------------------------------
+# Create an expense (mock)
+# ----------------------------------
+@router.post("/", summary="Create expense (accepts JSON)", status_code=201)
 def create_expense(payload: ExpenseCreate):
     """
-    When someone sends JSON to /expenses, FastAPI checks if it matches
-    the ExpenseCreate model above. If it's valid, this function runs.
-    For now, it just returns the same data back.
-    TODO: Later, insert this data into supabase and return the saved record.
+    Validates and stores an expense in the in-memory store.
+    Splits amount equally across selected members (cent-accurate).
     """
-    data = payload.model_dump() #turn the model into a simple dict
-    
+    # Extra validation beyond Pydantic
+    if payload.amount <= 0:
+        raise HTTPException(status_code=400, detail="Amount must be > 0.")
+    if not payload.member_ids:
+        raise HTTPException(status_code=400, detail="Select at least one member.")
+
+    # Create the expense
+    expense_id = _FAKE_DB["next_id"]
+    _FAKE_DB["next_id"] += 1
+
+    exp_row = {
+        "id": expense_id,
+        "group_id": payload.group_id,
+        "payer": payload.payer,
+        "amount": payload.amount,
+        "description": payload.description,
+        "expense_date": str(payload.expense_date),
+        "split_type": payload.split_type or "equal",
+    }
+    _FAKE_DB["expenses"].append(exp_row)
+
+    # Equal split with cent-accurate adjustment for the last member
+    n = len(payload.member_ids)
+    base = round(payload.amount / n, 2)
+
+    parts = []
+    running = 0.0
+    for i, mid in enumerate(payload.member_ids, start=1):
+        if i < n:
+            share = base
+            running += share
+        else:
+            # Last member gets the remainder so totals match the amount exactly
+            share = round(payload.amount - running, 2)
+        item = {"expense_id": expense_id, "member_id": mid, "share": share}
+        _FAKE_DB["participants"].append(item)
+        parts.append(item)
+
     return {
         "ok": True,
         "resource": "expenses",
-        "message": "created (test only)",
-        "data": data
+        "message": "created (mock)",
+        "data": {"expense": exp_row, "participants": parts},
     }

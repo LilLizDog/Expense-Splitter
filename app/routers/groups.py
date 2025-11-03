@@ -25,8 +25,33 @@ def list_groups():
     For now, it just sends back a simple JSON so we can test everything.
     """
     return {
-        "ok": True,              # shows the request worked fine
-        "resource": "groups",    # just says what kind of data this is
-        "data": []               # empty list for now (we’ll fill this later)
+        "ok": True,              # request worked
+        "resource": "groups",
+        "data": [
+            {"id": 1, "name": "Roommates"},
+            {"id": 2, "name": "Trip to Chicago"},
+        ]
     }
-# Later, we can add more routes here to handle creating, updating, or deleting groups.
+
+@router.get("/{group_id}/members", summary="Get members of a group (mock)")
+def get_group_members(group_id: int):
+    """
+    Returns mock members for a group.
+    Read-only to support Add Expense form.
+    """
+    members_by_group = {
+        1: [
+            {"id": 10, "name": "Preet"},
+            {"id": 11, "name": "Grace"},
+            {"id": 12, "name": "Liz"},
+        ],
+        2: [
+            {"id": 20, "name": "Preet"},
+            {"id": 21, "name": "Olivia"},
+        ],
+    }
+    return {
+        "ok": True,
+        "resource": "group_members",
+        "data": members_by_group.get(group_id, [])
+    }

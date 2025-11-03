@@ -108,5 +108,4 @@ async def get_dashboard(request: Request):
 async def get_add_expense(request: Request):
     return templates.TemplateResponse("add_expense.html", {"request": request})
 
-# static files (enable if needed)
-# app.mount("/static", StaticFiles(directory="app/static"), name="static")
+# static files (enable if needed) , app.mount("/static", StaticFiles(directory="app/static"), name="static")
