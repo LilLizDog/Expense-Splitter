@@ -104,5 +104,8 @@ async def get_dashboard(request: Request):
     }
     return templates.TemplateResponse("dashboard.html", {"request": request, **mock_data})
 
-# static files (enable if needed)
-# app.mount("/static", StaticFiles(directory="app/static"), name="static")
+@app.get("/add-expense", response_class=HTMLResponse)
+async def get_add_expense(request: Request):
+    return templates.TemplateResponse("add_expense.html", {"request": request})
+
+# static files (enable if needed) , app.mount("/static", StaticFiles(directory="app/static"), name="static")
