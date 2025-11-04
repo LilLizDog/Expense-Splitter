@@ -52,12 +52,11 @@ def get_expense(expense_id: int):
     """Echoes the id to confirm routing."""
     return {"ok": True, "resource": "expenses", "data": {"id": expense_id}}
 
-# ───────────────────────────────── Create (DB insert only)
-@router.post("/", summary="Create expense (DB only)", status_code=201)
+@router.post("/", summary="Create expense (DB insert + participants)", status_code=201)
 def create_expense(payload: ExpenseCreate):
     """
-    Inserts a single expense row into Supabase.
-    Splits/participants will be added in the next step.
+    Insert one expense into `expenses` and (optionally) rows into
+    `expense_participants` using an equal split. Custom splits later.
     """
     if payload.amount <= 0:
         raise HTTPException(status_code=400, detail="Amount must be > 0.")
@@ -65,26 +64,50 @@ def create_expense(payload: ExpenseCreate):
         raise HTTPException(status_code=400, detail="Group is required.")
 
     try:
-        # user_id left None until auth is wired
-        res = (
+        # 1) Insert expense
+        expense_res = (
             supabase.table("expenses")
             .insert({
                 "group_id": payload.group_id,
-                "user_id": None,
-                "amount": str(round(payload.amount, 2)),  # money as string
+                "user_id": None,                             # TODO: set from auth
+                "amount": str(round(payload.amount, 2)),     # numeric as string
                 "description": payload.description,
                 "expense_date": str(payload.expense_date),
                 "split_type": payload.split_type or "equal",
             })
-            .select("*")
-            .single()
             .execute()
         )
+        expense = expense_res.data[0]
+        expense_id = expense["id"]
+
+        # 2) If no members given, return early
+        if not payload.member_ids:
+            return {
+                "ok": True,
+                "resource": "expenses",
+                "message": "created",
+                "data": {"expense": expense, "participants": []},
+            }
+
+        # 3) Equal split (last share gets remainder for cent-accuracy)
+        n = len(payload.member_ids)
+        base = round(payload.amount / n, 2)
+        running = 0.0
+        rows = []
+        for i, mid in enumerate(payload.member_ids, start=1):
+            share = base if i < n else round(payload.amount - running, 2)
+            running += share
+            rows.append({"expense_id": expense_id, "member_id": mid, "share": share})
+
+        # 4) Insert participant rows
+        parts_res = supabase.table("expense_participants").insert(rows).execute()
+
         return {
             "ok": True,
             "resource": "expenses",
-            "message": "created",
-            "data": {"expense": res.data, "participants": []},
+            "message": "created with participants",
+            "data": {"expense": expense, "participants": parts_res.data},
         }
+
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
