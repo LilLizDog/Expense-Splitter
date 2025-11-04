@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Settings | Expense Splitter</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    /* Simple layout that stays consistent for the Settings page */
+    body { font-family: system-ui, Arial, sans-serif; margin: 24px; }
+    nav a { margin-right: 12px; }
+    h1 { margin-bottom: 12px; }
+    .section { margin-top: 20px; padding: 16px; border: 1px solid #eee; border-radius: 8px; max-width: 420px; }
+    label { display: block; margin-bottom: 8px; }
+    .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    select { padding: 6px 8px; }
+    .status { margin-top: 10px; color: #555; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <!-- Navigation bar that matches the previous ones on other pages-->
+  <nav>
+    <a href="/welcome">Welcome</a>
+    <a href="/groups">Groups</a>
+    <a href="/friends">Friends</a>
+    <a href="/history">History</a>
+    <a href="/settings"><strong>Settings</strong></a>
+    <a href="/login">Login</a>
+    <a href="/signup">Signup</a>
+  </nav>
+
+  <!-- Page title and description -->
+  <h1>Settings</h1>
+  <p>Update your app preferences. Right now these are stored in mock data.</p>
+
+  <!-- Notification section -->
+  <div class="section">
+    <h2>Notifications</h2>
+    <div class="row">
+      <span>Enable notifications</span>
+      <input type="checkbox" id="notifyToggle" />
+    </div>
+  </div>
+
+  <!-- Apearance section -->
+  <div class="section">
+    <h2>Appearance</h2>
+    <div class="row">
+      <label for="themeSelect">Theme</label>
+      <select id="themeSelect">
+        <option value="light">Light (default)</option>
+        <option value="dark">Dark</option>
+      </select>
+    </div>
+    <div class="row">
+      <label for="fontSelect">Font size</label>
+      <select id="fontSelect">
+        <option value="normal">Normal</option>
+        <option value="large">Large</option>
+        <option value="xlarge">Extra large</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Status shown when settings have been saved-->
+  <p class="status" id="status"></p>
+
+  <script>
+    // References to HTML elements for manipulation
+    const notifyEl = document.getElementById("notifyToggle");
+    const themeEl = document.getElementById("themeSelect");
+    const fontEl = document.getElementById("fontSelect");
+    const statusEl = document.getElementById("status");
+
+    // Load existing settings from the backend (mock data for now)
+    async function loadSettings() {
+      const r = await fetch("/api/settings/");
+      const data = await r.json();
+      notifyEl.checked = data.notifications_enabled;
+      themeEl.value = data.theme;
+      fontEl.value = data.font_size;
+      applyTheme(data.theme);
+      applyFont(data.font_size);
+    }
+
+    // Apply the chosen theme to the page
+    function applyTheme(theme) {
+      if (theme === "dark") {
+        document.body.style.background = "#222";
+        document.body.style.color = "#fff";
+      } else {
+        document.body.style.background = "#fff";
+        document.body.style.color = "#000";
+      }
+    }
+
+    // Apply the chosen font size to the page
+    function applyFont(size) {
+      if (size === "normal") document.body.style.fontSize = "16px";
+      if (size === "large") document.body.style.fontSize = "18px";
+      if (size === "xlarge") document.body.style.fontSize = "20px";
+    }
+
+    // Save settings to the backend (mock implementation)
+    async function saveSettings() {
+      const payload = {
+        notifications_enabled: notifyEl.checked,
+        theme: themeEl.value,
+        font_size: fontEl.value
+      };
+      const r = await fetch("/api/settings/", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(payload)
+      });
+
+      // Display status message based on success or failure
+      if (r.ok) {
+        statusEl.textContent = "Settings saved (mock).";
+        setTimeout(() => statusEl.textContent = "", 2000);
+      } else {
+        statusEl.textContent = "Error saving settings.";
+      }
+    }
+
+    // Event listeners for when settings are changed by the user
+    notifyEl.addEventListener("change", saveSettings);
+    themeEl.addEventListener("change", () => {
+      applyTheme(themeEl.value);
+      saveSettings();
+    });
+    fontEl.addEventListener("change", () => {
+      applyFont(fontEl.value);
+      saveSettings();
+    });
+
+    // Initial load of settings when the page is opened
+    loadSettings();
+  </script>
+</body>
+</html>

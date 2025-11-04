@@ -4,11 +4,14 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
-# from fastapi.staticfiles import StaticFiles
 from .core.supabase_client import supabase
+
 
 # import router modules; use module.router below
 from .routers import groups, expenses, balances, auth
+from .routers import friends
+from .routers import history
+from .routers import settings
 
 app = FastAPI(title="Expense Splitter API")
 
@@ -25,6 +28,7 @@ templates = Jinja2Templates(directory="app/templates")
 
 @app.get("/health")
 def health():
+    # Verifies that the API is running
     return {"status": "ok"}
 
 @app.get("/supabase-health")
@@ -48,13 +52,15 @@ app.include_router(groups.router)
 app.include_router(expenses.router)
 app.include_router(balances.router)
 app.include_router(auth.router)
+app.include_router(friends.router)
+app.include_router(history.router)
+app.include_router(settings.router)
 
 # ------------------------
 # FRONTEND HTML ROUTES
 # ----------------------
-# ----------------------
 
-# Welcome page
+
 # Welcome page
 @app.get("/", response_class=HTMLResponse)
 async def get_welcome(request: Request):
@@ -63,18 +69,7 @@ async def get_welcome(request: Request):
 @app.get("/welcome", response_class=HTMLResponse)
 async def get_welcome(request: Request):
     return templates.TemplateResponse("welcome.html", {"request": request})
-async def get_welcome(request: Request):
-    return templates.TemplateResponse("welcome.html", {"request": request})
 
-@app.get("/welcome", response_class=HTMLResponse)
-async def get_welcome(request: Request):
-    return templates.TemplateResponse("welcome.html", {"request": request})
-
-@app.get("/welcome.html", response_class=HTMLResponse)
-async def get_welcome_html(request: Request):
-    return templates.TemplateResponse("welcome.html", {"request": request})
-
-# login page
 @app.get("/welcome.html", response_class=HTMLResponse)
 async def get_welcome_html(request: Request):
     return templates.TemplateResponse("welcome.html", {"request": request})
@@ -121,8 +116,36 @@ async def get_dashboard(request: Request):
     }
     return templates.TemplateResponse("dashboard.html", {"request": request, **mock_data})
 
+# add expense page
 @app.get("/add-expense", response_class=HTMLResponse)
 async def get_add_expense(request: Request):
     return templates.TemplateResponse("add_expense.html", {"request": request})
 
-# static files (enable if needed) , app.mount("/static", StaticFiles(directory="app/static"), name="static")
+# friends page
+@app.get("/friends", response_class=HTMLResponse)
+async def get_friends(request: Request):
+    return templates.TemplateResponse("friends.html", {"request": request})
+
+@app.get("/friends.html", response_class=HTMLResponse)
+async def get_friends_html(request: Request):
+    return templates.TemplateResponse("friends.html", {"request": request})
+
+# history page
+@app.get("/history", response_class=HTMLResponse)
+async def get_history_page(request: Request):
+    return templates.TemplateResponse("history.html", {"request": request})
+
+@app.get("/history.html", response_class=HTMLResponse)
+async def get_history_page_html(request: Request):
+    return templates.TemplateResponse("history.html", {"request": request})
+
+# settings page
+@app.get("/settings", response_class=HTMLResponse)
+async def get_settings_page(request: Request):
+    return templates.TemplateResponse("settings.html", {"request": request})
+
+@app.get("/settings.html", response_class=HTMLResponse)
+async def get_settings_page_html(request: Request):
+    return templates.TemplateResponse("settings.html", {"request": request})
+
+
