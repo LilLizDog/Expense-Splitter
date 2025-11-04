@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"> <!--makes the page adjust to different screen sizes--> 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expense Splitter - Account</title>
+    <style>
+        /*this section controls how the page looks (colors, fonts, layout)*/
+        body {
+            font-family: Arial, sans-serif; /*sets the font style*/
+            background-color: #f7f7f7; /*light grey background color*/
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 60px; /*adds space at the top of the page*/
+        }
+        form {
+            background-color: white; /*white background for the form*/
+            padding: 30px; /*adds space inside the form*/
+            border-radius: 10px; /*rounded corners*/
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /*adds a subtle shadow around box*/
+            width: 300px; /*sets the width of the form to 300 pixels*/
+        }
+        input, button {
+            width: 100%; /*inputs/buttons take up full width*/
+            padding: 10px; /*adds space inside inputs/buttons*/
+            margin: 8px 0; /*adds space above and below inputs/buttons*/
+            border: 1px solid #ccc; /*light grey border*/
+            border-radius: 5px; /*rounded corners for inputs/buttons*/
+        }
+        button {
+            background-color: #0066cc; /*blue background for button*/
+            color: white;
+            font-weight: bold;
+            border: none;
+        }
+        button:hover {
+            background-color: #004999; /*darker blue when hovering over button*/
+        }
+        a {
+            color: #0066cc; /*blue color for links*/
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline; /*underline links when hovering over them*/
+        }
+    </style>
+</head>
+<body>
+    <!--this is the main title of the page-->
+    <h1>Account</h1>
+    <p>Manage your account settings and preferences here.</p>
+    <form action="/update_account" method="post">
+        <input type="text" name="username" placeholder="Username" required>
+        <input type="email" name="email" placeholder="Email" required>
+        <button type="submit">Update Account</button> <!--button to submit the form-->
+    </form>
+    <form action="/delete_account" method="post">
+        <button type="submit" style="background-color: #cc0000; margin-top: 20px;">Delete Account</button> <!--button to delete account-->
+
+</body>
+</html>
