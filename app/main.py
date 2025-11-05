@@ -12,6 +12,10 @@ from .routers import groups, expenses, balances, auth
 
 app = FastAPI(title="Expense Splitter API")
 
+from app.routers import inbox
+app.include_router(inbox.router)
+
+
 # template engine (expects HTML files under app/templates)
 templates = Jinja2Templates(directory="app/templates")
 
@@ -73,4 +77,7 @@ async def get_signup_html(request: Request):
     return templates.TemplateResponse("signup.html", {"request": request})
 
 # static files (enable if needed)
+
+app.mount("/static", StaticFiles(directory="app/templates/js"), name="static")
+
 # app.mount("/static", StaticFiles(directory="app/static"), name="static")
