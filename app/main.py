@@ -12,6 +12,10 @@ from .routers import groups, expenses, balances, auth
 
 app = FastAPI(title="Expense Splitter API")
 
+from app.routers import inbox
+app.include_router(inbox.router)
+
+
 # template engine (expects HTML files under app/templates)
 templates = Jinja2Templates(directory="app/templates")
 
@@ -48,7 +52,9 @@ app.include_router(auth.router)
 # ------------------------
 # FRONTEND HTML ROUTES
 # ----------------------
+# ----------------------
 
+# Welcome page
 # Welcome page
 @app.get("/", response_class=HTMLResponse)
 async def get_welcome(request: Request):
@@ -57,7 +63,18 @@ async def get_welcome(request: Request):
 @app.get("/welcome", response_class=HTMLResponse)
 async def get_welcome(request: Request):
     return templates.TemplateResponse("welcome.html", {"request": request})
+async def get_welcome(request: Request):
+    return templates.TemplateResponse("welcome.html", {"request": request})
 
+@app.get("/welcome", response_class=HTMLResponse)
+async def get_welcome(request: Request):
+    return templates.TemplateResponse("welcome.html", {"request": request})
+
+@app.get("/welcome.html", response_class=HTMLResponse)
+async def get_welcome_html(request: Request):
+    return templates.TemplateResponse("welcome.html", {"request": request})
+
+# login page
 @app.get("/welcome.html", response_class=HTMLResponse)
 async def get_welcome_html(request: Request):
     return templates.TemplateResponse("welcome.html", {"request": request})
