@@ -1,58 +1,112 @@
-# FILE: app/routers/friends.py
-# This file manages all backend API routes related to the Friends page
-# It allows users to view, search, filter, and add friends.
-from fastapi import APIRouter, Query
-from pydantic import BaseModel
-from typing import Optional, List
+# This file handles friends-related API endpoints using Supabase
+# It connects to our FastAPI app and uses the shared Supabase client
 
-# Creates a router for the "Friends" feature. 
-# All routes will be prefixed with /api/friends.
+from fastapi import APIRouter, Query, HTTPException
+from pydantic import BaseModel
+from typing import Optional
+from ..core.supabase_client import supabase # Import shared client with Supabase
+
+# Sets up the router for friends-related routes with prefix /api/friends
 router = APIRouter(prefix="/api/friends", tags=["Friends"])
 
-# ---- Mock data (replace with Supabase later) ----
-friends_data = [
-    {"id": 1, "name": "Olivia Hageman", "group": "Roommates"},
-    {"id": 2, "name": "Preet Kaur", "group": "Debugging Divas"},
-    {"id": 3, "name": "Elizabeth Dreste", "group": "Debugging Divas"},
-    {"id": 4, "name": "Sophia Smith", "group": "Dance Crew"},
-    {"id": 5, "name": "Liam Patel", "group": "CS Study Group"},
-]
-
-# This model defines the structure of a Friend when adding a new entry.
+# This model defines the expected input shape when adding a friend
 class FriendIn(BaseModel):
     name: str
-    group: str
+    group: str  # This maps to group_name in Supabase
 
-# GET /api/friends/
-# Lists friends, with optional search (q) and group filtering.
+# TODO: replace with real logged-in user
+def get_current_user_id() -> str:
+    return "demo-user-1"
+
+# GET list of friends, with optional filters
 @router.get("/")
-def list_friends(q: Optional[str] = Query(None), group: Optional[str] = Query(None)):
-    results = friends_data
-    # If a search query (q) is provided, filter friends by name.
-    if q:
-        results = [f for f in results if q.lower() in f["name"].lower()]
-    # If a group filter is provided, filter friends by group.
-    if group:
-        results = [f for f in results if group.lower() in f["group"].lower()]
-    # This returns the filtered list of friends.
-    return {"friends": results}
+def list_friends(
+    q: Optional[str] = Query(None), # Optional search filter
+    group: Optional[str] = Query(None), #Optional filter by group
+):
+    user_id = get_current_user_id()
 
-# POST /api/friends/
-# Adds a new friend entry.
+    # Pull all this user's friends from Supabase that belong to the user
+    resp = (
+        supabase
+        .table("friends")
+        .select("*")
+        .eq("user_id", user_id)
+        .execute()
+    )
+
+    rows = resp.data or []  # Stores the response data in a safe way
+
+    # Apply local filters for the search query and group filter
+    if q:
+        rows = [r for r in rows if q.lower() in (r.get("name") or "").lower()]
+    if group:
+        rows = [r for r in rows if group.lower() in (r.get("group_name") or "").lower()]
+
+    # Returns the list of friends in the expected format
+    return {
+        "friends": [
+            {
+                "id": r["id"],
+                "name": r["name"],
+                "group": r.get("group_name") or "",
+            }
+            for r in rows
+        ]
+    }
+
+# POST adds a new friend
 @router.post("/")
 def add_friend(friend: FriendIn):
-    # This automatically assigns a new ID that is one higher than the current max ID.
-    new_id = max([f["id"] for f in friends_data] or [0]) + 1
-    entry = {"id": new_id, "name": friend.name, "group": friend.group}
-    # Appends the new friend to the mock data list.
-    friends_data.append(entry)
-    # Returns the newly added friend entry.
-    return {"message": "Friend added", "friend": entry}
+    user_id = get_current_user_id()
 
-# GET /api/friends/groups
-# Retrieves a list of unique groups from the friends data for filtering.
+    # Insert the new friend into Supabase
+    resp = (
+        supabase
+        .table("friends")
+        .insert(
+            {
+                "user_id": user_id,
+                "name": friend.name,
+                "group_name": friend.group,
+            }
+        )
+        .execute()
+    )
+
+    # Make sure the insert succeeded and return the new row of friend data
+    rows = resp.data
+    if not rows:
+        # we didn't get anything back, so tell the frontend
+        raise HTTPException(status_code=500, detail="Insert failed (no data returned)")
+
+    # Return the newly created friend back to the frontend
+    row = rows[0]
+    return {
+        "message": "Friend added",
+        "friend": {
+            "id": row["id"],
+            "name": row["name"],
+            "group": row.get("group_name") or "",
+        },
+    }
+
+# GET list of unique groups from this user's friends
 @router.get("/groups")
 def list_groups():
-    # Uses a set to get rid of duplicate group names, then sorts them.
-    groups = sorted({f["group"] for f in friends_data})
+    user_id = get_current_user_id()
+
+    # Select only the group_name column for this user
+    resp = (
+        supabase
+        .table("friends")
+        .select("group_name")
+        .eq("user_id", user_id)
+        .execute()
+    )
+
+    rows = resp.data or []
+
+    # Use a set to get unique group names, then sort them alphabetically
+    groups = sorted({row["group_name"] for row in rows if row.get("group_name")})
     return {"groups": groups}

@@ -1,44 +1,100 @@
-# FILE: app/routers/settings.py
-# Handles getting/saving user settings (mock for now)
-# Manages backend API routes related to user settings.
+# Handles getting/saving user settings, now using Supabase
+# Allows users to view and update their settings stored in Supabase
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+from ..core.supabase_client import supabase  # Using shared Supabase client
 
-# Creates a router for the "Settings" feature.
-# All routes will be prefixed with /api/settings.
+# Sets up the router for settings-related routes with prefix /api/settings
 router = APIRouter(prefix="/api/settings", tags=["Settings"])
 
-# Mock data store for user settings
-# Acts as an in-memory database for user settings.
-# Will be replaced with Supabase to save/load real user settings later.
-mock_settings = {
-    "notifications_enabled": True,
-    "theme": "light",
-    "font_size": "normal",
-}
-
-# Model defining the structure of settings data when updating settings.
+# Defines the structure of settings data expected in requests
 class SettingsIn(BaseModel):
     notifications_enabled: bool
     theme: str
     font_size: str
 
-# GET /api/settings/
-# Retrieves the current user settings (from mock data for now).
+# Temporary function for a fake logged-in user
+def get_current_user_id() -> str:
+    return "demo-user-1"
+
+# GET retrieves the current user's settings
 @router.get("/")
 def get_settings():
-    # Returns the mock settings as the current user settings.
-    return mock_settings
+    user_id = get_current_user_id()
 
-# POST /api/settings/
-# Updates the user settings (updates mock data for now).
+    # Try to fetch the user's settings from Supabase
+    resp = (
+        supabase
+        .table("settings")
+        .select("*")
+        .eq("user_id", user_id)
+        .limit(1)
+        .execute()
+    )
+
+    rows = resp.data or []
+
+    # If this user has no settings yet, create default row
+    if not rows:
+        # if user has no settings yet, create default row
+        create_resp = (
+            supabase
+            .table("settings")
+            .insert({
+                "user_id": user_id,
+                "notifications_enabled": True,
+                "theme": "light",
+                "font_size": "normal",
+            })
+            .execute()
+        )
+        row = create_resp.data[0]
+    else:
+        row = rows[0]
+
+    # Return settings in expected format
+    return {
+        "notifications_enabled": row.get("notifications_enabled", True),
+        "theme": row.get("theme", "light"),
+        "font_size": row.get("font_size", "normal"),
+    }
+
+# POST Updates or creates the current user's settings
 @router.post("/")
 def update_settings(settings: SettingsIn):
-    # Updates the mock settings with the provided values.
-    mock_settings["notifications_enabled"] = settings.notifications_enabled
-    mock_settings["theme"] = settings.theme
-    mock_settings["font_size"] = settings.font_size
+    user_id = get_current_user_id()
 
-    # Returns a confirmation message with the updated settings.
-    return {"message": "settings updated", "settings": mock_settings}
+    # Try updating existing settings
+    resp = (
+        supabase
+        .table("settings")
+        .update({
+            "notifications_enabled": settings.notifications_enabled,
+            "theme": settings.theme,
+            "font_size": settings.font_size,
+        })
+        .eq("user_id", user_id)
+        .execute()
+    )
+
+    # If no existing settings were updated, create new settings row
+    if not resp.data:
+        resp = (
+            supabase
+            .table("settings")
+            .insert({
+                "user_id": user_id,
+                "notifications_enabled": settings.notifications_enabled,
+                "theme": settings.theme,
+                "font_size": settings.font_size,
+            })
+            .execute()
+        )
+
+    # If Supabase still didn't return data, something went wrong    
+    if not resp.data:
+        raise HTTPException(status_code=500, detail="Could not save settings")
+
+    # Return a success message with the updated settings
+    return {"message": "settings updated", "settings": resp.data[0]}
