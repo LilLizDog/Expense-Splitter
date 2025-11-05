@@ -51,14 +51,22 @@ app.include_router(auth.router)
 
 # ------------------------
 # FRONTEND HTML ROUTES
-# ------------------------
+# ----------------------
+
+# Welcome page
+@app.get("/", response_class=HTMLResponse)
+async def get_welcome(request: Request):
+    return templates.TemplateResponse("welcome.html", {"request": request})
+
+@app.get("/welcome", response_class=HTMLResponse)
+async def get_welcome(request: Request):
+    return templates.TemplateResponse("welcome.html", {"request": request})
+
+@app.get("/welcome.html", response_class=HTMLResponse)
+async def get_welcome_html(request: Request):
+    return templates.TemplateResponse("welcome.html", {"request": request})
 
 # login page
-@app.get("/", response_class=HTMLResponse)
-async def get_login(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
-
-# login aliases
 @app.get("/login", response_class=HTMLResponse)
 async def get_login_alias(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
