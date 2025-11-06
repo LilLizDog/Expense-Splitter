@@ -1,52 +1,284 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8"> <!--makes the page adjust to different screen sizes--> 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Expense Splitter - Account</title>
-    <style>
-        /*this section controls how the page looks (colors, fonts, layout)*/
-        body {
-            font-family: Arial, sans-serif; /*sets the font style*/
-            background-color: #f7f7f7; /*light grey background color*/
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin-top: 60px; /*adds space at the top of the page*/
-        }
-        form {
-            background-color: white; /*white background for the form*/
-            padding: 30px; /*adds space inside the form*/
-            border-radius: 10px; /*rounded corners*/
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /*adds a subtle shadow around box*/
-            width: 300px; /*sets the width of the form to 300 pixels*/
-        }
-        input, button {
-            width: 100%; /*inputs/buttons take up full width*/
-            padding: 10px; /*adds space inside inputs/buttons*/
-            margin: 8px 0; /*adds space above and below inputs/buttons*/
-            border: 1px solid #ccc; /*light grey border*/
-            border-radius: 5px; /*rounded corners for inputs/buttons*/
-        }
-        button {
-            background-color: #0066cc; /*blue background for button*/
-            color: white;
-            font-weight: bold;
-            border: none;
-        }
-        button:hover {
-            background-color: #004999; /*darker blue when hovering over button*/
-        }
-        a {
-            color: #0066cc; /*blue color for links*/
-            text-decoration: none;
-        }
-        a:hover {
-            text-decoration: underline; /*underline links when hovering over them*/
-        }
-    </style>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Expense Splitter — Account</title>
+  <style>
+    :root {
+      --bg:#f6f7f9; --card:#fff; --muted:#666;
+      --ink:#111; --pri:#0b63d1; --pri2:#084f9e;
+      --ok:#157347; --bad:#a5282c;
+    }
+    * { box-sizing:border-box; }
+    body {
+      margin:40px 0; background:var(--bg);
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      color:var(--ink); display:flex; flex-direction:column; align-items:center;
+    }
+    h1 { margin:0 0 18px 0; font-size:28px; }
+    h2 { margin:0 0 12px 0; font-size:18px; }
+    .wrap { width:min(920px, 92vw); display:grid; gap:16px; }
+    .grid { display:grid; grid-template-columns: 1fr 1fr; gap:16px; }
+    .card {
+      background:var(--card); border-radius:12px;
+      box-shadow:0 8px 24px rgba(0,0,0,.06); padding:20px;
+    }
+    form { display:grid; gap:12px; }
+    .row { display:grid; gap:6px; }
+    label { font-size:12px; color:#444; }
+    input, select {
+      width:100%; padding:10px 12px;
+      border:1px solid #d0d7de; border-radius:8px; font-size:14px;
+    }
+    input[readonly] { background:#f1f3f5; color:#444; }
+    .btn {
+      padding:10px 12px; border-radius:8px;
+      border:1px solid #d0d7de; background:#fff;
+      cursor:pointer; font-weight:600;
+    }
+    .btn.primary { background:var(--pri); color:#fff; border:0; }
+    .btn.primary:hover { background:var(--pri2); }
+    .btn.ghost { background:#fff; border:1px dashed #ccc; color:#444; }
+    .btn.danger { background:#fff; border:1px solid #e0a2a4; color:var(--bad); }
+    .btns { display:flex; gap:10px; }
+    .muted { color:var(--muted); font-size:12px; }
+    .status { font-size:13px; }
+    .status.ok { color:var(--ok); }
+    .status.err { color:var(--bad); }
+    .hidden { display:none; }
+    .two { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    @media (max-width:860px){
+      .grid { grid-template-columns:1fr; }
+      .two { grid-template-columns:1fr; }
+    }
+  </style>
+
+  <!-- Variables injected by FastAPI -->
+  <script>
+    window.MOCK_MODE = {{ "true" if mock_mode else "false" }};
+    window.MOCK_USER = {{ mock_user | tojson if mock_user else "null" }};
+    window.SUPABASE_URL = "{{ supabase_url if supabase_url is defined else '' }}";
+    window.SUPABASE_KEY = "{{ supabase_key if supabase_key is defined else '' }}";
+  </script>
 </head>
+
 <body>
-    <!--this is the main title of the page-->
+  <div class="wrap">
     <h1>Account</h1>
+
+    <!-- Auth notice (shown only if not logged in, later) -->
+    <div id="authNotice" class="card hidden">
+      <h2>Sign in required</h2>
+      <p class="muted">You are not signed in.</p>
+      <div class="btns">
+        <a class="btn primary" href="/login">Go to Login</a>
+        <a class="btn" href="/">Back home</a>
+      </div>
+    </div>
+
+    <!-- Account content -->
+    <div id="appArea" class="grid hidden">
+      <!-- Profile -->
+      <div class="card">
+        <h2>Your profile</h2>
+        <form id="profileForm" novalidate>
+          <div class="row">
+            <label for="full_name">Full name</label>
+            <input id="full_name" name="full_name" type="text" placeholder="Add your name" required/>
+          </div>
+          <div class="row">
+            <label for="username">Username</label>
+            <input id="username" name="username" type="text" placeholder="e.g. liz_b" required/>
+          </div>
+          <div class="row">
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" readonly/>
+          </div>
+          <div class="row">
+            <label for="phone">Phone</label>
+            <input id="phone" name="phone" type="tel" placeholder="e.g. 314-555-1234"
+                   pattern="^[0-9\\-\\+\\(\\) ]{7,20}$"/>
+          </div>
+          <div class="row">
+            <label for="display_currency">Display currency</label>
+            <select id="display_currency" name="display_currency">
+              <option value="USD">USD</option>
+              <option value="EUR">EUR</option>
+              <option value="JPY">JPY</option>
+              <option value="GBP">GBP</option>
+              <option value="CAD">CAD</option>
+            </select>
+          </div>
+          <div class="btns">
+            <button type="submit" class="btn primary">Save changes</button>
+            <span id="profileStatus" class="status"></span>
+          </div>
+        </form>
+      </div>
+
+      <!-- Payment placeholders -->
+      <div class="card">
+        <h2>Payment methods</h2>
+        <p class="muted">Placeholders — link real accounts later.</p>
+        <div class="two">
+          <button class="btn ghost" disabled>Link Stripe</button>
+          <button class="btn ghost" disabled>Link PayPal</button>
+          <button class="btn ghost" disabled>Link Venmo</button>
+          <button class="btn ghost" disabled>Link Cash App</button>
+        </div>
+      </div>
+
+      <!-- Logout -->
+      <div class="card">
+        <h2>Session</h2>
+        <div class="btns">
+          <button id="logoutBtn" class="btn danger" type="button">Log out</button>
+          <span id="logoutStatus" class="status"></span>
+        </div>
+        <p id="userIdLine" class="muted"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Script logic -->
+    <script type="module">
+    const el = (id) => document.getElementById(id);
+    const show = (n) => n && n.classList.remove('hidden');
+    const hide = (n) => n && n.classList.add('hidden');
+
+    const authNotice = el('authNotice');
+    const appArea = el('appArea');
+    const full_name = el('full_name');
+    const username = el('username');
+    const email = el('email');
+    const phone = el('phone');
+    const currency = el('display_currency');
+    const profileForm = document.getElementById('profileForm');
+    const profileStatus = el('profileStatus');
+    const logoutBtn = el('logoutBtn');
+    const logoutStatus = el('logoutStatus');
+    const userIdLine = el('userIdLine');
+
+    function setStatus(node, msg, ok = true) {
+        node.textContent = msg || '';
+        node.classList.toggle('ok', ok);
+        node.classList.toggle('err', !ok);
+    }
+
+    function populateUser(u) {
+        if (!u) return;
+        email.value = u.email || '';
+        full_name.value = u.full_name || '';
+        username.value = u.username || '';
+        phone.value = u.phone || '';
+        currency.value = u.display_currency || 'USD';
+        if (u.id) userIdLine.textContent = `User ID: ${u.id}`;
+    }
+
+    // ---- MOCK MODE ----
+    if (window.MOCK_MODE) {
+        hide(authNotice);
+        show(appArea);
+        populateUser(window.MOCK_USER);
+
+        // mock "save"
+        profileForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (!full_name.value.trim()) return setStatus(profileStatus, 'Name is required', false);
+        if (!username.value.trim())  return setStatus(profileStatus, 'Username is required', false);
+        if (phone.value && !phone.checkValidity()) return setStatus(profileStatus, 'Invalid phone', false);
+        setStatus(profileStatus, 'Saved', true);
+        });
+
+        logoutBtn.addEventListener('click', () => {
+        setStatus(logoutStatus, 'Logged out (mock)', true);
+        show(authNotice); hide(appArea);
+        });
+    } else {
+        // ---- REAL SUPABASE MODE ----
+        (async () => {
+        let createClient;
+        try {
+            ({ createClient } = await import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm"));
+        } catch (e) {
+            console.error("Failed to load supabase-js:", e);
+            show(authNotice); hide(appArea);
+            return;
+        }
+
+        const url = window.SUPABASE_URL;
+        const key = window.SUPABASE_KEY; // anon key only
+        if (!url || !key) {
+            console.error("Supabase keys missing in template");
+            show(authNotice); hide(appArea);
+            return;
+        }
+
+        const supabase = createClient(url, key);
+
+        async function loadProfile(user) {
+            // fetch profile row
+            const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+
+            if (error && error.code !== 'PGRST116') {
+            setStatus(profileStatus, 'Failed to load profile', false);
+            return;
+            }
+            populateUser({
+            id: user.id,
+            email: user.email,
+            full_name: data?.full_name,
+            username: data?.username,
+            phone: data?.phone,
+            display_currency: data?.display_currency || 'USD',
+            });
+        }
+
+        async function saveProfile(user) {
+            if (!full_name.value.trim()) return setStatus(profileStatus, 'Name is required', false);
+            if (!username.value.trim())  return setStatus(profileStatus, 'Username is required', false);
+            if (phone.value && !phone.checkValidity()) return setStatus(profileStatus, 'Invalid phone', false);
+
+            const payload = {
+            id: user.id,
+            full_name: full_name.value.trim(),
+            username: username.value.trim(),
+            phone: phone.value.trim(),
+            display_currency: currency.value,
+            };
+            const { error } = await supabase.from('profiles').upsert(payload);
+            if (error) return setStatus(profileStatus, 'Save failed', false);
+            setStatus(profileStatus, 'Saved', true);
+        }
+
+        const { data, error } = await supabase.auth.getSession();
+        const user = data?.session?.user || null;
+        if (error || !user) {
+            show(authNotice); hide(appArea);
+            return;
+        }
+
+        hide(authNotice); show(appArea);
+        await loadProfile(user);
+
+        profileForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await saveProfile(user);
+        });
+
+        logoutBtn.addEventListener('click', async () => {
+            const { error: signOutErr } = await supabase.auth.signOut();
+            if (signOutErr) return setStatus(logoutStatus, 'Logout failed', false);
+            setStatus(logoutStatus, 'Logged out', true);
+            show(authNotice); hide(appArea);
+        });
+        })();
+    }
+    </script>
+</body>
 </html>
