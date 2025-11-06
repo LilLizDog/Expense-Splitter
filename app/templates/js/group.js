@@ -1,47 +1,61 @@
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
+document.addEventListener("DOMContentLoaded", async () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const groupId = urlParams.get("group_id");
 
-const supabaseUrl = "https://YOUR_SUPABASE_URL";
-const supabaseKey = "YOUR_SUPABASE_ANON_KEY";
-const supabase = createClient(supabaseUrl, supabaseKey);
+    if (!groupId) {
+        alert("No group selected.");
+        window.location.href = "/groups.html";
+        return;
+    }
 
-const expensesList = document.getElementById("expenses-list");
-const createForm = document.getElementById("create-expense-form");
-const groupNameEl = document.getElementById("group-name");
-const groupDescEl = document.getElementById("group-description");
+    const groupNameEl = document.getElementById("groupName");
+    const membersListEl = document.getElementById("membersList");
+    const expensesListEl = document.getElementById("expensesList");
+    const addExpenseBtn = document.getElementById("addExpenseBtn");
 
-// Example: Get group_id from URL query
-const urlParams = new URLSearchParams(window.location.search);
-const groupId = urlParams.get("id");
+    // Load Group Info
+    async function loadGroup() {
+        const res = await fetch(`/groups/${groupId}`);
+        const data = await res.json();
+        groupNameEl.textContent = data.name;
+    }
 
-async function loadGroup() {
-  const { data, error } = await supabase.from("groups").select("*").eq("id", groupId).single();
-  if (data) {
-    groupNameEl.textContent = data.name;
-    groupDescEl.textContent = data.description;
-  }
-}
+    // Load Members
+    async function loadMembers() {
+        const res = await fetch(`/groups/${groupId}/members`);
+        const members = await res.json();
 
-async function loadExpenses() {
-  const { data, error } = await supabase.from("expenses").select("*").eq("group_id", groupId);
-  expensesList.innerHTML = "";
-  data.forEach(exp => {
-    const li = document.createElement("li");
-    li.textContent = `${exp.name}: $${exp.amount}`;
-    expensesList.appendChild(li);
-  });
-}
+        membersListEl.innerHTML = "";
+        members.forEach(member => {
+            const p = document.createElement("p");
+            p.textContent = member.name;
+            membersListEl.appendChild(p);
+        });
+    }
 
-createForm.addEventListener("submit", async e => {
-  e.preventDefault();
-  const name = document.getElementById("expense-name").value;
-  const amount = parseFloat(document.getElementById("expense-amount").value);
+    // Load Expenses
+    async function loadExpenses() {
+        const res = await fetch(`/groups/${groupId}/expenses`);
+        const expenses = await res.json();
 
-  const { data, error } = await supabase.from("expenses").insert([{ group_id: groupId, name, amount }]);
-  if (!error) {
-    loadExpenses();
-    createForm.reset();
-  }
+        expensesListEl.innerHTML = "";
+        expenses.forEach(exp => {
+            const div = document.createElement("div");
+            div.className = "expense-item";
+            div.innerHTML = `
+                <p><strong>${exp.title}</strong> - $${exp.amount}</p>
+                <p>Paid by: ${exp.paid_by}</p>
+            `;
+            expensesListEl.appendChild(div);
+        });
+    }
+
+    // Add Expense Button → redirect to add_expense.html
+    addExpenseBtn.addEventListener("click", () => {
+        window.location.href = `/add_expense.html?group_id=${groupId}`;
+    });
+
+    await loadGroup();
+    await loadMembers();
+    await loadExpenses();
 });
-
-loadGroup();
-loadExpenses();
