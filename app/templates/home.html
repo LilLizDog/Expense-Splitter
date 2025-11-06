@@ -3,25 +3,91 @@
 <head>
   <meta charset="UTF-8">
   <title>Home</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f7f7f7;
+    }
+
+    .navbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: #0066cc;
+      padding: 12px 20px;
+      color: white;
+    }
+
+    .nav-left, .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .nav-item {
+      color: white;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    .nav-item:hover {
+      text-decoration: underline;
+    }
+
+    .content {
+      padding: 40px;
+      text-align: center;
+    }
+  </style>
 </head>
 <body>
-  <h2>Welcome!</h2>
-  <p>You are logged in.</p>
-  <button id="logout">Logout</button>
+
+  <div class="navbar">
+    <div class="nav-left">
+      <a class="nav-item" href="home.html">Home</a>
+      <a class="nav-item" href="groups.html">Groups</a>
+      <a class="nav-item" href="profile.html">Profile</a>
+    </div>
+
+    <div class="nav-right">
+      <button id="logout" style="background:none;border:none;color:white;font-weight:bold;cursor:pointer;">Logout</button>
+    </div>
+  </div>
+
+  <div class="content">
+    <h2 id="welcome">Welcome!</h2>
+    <p>You are logged in.</p>
+  </div>
 
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
     const supabaseUrl = 'https://ntivhddzzdldypdlcoqy.supabase.co'
     const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50aXZoZGR6emRsZHlwZGxjb3F5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk2MTA4MTgsImV4cCI6MjA3NTE4NjgxOH0.2uyS6DAhbKJi2iXotnKjWygGvO6XQ1YqGWDRsjgErcw'
-
     const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
+    // Check if user is authenticated
+    const { data: { user }, error } = await supabase.auth.getUser()
+    
+    if (error || !user) {
+      localStorage.removeItem('session')
+      window.location.href = 'login.html'
+    } else {
+      // Display user's name if available
+      if (user.user_metadata && user.user_metadata.name) {
+        document.getElementById('welcome').textContent = `Welcome, ${user.user_metadata.name}!`
+      }
+    }
+
+    // Logout functionality
     document.getElementById('logout').addEventListener('click', async () => {
       await supabase.auth.signOut()
       localStorage.removeItem('session')
       window.location.href = 'login.html'
     })
   </script>
+
 </body>
 </html>

@@ -1,72 +1,19 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8"> <!--makes the page adjust to different screen sizes--> 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Expense Splitter - Login</title>
-    <style>
-        /*this section controls how the page looks (colors, fonts, layout)*/
-        body {
-            font-family: Arial, sans-serif; /*sets the font style*/
-            background-color: #f7f7f7; /*light grey background color*/
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin-top: 60px; /*adds space at the top of the page*/
-        }
-        form {
-            background-color: white; /*white background for the form*/
-            padding: 30px; /*adds space inside the form*/
-            border-radius: 10px; /*rounded corners*/
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /*adds a subtle shadow around box*/
-            width: 300px;  /*sets the width of the form to 300 pixels*/
-        }
-        input, button {
-            width: 100%; /*inputs/buttons take up full width*/
-            padding: 10px; /*adds space inside inputs/buttons*/
-            margin: 8px 0; /*adds space above and below inputs/buttons*/
-            border: 1px solid #ccc; /*light grey border*/
-            border-radius: 5px; /*rounded corners for inputs/buttons*/
-        }
-        button {
-            background-color: #0066cc; /*blue background for button*/
-            color: white;
-            font-weight: bold;
-            border: none;
-        }
-        button:hover {
-            background-color: #004999; /*darker blue when hovering over button*/
-        }
-        a {
-            color: #0066cc; /*blue color for links*/
-            text-decoration: none;
-        }
-        a:hover {
-            text-decoration: underline; /*underline links when hovering over them*/
-        }
-    </style>
+    <title>Login</title>
 </head>
 <body>
+    <h2>Login</h2>
 
-    <!-- main title for the login page -->
-    <h1>Login</h1>
-
-    <!-- this form lets users login by entering their email and password -->
-     <!-- this will be connected to backend login route later-->
-    <form action="#" method="POST">
-        <label for="email">Email:</label>
-        <input type="email" id="email" name="email" required>
-
-        <label for="password">Password:</label>
-        <input type="password" id="password" name="password" required>
-
-        <!-- this button submits the login form -->
-        <button type="submit">Login</button>
+    <form id="login-form">
+        <input type="email" id="email" placeholder="Email" required /><br><br>
+        <input type="password" id="password" placeholder="Password" required /><br><br>
+        <button type="submit">Log In</button>
     </form>
 
-    <!-- link to the signup page for users who don't have an account -->
-    <p>Don’t have an account? <a href="signup.html">Sign up here</a></p>
+    <p>Don't have an account? <a href="signup.html">Sign up here</a></p>
 
-    <script type="module" src="js/login.js"></script>
+    <script src="/static/login.js" defer></script>
 </body>
 </html>
