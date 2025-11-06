@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>History | Expense Splitter</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    /* Simple page design for better readability and spacing */
+    body { font-family: system-ui, Arial, sans-serif; margin: 24px; }
+    nav a { margin-right: 12px; }
+    header { display: flex; gap: 8px; flex-wrap: wrap; margin: 16px 0; }
+    input, select, button { padding: 6px 10px; }
+    .columns { display: flex; gap: 32px; align-items: flex-start; }
+    .col { flex: 1; }
+    h2 { margin-bottom: 8px; }
+    ul { padding-left: 18px; }
+    .empty { color: #777; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <!-- Navigation bar to match the previous ones on the other pages -->
+  <nav>
+    <a href="/welcome">Welcome</a>
+    <a href="/groups">Groups</a>
+    <a href="/friends">Friends</a>
+    <a href="/balances">Balances</a>
+    <a href="/history"><strong>History</strong></a>
+    <a href="/login">Login</a>
+    <a href="/signup">Signup</a>
+  </nav>
+
+    <!-- Page title and description -->
+  <h1>History</h1>
+  <p>View past expenses and payments. Use the filters to narrow down by group or person.</p>
+
+  <!-- Filter section including dropdown to pick group, to input a person, and other buttons -->
+  <header>
+    <select id="groupFilter">
+      <option value="">All groups</option>
+    </select>
+    <input id="personFilter" placeholder="Filter by person…" />
+    <button id="btnApply">Apply filters</button>
+    <button id="btnClear" type="button">Clear</button>
+  </header>
+
+  <!-- Two-column layout displaying the transactions that have been received and paid already -->
+  <div class="columns">
+    <div class="col">
+      <h2>Received Payments</h2>
+      <ul id="receivedList"></ul>
+    </div>
+    <div class="col">
+      <h2>Paid Expenses</h2>
+      <ul id="paidList"></ul>
+    </div>
+  </div>
+
+  <script>
+    // References to HTML elements for manipulation
+    const groupEl = document.getElementById("groupFilter");
+    const personEl = document.getElementById("personFilter");
+    const receivedList = document.getElementById("receivedList");
+    const paidList = document.getElementById("paidList");
+
+    // Load the group list from the backend for use in the dropdown filter
+    async function loadFilters() {
+      const r = await fetch("/api/history/groups");
+      if (!r.ok) return;
+      const data = await r.json();
+      groupEl.innerHTML = '<option value="">All groups</option>';
+      for (const g of data.groups) {
+        const opt = document.createElement("option");
+        opt.value = g;
+        opt.textContent = g;
+        groupEl.appendChild(opt);
+      }
+    }
+
+    // Load and filter the history list, both received and paid, by group or person
+    async function loadHistory() {
+      const params = new URLSearchParams();
+      const g = groupEl.value.trim();
+      const p = personEl.value.trim();
+      if (g) params.append("group", g);
+      if (p) params.append("person", p);
+
+      const r = await fetch("/api/history/?" + params.toString());
+      // If the backend returns a 401 Unauthorized, show an unauthorized message instead of the lists
+      if (r.status === 401) {
+        receivedList.innerHTML = "<li class='empty'>You must be logged in to view history.</li>";
+        paidList.innerHTML = "";
+        return;
+      }
+      const data = await r.json();
+      renderLists(data.received, data.paid);
+    }
+
+    // Display the previously received and paid lists in the HTML page
+    function renderLists(received, paid) {
+      // Show the received payments
+      receivedList.innerHTML = "";
+      if (!received.length) {
+        receivedList.innerHTML = "<li class='empty'>No received payments.</li>";
+      } else {
+        for (const item of received) {
+          const li = document.createElement("li");
+          li.textContent = `${item.from} → you • $${item.amount} • ${item.group}`;
+          receivedList.appendChild(li);
+        }
+      }
+      // Show the paid expenses
+      paidList.innerHTML = "";
+      if (!paid.length) {
+        paidList.innerHTML = "<li class='empty'>No paid expenses.</li>";
+      } else {
+        for (const item of paid) {
+          const li = document.createElement("li");
+          li.textContent = `You paid ${item.to} • $${item.amount} • ${item.group}`;
+          paidList.appendChild(li);
+        }
+      }
+    }
+
+    // Apply button that reloads the history list with the current filters
+    document.getElementById("btnApply").addEventListener("click", loadHistory);
+    // Clear button that resets the filters and reloads the full history list
+    document.getElementById("btnClear").addEventListener("click", () => {
+      groupEl.value = "";
+      personEl.value = "";
+      loadHistory();
+    });
+
+    // On page load, fetch the group list and then load the history list
+    loadFilters().then(loadHistory);
+  </script>
+</body>
+</html>
