@@ -31,6 +31,8 @@ app.mount("/js", StaticFiles(directory="app/templates/js"), name="js")
 from app.routers import inbox
 app.include_router(inbox.router)
 
+from .routers import payments
+app.include_router(payments.router)
 
 # template engine (expects HTML files under app/templates)
 templates = Jinja2Templates(directory="app/templates")
@@ -68,6 +70,7 @@ app.include_router(auth.router)
 app.include_router(friends.router)
 app.include_router(history.router)
 app.include_router(settings.router)
+app.include_router(payments.router)
 
 # ------------------------
 # FRONTEND HTML ROUTES
@@ -200,6 +203,15 @@ async def get_settings_page(request: Request):
 @app.get("/settings.html", response_class=HTMLResponse)
 async def get_settings_page_html(request: Request):
     return templates.TemplateResponse("settings.html", {"request": request})
+
+# payments page
+@app.get("/payments", response_class=HTMLResponse)
+async def get_payments_page(request: Request):
+    return templates.TemplateResponse("payments.html", {"request": request})
+
+@app.get("/payments.html", response_class=HTMLResponse)
+async def get_payments_page_html(request: Request):
+    return templates.TemplateResponse("payments.html", {"request": request})
 
 # static files (enable if needed) , app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
