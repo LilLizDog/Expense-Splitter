@@ -1,21 +1,170 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Sign Up</title>
+  <!-- Signup page UI -->
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sign Up</title>
+
+  <style>
+    :root{
+      --green:#16a34a; --green-600:#15803d; --red:#b91c1c; --black:#111;
+      --bg:#f6f7f8; --card:#fff; --muted:#6b7280; --radius:14px;
+      --shadow:0 8px 20px rgba(0,0,0,0.06);
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);font-family:Arial,Helvetica,sans-serif}
+    .topbar{height:56px;background:#fff;box-shadow:var(--shadow);display:flex;align-items:center;padding:0 14px}
+    .brand{font-weight:800;font-size:1.6rem}.brand .accent{color:var(--green)}
+
+    .wrap{min-height:calc(100vh - 56px);display:flex;align-items:center;justify-content:center;padding:24px}
+    .card{width:100%;max-width:560px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:28px}
+
+    h1{margin:0 0 6px;font-size:1.5rem}
+    p.muted{margin:0 0 18px;color:var(--muted);font-size:.95rem}
+
+    label{display:block;font-size:.92rem;margin:10px 0 6px}
+    .req::after{content:" *";color:var(--red)}
+
+    input{width:100%;padding:11px 12px;border:1px solid #e5e7eb;border-radius:10px;font-size:14px}
+
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+    .pw-wrap{position:relative}
+    .eye-btn{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:0}
+    .eye-icon{width:20px;height:20px;stroke:currentColor;stroke-width:2;fill:none}
+
+    .strength{display:flex;align-items:center;gap:10px;margin-top:6px}
+    .bar{flex:1;height:8px;background:#e5e7eb;border-radius:999px;overflow:hidden}
+    .bar span{display:block;height:100%;width:0;background:var(--red);transition:width .2s}
+    .hint{font-size:.85rem;color:var(--muted)}
+
+    .btn{width:100%;margin-top:18px;padding:12px;border-radius:12px;border:1px solid #e5e7eb;background:#fff;font-weight:700;cursor:pointer;box-shadow:var(--shadow)}
+    .btn:hover{border-color:#d1d5db}
+
+    .alt{margin-top:14px;font-size:.95rem}
+    .alt a{text-decoration:none;color:var(--green-600)}
+  </style>
 </head>
+
 <body>
-    <h2>Sign Up</h2>
+  <header class="topbar">
+    <div class="brand">Expense <span class="accent">Splitter</span></div>
+  </header>
 
-    <form id="signup-form">
-        <input type="text" id="name" placeholder="Name" required /><br><br>
-        <input type="email" id="email" placeholder="Email" required /><br><br>
-        <input type="password" id="password" placeholder="Password" required /><br><br>
-        <input type="date" id="dob" placeholder="Date of Birth" /><br><br>
-        <button type="submit">Sign Up</button>
-    </form>
+  <main class="wrap">
+    <section class="card">
+      <h1>Create your account</h1>
+      <p class="muted">Enter your details to continue.</p>
 
-    <p>Already have an account? <a href="login.html">Login here</a></p>
+      <form id="signup-form">
+        <div class="row">
+          <div>
+            <label class="req" for="first_name">First Name</label>
+            <input id="first_name" name="first_name" type="text" required/>
+          </div>
+          <div>
+            <label class="req" for="last_name">Last Name</label>
+            <input id="last_name" name="last_name" type="text" required/>
+          </div>
+        </div>
 
-    <script src="/static/signup.js" defer></script>
+        <!-- Hidden combined name for backend compatibility -->
+        <input type="hidden" id="full_name" name="name"/>
+
+        <label class="req" for="email">Email</label>
+        <input id="email" name="email" type="email" required/>
+
+        <div class="row">
+          <div class="pw-wrap">
+            <label class="req" for="password">Password</label>
+            <input id="password" name="password" type="password" minlength="8" required/>
+            <button class="eye-btn" type="button" onclick="togglePw('password', this)">
+              <svg class="eye-icon show" viewBox="0 0 24 24">
+                <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+              <svg class="eye-icon hide" viewBox="0 0 24 24" style="display:none">
+                <path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a21.8 21.8 0 0 1 5.06-5.94"/>
+                <line x1="1" y1="1" x2="23" y2="23"/>
+              </svg>
+            </button>
+
+            <div class="strength">
+              <div class="bar"><span id="pwBar"></span></div>
+              <span id="pwLabel" class="hint">weak</span>
+            </div>
+          </div>
+
+          <div class="pw-wrap">
+            <label class="req" for="confirm_password">Confirm Password</label>
+            <input id="confirm_password" type="password" minlength="8" required/>
+            <button class="eye-btn" type="button" onclick="togglePw('confirm_password', this)">
+              <svg class="eye-icon show" viewBox="0 0 24 24">
+                <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+              <svg class="eye-icon hide" viewBox="0 0 24 24" style="display:none">
+                <path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a21.8 21.8 0 0 1 5.06-5.94"/>
+                <line x1="1" y1="1" x2="23" y2="23"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <label class="req" for="dob">Date of Birth</label>
+        <input id="dob" name="dob" type="date" required/>
+
+        <p class="muted" style="margin-top:10px;font-size:.9rem;">
+          By creating an account, you confirm you are at least 18 years old.
+        </p>
+
+        <button class="btn" type="submit">Sign Up</button>
+      </form>
+
+      <div class="alt">Already have an account? <a href="/login">Login here</a></div>
+    </section>
+  </main>
+
+  <script src="/static/js/signup.js" defer></script>
+
+  <script>
+    // combine names automatically
+    document.getElementById('signup-form').addEventListener('input', () => {
+      document.getElementById('full_name').value =
+        document.getElementById('first_name').value.trim() + " " +
+        document.getElementById('last_name').value.trim();
+    });
+
+    // enforce age ≥ 18
+    const dob = document.getElementById('dob');
+    const today = new Date();
+    dob.max = `${today.getFullYear()-18}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+
+    // toggle password visibility
+    function togglePw(id, btn){
+      const input = document.getElementById(id);
+      const show = btn.querySelector('.show');
+      const hide = btn.querySelector('.hide');
+      const on = input.type === 'password';
+      input.type = on ? 'text' : 'password';
+      show.style.display = on ? 'none' : 'block';
+      hide.style.display = on ? 'block' : 'none';
+    }
+
+    // password strength
+    const pw = document.getElementById('password');
+    const bar = document.getElementById('pwBar');
+    const lbl = document.getElementById('pwLabel');
+    pw.addEventListener('input', () => {
+      let s = 0, v = pw.value;
+      if(v.length>=8) s++; if(/[A-Z]/.test(v)) s++; if(/[a-z]/.test(v)) s++;
+      if(/\d/.test(v)) s++; if(/[^A-Za-z0-9]/.test(v)) s++;
+      const pct = [0,20,40,60,80,100][s];
+      bar.style.width = pct+"%";
+      bar.style.background = s < 3 ? var(--red) : s < 4 ? "#f59e0b" : var(--green-600);
+      lbl.textContent = s < 3 ? "weak" : s < 4 ? "medium" : "strong";
+    });
+  </script>
 </body>
 </html>
