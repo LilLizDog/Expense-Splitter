@@ -16,8 +16,12 @@ STATIC_DIR = os.path.join(BASE_DIR, "static")           # app/static
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
+
 # import router modules; use module.router below
 from .routers import groups, expenses, balances, auth
+from .routers import friends
+from .routers import history
+from .routers import settings
 
 # template engine (expects HTML files under app/templates)
 templates = Jinja2Templates(directory="app/templates")
@@ -28,6 +32,7 @@ templates = Jinja2Templates(directory="app/templates")
 
 @app.get("/health")
 def health():
+    # Verifies that the API is running
     return {"status": "ok"}
 
 @app.get("/supabase-health")
@@ -51,10 +56,15 @@ app.include_router(groups.router)
 app.include_router(expenses.router)
 app.include_router(balances.router)
 app.include_router(auth.router)
+app.include_router(friends.router)
+app.include_router(history.router)
+app.include_router(settings.router)
+app.include_router(payments.router)
 
 # ------------------------
 # FRONTEND HTML ROUTES
 # ----------------------
+
 
 # Welcome page
 @app.get("/", response_class=HTMLResponse)
@@ -86,6 +96,46 @@ async def get_signup(request: Request):
 @app.get("/signup.html", response_class=HTMLResponse)
 async def get_signup_html(request: Request):
     return templates.TemplateResponse("signup.html", {"request": request})
+
+# account page
+@app.get("/account", response_class=HTMLResponse)
+async def get_account(request: Request):
+    mock_user = {
+        "id": "user-123",
+        "email": "liz@example.com",
+        "full_name": "Liz",
+        "username": "liz_b",
+        "phone": "314-555-1234",
+        "display_currency": "USD",
+    }
+    return templates.TemplateResponse(
+        "account.html",
+        {
+            "request": request,
+            "mock_mode": True,
+            "mock_user": mock_user,
+        },
+    )
+
+@app.get("/account.html", response_class=HTMLResponse)
+async def get_account_html(request: Request):
+    mock_user = {
+        "id": "user-123",
+        "email": "liz@example.com",
+        "full_name": "Liz",
+        "username": "liz_b",
+        "phone": "314-555-1234",
+        "display_currency": "USD",
+    }
+    return templates.TemplateResponse(
+        "account.html",
+        {
+            "request": request,
+            "mock_mode": True,
+            "mock_user": mock_user,
+        },
+    )
+
 # dashboard page
 @app.get("/dashboard", response_class=HTMLResponse)
 async def get_dashboard(request: Request):
@@ -111,9 +161,46 @@ async def get_dashboard(request: Request):
     }
     return templates.TemplateResponse("dashboard.html", {"request": request, **mock_data})
 
+# add expense page
 @app.get("/add-expense", response_class=HTMLResponse)
 async def get_add_expense(request: Request):
     return templates.TemplateResponse("add_expense.html", {"request": request})
+
+# friends page
+@app.get("/friends", response_class=HTMLResponse)
+async def get_friends(request: Request):
+    return templates.TemplateResponse("friends.html", {"request": request})
+
+@app.get("/friends.html", response_class=HTMLResponse)
+async def get_friends_html(request: Request):
+    return templates.TemplateResponse("friends.html", {"request": request})
+
+# history page
+@app.get("/history", response_class=HTMLResponse)
+async def get_history_page(request: Request):
+    return templates.TemplateResponse("history.html", {"request": request})
+
+@app.get("/history.html", response_class=HTMLResponse)
+async def get_history_page_html(request: Request):
+    return templates.TemplateResponse("history.html", {"request": request})
+
+# settings page
+@app.get("/settings", response_class=HTMLResponse)
+async def get_settings_page(request: Request):
+    return templates.TemplateResponse("settings.html", {"request": request})
+
+@app.get("/settings.html", response_class=HTMLResponse)
+async def get_settings_page_html(request: Request):
+    return templates.TemplateResponse("settings.html", {"request": request})
+
+# payments page
+@app.get("/payments", response_class=HTMLResponse)
+async def get_payments_page(request: Request):
+    return templates.TemplateResponse("payments.html", {"request": request})
+
+@app.get("/payments.html", response_class=HTMLResponse)
+async def get_payments_page_html(request: Request):
+    return templates.TemplateResponse("payments.html", {"request": request})
 
 # static files (enable if needed) , app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
