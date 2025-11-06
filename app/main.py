@@ -59,7 +59,7 @@ app.include_router(auth.router)
 app.include_router(friends.router)
 app.include_router(history.router)
 app.include_router(settings.router)
-app.include_router(payments.router)
+
 
 # ------------------------
 # FRONTEND HTML ROUTES
