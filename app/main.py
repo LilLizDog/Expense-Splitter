@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from .core.supabase_client import supabase
 import os
 
-app = FastAPI()
+app = FastAPI(title="Expense Splitter API")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # points to app/
 STATIC_DIR = os.path.join(BASE_DIR, "static")           # app/static
@@ -22,17 +22,6 @@ from .routers import groups, expenses, balances, auth
 from .routers import friends
 from .routers import history
 from .routers import settings
-
-app = FastAPI(title="Expense Splitter API")
-
-# serve client JS from templates/js
-app.mount("/js", StaticFiles(directory="app/templates/js"), name="js")
-
-from app.routers import inbox
-app.include_router(inbox.router)
-
-from .routers import payments
-app.include_router(payments.router)
 
 # template engine (expects HTML files under app/templates)
 templates = Jinja2Templates(directory="app/templates")
