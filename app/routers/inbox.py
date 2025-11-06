@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request, Depends
 from fastapi.responses import HTMLResponse
-from app.core.supabase import supabase
+from app.core.supabase_client import supabase
 
 router = APIRouter()
 
