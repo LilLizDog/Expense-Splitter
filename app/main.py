@@ -6,6 +6,15 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from .core.supabase_client import supabase
+import os
+
+app = FastAPI()
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # points to app/
+STATIC_DIR = os.path.join(BASE_DIR, "static")           # app/static
+
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
 
 # import router modules; use module.router below
 from .routers import groups, expenses, balances, auth
@@ -169,3 +178,4 @@ async def get_add_expense(request: Request):
     return templates.TemplateResponse("add_expense.html", {"request": request})
 
 # static files (enable if needed) , app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
