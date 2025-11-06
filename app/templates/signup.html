@@ -51,8 +51,7 @@
     <h1>Create an Account</h1>
 
     <!--this is the signup form users will fill out-->
-    <!-- "action" and "method" are placeholders for now -->
-    <form action="#" method="POST">
+    <form id="signup-form">
         <label for="name">Full Name:</label>
         <input type="text" id="name" name="name" required>
 
@@ -73,16 +72,8 @@
     <p>Already have an account? <a href="login.html">Login here</a></p>
 
     
-    <script type="module">
-  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+    <script type="module" src="js/signup.js"></script>
 
-  const supabaseUrl = 'https://ntivhddzzdldypdlcoqy.supabase.co'
-  const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50aXZoZGR6emRsZHlwZGxjb3F5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk2MTA4MTgsImV4cCI6MjA3NTE4NjgxOH0.2uyS6DAhbKJi2iXotnKjWygGvO6XQ1YqGWDRsjgErcw'
-  
-  const supabase = createClient(supabaseUrl, supabaseAnonKey)
-
-  console.log('✅ Supabase loaded:', supabase)
-</script>
 
 </body>
 </html>
