@@ -1,32 +1,42 @@
-const form = document.getElementById('signup-form');
+// signup.js
 
-form.addEventListener('submit', async (e) => {
-    e.preventDefault();
+const $ = (id) => document.getElementById(id);
+const show = (el, msg=null) => { if (msg!==null) el.textContent = msg; el.style.display = "block"; };
+const hide = (el) => el.style.display = "none";
 
-    const name = document.getElementById('name').value;
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
-    const dob = document.getElementById('dob').value;
+async function handleSignup(e){
+  e.preventDefault();
+  hide($("signup-success"));
+  hide($("signup-error"));
 
-    try {
-        const response = await fetch('/auth/signup', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, password, dob })
-        });
+  const first = $("first_name")?.value?.trim() || "";
+  const last = $("last_name")?.value?.trim() || "";
+  const full = `${first} ${last}`.trim();
+  const email = $("email")?.value?.trim() || "";
+  const password = $("password")?.value || "";
+  const confirm = $("confirm_password")?.value || "";
+  const dob = $("dob")?.value || "";
 
-        const data = await response.json();
+  if(!full || !email || !password || !dob)
+    return show($("signup-error"), "Please fill all required fields.");
 
-        if (!response.ok) {
-            alert(data.detail || "Signup failed");
-            return;
-        }
+  if(password !== confirm)
+    return show($("signup-error"), "Passwords do not match.");
 
-        alert(data.message);  
-        window.location.href = 'login.html';
-
-    } catch (err) {
-        console.error(err);
-        alert("Signup failed. Please try again.");
+  const { error } = await window.sb.auth.signUp({
+    email,
+    password,
+    options: {
+      email_confirm: true,
+      data: { full_name: full, first_name: first, last_name: last, dob }
     }
-});
+  });
+
+  if (error) return show($("signup-error"), error.message || "Signup failed.");
+
+  show($("signup-success"), "Account created. Redirecting...");
+  setTimeout(() => window.location.href = "/login", 1500);
+}
+
+const form = document.querySelector("#signup-form");
+if(form) form.addEventListener("submit", handleSignup);

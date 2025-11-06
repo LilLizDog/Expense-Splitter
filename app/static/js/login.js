@@ -1,33 +1,24 @@
-const form = document.getElementById('login-form');
+// Login: email+password → session in sessionStorage → go to /dashboard
 
-form.addEventListener('submit', async (e) => {
-    e.preventDefault();
+const $ = (id) => document.getElementById(id);
+const show = (el, msg=null) => { if (msg!==null) el.textContent = msg; el.style.display = "block"; };
+const hide = (el) => el.style.display = "none";
 
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
+async function handleLogin(e){
+  e.preventDefault();
+  hide($("login-error"));
 
-    try {
-        const response = await fetch('/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
-        });
+  const email = $("email")?.value?.trim() || "";
+  const password = $("password")?.value || "";
+  if (!email || !password) return show($("login-error"), "Enter email and password.");
 
-        const data = await response.json();
+  const { error } = await window.sb.auth.signInWithPassword({ email, password });
+  if (error) return show($("login-error"), error.message || "Login failed. Try again.");
 
-        if (!response.ok) {
-            alert(data.detail || "Login failed");
-            return;
-        }
+  // success → dashboard
+  window.location.href = "/dashboard";
+}
 
-        // Store session info in localStorage
-        localStorage.setItem('session', JSON.stringify(data));
-
-        alert(data.message);  
-        window.location.href = 'dashboard.html';
-
-    } catch (err) {
-        console.error(err);
-        alert("Login failed. Please try again.");
-    }
-});
+// Attach to form
+const form = document.querySelector("form#login-form") || document.querySelector("form");
+if (form) form.addEventListener("submit", handleLogin);

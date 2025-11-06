@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from .core.supabase_client import supabase
 import os
 
-app = FastAPI()
+app = FastAPI(title="Expense Splitter API")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # points to app/
 STATIC_DIR = os.path.join(BASE_DIR, "static")           # app/static
@@ -18,8 +18,6 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 # import router modules; use module.router below
 from .routers import groups, expenses, balances, auth
-
-app = FastAPI(title="Expense Splitter API")
 
 # template engine (expects HTML files under app/templates)
 templates = Jinja2Templates(directory="app/templates")
