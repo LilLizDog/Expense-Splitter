@@ -4,7 +4,17 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
 from .core.supabase_client import supabase
+import os
+
+app = FastAPI()
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # points to app/
+STATIC_DIR = os.path.join(BASE_DIR, "static")           # app/static
+
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
 
 
 # import router modules; use module.router below
@@ -14,6 +24,9 @@ from .routers import history
 from .routers import settings
 
 app = FastAPI(title="Expense Splitter API")
+
+# serve client JS from templates/js
+app.mount("/js", StaticFiles(directory="app/templates/js"), name="js")
 
 from app.routers import inbox
 app.include_router(inbox.router)
@@ -91,6 +104,46 @@ async def get_signup(request: Request):
 @app.get("/signup.html", response_class=HTMLResponse)
 async def get_signup_html(request: Request):
     return templates.TemplateResponse("signup.html", {"request": request})
+
+# account page
+@app.get("/account", response_class=HTMLResponse)
+async def get_account(request: Request):
+    mock_user = {
+        "id": "user-123",
+        "email": "liz@example.com",
+        "full_name": "Liz",
+        "username": "liz_b",
+        "phone": "314-555-1234",
+        "display_currency": "USD",
+    }
+    return templates.TemplateResponse(
+        "account.html",
+        {
+            "request": request,
+            "mock_mode": True,
+            "mock_user": mock_user,
+        },
+    )
+
+@app.get("/account.html", response_class=HTMLResponse)
+async def get_account_html(request: Request):
+    mock_user = {
+        "id": "user-123",
+        "email": "liz@example.com",
+        "full_name": "Liz",
+        "username": "liz_b",
+        "phone": "314-555-1234",
+        "display_currency": "USD",
+    }
+    return templates.TemplateResponse(
+        "account.html",
+        {
+            "request": request,
+            "mock_mode": True,
+            "mock_user": mock_user,
+        },
+    )
+
 # dashboard page
 @app.get("/dashboard", response_class=HTMLResponse)
 async def get_dashboard(request: Request):
@@ -148,4 +201,5 @@ async def get_settings_page(request: Request):
 async def get_settings_page_html(request: Request):
     return templates.TemplateResponse("settings.html", {"request": request})
 
+# static files (enable if needed) , app.mount("/static", StaticFiles(directory="app/static"), name="static")
 

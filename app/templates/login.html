@@ -1,72 +1,88 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8"> <!--makes the page adjust to different screen sizes--> 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Expense Splitter - Login</title>
-    <style>
-        /*this section controls how the page looks (colors, fonts, layout)*/
-        body {
-            font-family: Arial, sans-serif; /*sets the font style*/
-            background-color: #f7f7f7; /*light grey background color*/
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin-top: 60px; /*adds space at the top of the page*/
-        }
-        form {
-            background-color: white; /*white background for the form*/
-            padding: 30px; /*adds space inside the form*/
-            border-radius: 10px; /*rounded corners*/
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /*adds a subtle shadow around box*/
-            width: 300px;  /*sets the width of the form to 300 pixels*/
-        }
-        input, button {
-            width: 100%; /*inputs/buttons take up full width*/
-            padding: 10px; /*adds space inside inputs/buttons*/
-            margin: 8px 0; /*adds space above and below inputs/buttons*/
-            border: 1px solid #ccc; /*light grey border*/
-            border-radius: 5px; /*rounded corners for inputs/buttons*/
-        }
-        button {
-            background-color: #0066cc; /*blue background for button*/
-            color: white;
-            font-weight: bold;
-            border: none;
-        }
-        button:hover {
-            background-color: #004999; /*darker blue when hovering over button*/
-        }
-        a {
-            color: #0066cc; /*blue color for links*/
-            text-decoration: none;
-        }
-        a:hover {
-            text-decoration: underline; /*underline links when hovering over them*/
-        }
-    </style>
+  <!-- Login page UI -->
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login</title>
+
+  <style>
+    :root{
+      --green:#16a34a; --green-600:#15803d; --black:#111; --bg:#f6f7f8;
+      --card:#fff; --muted:#6b7280; --radius:14px; --shadow:0 8px 20px rgba(0,0,0,0.06);
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);font-family:Arial,Helvetica,sans-serif}
+    .topbar{height:56px;background:#fff;box-shadow:var(--shadow);display:flex;align-items:center;padding:0 14px}
+    .brand{font-weight:800;font-size:1.6rem}.brand .accent{color:var(--green)}
+    .wrap{min-height:calc(100vh - 56px);display:flex;align-items:center;justify-content:center;padding:24px}
+    .card{width:100%;max-width:520px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:28px}
+
+    h1{margin:0 0 6px;font-size:1.5rem}
+    p.muted{margin:0 0 18px;color:var(--muted);font-size:.95rem}
+
+    label{display:block;font-size:.92rem;margin:10px 0 6px}
+    .req::after{content:" *";color:#b91c1c}
+    input{width:100%;padding:11px 12px;border:1px solid #e5e7eb;border-radius:10px;font-size:14px}
+
+    .pw-wrap{position:relative}
+    .eye-btn{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:0}
+    .eye-icon{width:20px;height:20px;stroke:currentColor;stroke-width:2;fill:none}
+
+    .btn{width:100%;margin-top:18px;padding:12px;border-radius:12px;border:1px solid #e5e7eb;background:#fff;font-weight:700;cursor:pointer;box-shadow:var(--shadow)}
+    .btn:hover{border-color:#d1d5db}
+    .alt{margin-top:14px;font-size:.95rem}
+    .alt a{text-decoration:none;color:var(--green-600)}
+  </style>
 </head>
+
 <body>
+  <header class="topbar">
+    <div class="brand">Expense <span class="accent">Splitter</span></div>
+  </header>
 
-    <!-- main title for the login page -->
-    <h1>Login</h1>
+  <main class="wrap">
+    <section class="card">
+      <h1>Welcome back</h1>
+      <p class="muted">Sign in to continue.</p>
 
-    <!-- this form lets users login by entering their email and password -->
-     <!-- this will be connected to backend login route later-->
-    <form action="#" method="POST">
-        <label for="email">Email:</label>
-        <input type="email" id="email" name="email" required>
+      <form id="login-form">
+        <label class="req" for="email">Email</label>
+        <input id="email" name="email" type="email" required/>
 
-        <label for="password">Password:</label>
-        <input type="password" id="password" name="password" required>
+        <div class="pw-wrap">
+          <label class="req" for="password">Password</label>
+          <input id="password" name="password" type="password" required/>
+          <button class="eye-btn" type="button" onclick="togglePw('password', this)">
+            <svg class="eye-icon show" viewBox="0 0 24 24">
+              <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            <svg class="eye-icon hide" viewBox="0 0 24 24" style="display:none">
+              <path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a21.8 21.8 0 0 1 5.06-5.94"/>
+              <line x1="1" y1="1" x2="23" y2="23"/>
+            </svg>
+          </button>
+        </div>
 
-        <!-- this button submits the login form -->
-        <button type="submit">Login</button>
-    </form>
+        <button class="btn" type="submit">Log In</button>
+      </form>
 
-    <!-- link to the signup page for users who don't have an account -->
-    <p>Don’t have an account? <a href="signup.html">Sign up here</a></p>
+      <div class="alt">New here? <a href="/signup">Create an account</a></div>
+    </section>
+  </main>
 
-    <script type="module" src="js/login.js"></script>
+  <script src="/static/js/login.js" defer></script>
+  <script>
+    function togglePw(id, btn){
+      const input = document.getElementById(id);
+      const show = btn.querySelector('.show');
+      const hide = btn.querySelector('.hide');
+      const on = input.type === 'password';
+      input.type = on ? 'text' : 'password';
+      show.style.display = on ? 'none' : 'block';
+      hide.style.display = on ? 'block' : 'none';
+    }
+  </script>
 </body>
 </html>
