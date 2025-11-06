@@ -1,103 +1,47 @@
-import { supabase } from './supabaseClient.js';
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
 
-const params = new URLSearchParams(window.location.search);
-const groupId = params.get('id');
+const supabaseUrl = "https://YOUR_SUPABASE_URL";
+const supabaseKey = "YOUR_SUPABASE_ANON_KEY";
+const supabase = createClient(supabaseUrl, supabaseKey);
 
-const groupNameElem = document.getElementById('group-name');
-const groupDescriptionElem = document.getElementById('group-description');
-const expensesList = document.getElementById('expenses-list');
+const expensesList = document.getElementById("expenses-list");
+const createForm = document.getElementById("create-expense-form");
+const groupNameEl = document.getElementById("group-name");
+const groupDescEl = document.getElementById("group-description");
 
-const expenseForm = document.getElementById('create-expense-form');
-const expenseNameInput = document.getElementById('expense-name');
-const expenseAmountInput = document.getElementById('expense-amount');
+// Example: Get group_id from URL query
+const urlParams = new URLSearchParams(window.location.search);
+const groupId = urlParams.get("id");
 
 async function loadGroup() {
-    if (!groupId) return;
-
-    const user = supabase.auth.user();
-    if (!user) return;
-
-    // Fetch group details
-    const { data: group, error } = await supabase
-        .from('groups')
-        .select('*')
-        .eq('id', groupId)
-        .single();
-
-    if (error) {
-        console.error('Error fetching group:', error);
-        groupNameElem.textContent = 'Group not found or access denied.';
-        return;
-    }
-
-    // Access control
-    if (!group.members.includes(user.id)) {
-        groupNameElem.textContent = 'You are not a member of this group.';
-        return;
-    }
-
-    groupNameElem.textContent = group.name;
-    groupDescriptionElem.textContent = group.description || '';
-
-    await loadExpenses();
+  const { data, error } = await supabase.from("groups").select("*").eq("id", groupId).single();
+  if (data) {
+    groupNameEl.textContent = data.name;
+    groupDescEl.textContent = data.description;
+  }
 }
 
 async function loadExpenses() {
-    const { data: expenses, error } = await supabase
-        .from('expenses')
-        .select('*')
-        .eq('group_id', groupId);
-
-    if (error) {
-        console.error('Error fetching expenses:', error);
-        return;
-    }
-
-    expensesList.innerHTML = '';
-
-    if (expenses.length === 0) {
-        const li = document.createElement('li');
-        li.textContent = 'No expenses yet.';
-        expensesList.appendChild(li);
-        return;
-    }
-
-    expenses.forEach(exp => {
-        const li = document.createElement('li');
-        li.textContent = `${exp.name} - $${exp.amount.toFixed(2)}`;
-        expensesList.appendChild(li);
-    });
+  const { data, error } = await supabase.from("expenses").select("*").eq("group_id", groupId);
+  expensesList.innerHTML = "";
+  data.forEach(exp => {
+    const li = document.createElement("li");
+    li.textContent = `${exp.name}: $${exp.amount}`;
+    expensesList.appendChild(li);
+  });
 }
 
-// Handle creating a new expense
-expenseForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
+createForm.addEventListener("submit", async e => {
+  e.preventDefault();
+  const name = document.getElementById("expense-name").value;
+  const amount = parseFloat(document.getElementById("expense-amount").value);
 
-    const name = expenseNameInput.value.trim();
-    const amount = parseFloat(expenseAmountInput.value);
-
-    if (!name || isNaN(amount) || amount <= 0) {
-        alert('Please enter a valid name and amount.');
-        return;
-    }
-
-    const user = supabase.auth.user();
-    if (!user) {
-        alert('You must be logged in to add an expense.');
-        return;
-    }
-
-    const { data, error } = await supabase
-        .from('expenses')
-        .insert([{ name, amount, group_id: groupId, user_id: user.id }]);
-
-    if (error) {
-        console.error('Error adding expense:', error);
-        alert('Failed to add expense.');
-    } else {
-        expenseForm.reset();
-        loadExpenses();
-    }
+  const { data, error } = await supabase.from("expenses").insert([{ group_id: groupId, name, amount }]);
+  if (!error) {
+    loadExpenses();
+    createForm.reset();
+  }
 });
 
 loadGroup();
+loadExpenses();
