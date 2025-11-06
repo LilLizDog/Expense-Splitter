@@ -96,6 +96,46 @@ async def get_signup(request: Request):
 @app.get("/signup.html", response_class=HTMLResponse)
 async def get_signup_html(request: Request):
     return templates.TemplateResponse("signup.html", {"request": request})
+
+# account page
+@app.get("/account", response_class=HTMLResponse)
+async def get_account(request: Request):
+    mock_user = {
+        "id": "user-123",
+        "email": "liz@example.com",
+        "full_name": "Liz",
+        "username": "liz_b",
+        "phone": "314-555-1234",
+        "display_currency": "USD",
+    }
+    return templates.TemplateResponse(
+        "account.html",
+        {
+            "request": request,
+            "mock_mode": True,
+            "mock_user": mock_user,
+        },
+    )
+
+@app.get("/account.html", response_class=HTMLResponse)
+async def get_account_html(request: Request):
+    mock_user = {
+        "id": "user-123",
+        "email": "liz@example.com",
+        "full_name": "Liz",
+        "username": "liz_b",
+        "phone": "314-555-1234",
+        "display_currency": "USD",
+    }
+    return templates.TemplateResponse(
+        "account.html",
+        {
+            "request": request,
+            "mock_mode": True,
+            "mock_user": mock_user,
+        },
+    )
+
 # dashboard page
 @app.get("/dashboard", response_class=HTMLResponse)
 async def get_dashboard(request: Request):
