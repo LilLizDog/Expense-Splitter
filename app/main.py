@@ -4,13 +4,16 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
-# from fastapi.staticfiles import StaticFiles
+from fastapi.staticfiles import StaticFiles
 from .core.supabase_client import supabase
 
 # import router modules; use module.router below
 from .routers import groups, expenses, balances, auth
 
 app = FastAPI(title="Expense Splitter API")
+
+# serve client JS from templates/js
+app.mount("/js", StaticFiles(directory="app/templates/js"), name="js")
 
 from app.routers import inbox
 app.include_router(inbox.router)
