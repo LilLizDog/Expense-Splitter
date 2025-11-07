@@ -16,6 +16,7 @@
   </style>
 </head>
 <body>
+  <!-- small change for pull request-->
   <!-- Simple navigation bar(matches the structure of existing pages) -->
   <nav>
     <a href="/welcome">Welcome</a>
@@ -54,6 +55,7 @@
     const groupEl = document.getElementById("group");
     const countEl = document.getElementById("count");
 
+  
     /* Load the group list from the backend for use in the dropdown filter */
     async function loadGroups() {
       const r = await fetch("/api/friends/groups");
