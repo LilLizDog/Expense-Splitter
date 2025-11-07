@@ -43,7 +43,6 @@ app.include_router(settings.router)
 app.include_router(inbox.router)
 app.include_router(payments.router, prefix="/api/payments")
 
-
 # ------------------------
 # HEALTH + BASIC CHECKS
 # ------------------------
@@ -62,6 +61,7 @@ def test_supabase_connection():
         return {"connected": True, "data_preview": data.data}
     except Exception as e:
         return {"connected": False, "error": str(e)}
+
 
 # ------------------------
 # FRONTEND HTML ROUTES
