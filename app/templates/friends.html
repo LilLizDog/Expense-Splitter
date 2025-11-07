@@ -121,11 +121,12 @@
         document.getElementById("name").value = "";
         document.getElementById("newGroup").value = "";
         await loadGroups();
-        await loadFriends(); //small change 
+        await loadFriends(); 
       } else {
         alert("Failed to add friend");
       }
     });
+//small change
 
     // Initial load of groups and friends when the page is first opened
     loadGroups().then(loadFriends);
