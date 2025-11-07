@@ -16,7 +16,6 @@
   </style>
 </head>
 <body>
-  <!-- small change for pull request-->
   <!-- Simple navigation bar(matches the structure of existing pages) -->
   <nav>
     <a href="/welcome">Welcome</a>
@@ -122,7 +121,7 @@
         document.getElementById("name").value = "";
         document.getElementById("newGroup").value = "";
         await loadGroups();
-        await loadFriends();
+        await loadFriends(); //small change 
       } else {
         alert("Failed to add friend");
       }
