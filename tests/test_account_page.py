@@ -6,7 +6,7 @@ HTML = r"""
 <!DOCTYPE html><html><head><meta charset="utf-8"><title>Account</title></head>
 <body>
   <h1>Account</h1>
-
+  
   <div id="authNotice" class="hidden"></div>
   <div id="appArea" class="">
     <form id="profileForm" novalidate>
