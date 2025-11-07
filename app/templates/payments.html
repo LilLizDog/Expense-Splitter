@@ -54,6 +54,15 @@
     .toolbar{ display:flex; gap:10px; align-items:center;}
     .search{ padding:8px 10px; border:1px solid #e5e7eb; border-radius:10px; min-width:220px;}
     .filter{ padding:8px 10px; border:1px solid #e5e7eb; border-radius:10px; background:#fff;}
+
+    /* pay dropdown */
+    .pay-panel{ margin-top:10px; padding:12px; border:1px dashed #e5e7eb; border-radius:10px; background:#fafafa; display:none; }
+    .pay-panel.open{ display:block; }
+    .pay-methods{ display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+    .pay-option{ border:1px solid #e5e7eb; background:#fff; border-radius:999px; padding:6px 10px; cursor:pointer; font-weight:600; }
+    .pay-option:hover{ border-color:#d1d5db; }
+    .pay-note{ color:var(--muted); font-size:.88rem; }
+
   </style>
 </head>
 <body>
