@@ -62,7 +62,7 @@
   </div>
 
   <!-- Status shown when settings have been saved-->
-  <p class="status" id="status"></p>
+  <p class="status" id="status"></p> 
 
   <script>
     // References to HTML elements for manipulation
@@ -77,7 +77,7 @@
       const data = await r.json();
       notifyEl.checked = data.notifications_enabled;
       themeEl.value = data.theme;
-      fontEl.value = data.font_size;
+      fontEl.value = data.font_size; //small change 
       applyTheme(data.theme);
       applyFont(data.font_size);
     }
