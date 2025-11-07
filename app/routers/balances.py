@@ -47,3 +47,4 @@ def get_group_balances(group_id: int):
         "group_id": group_id,
         "data": []  # will be per-person balances later
     }
+# 
