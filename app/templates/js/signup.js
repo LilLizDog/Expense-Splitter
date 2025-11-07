@@ -7,7 +7,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey)
 const form = document.getElementById('signup-form')
 
 form.addEventListener('submit', async (e) => {
-  e.preventDefault()
+  e.preventDefault() 
 
   const name = document.getElementById('name').value
   const email = document.getElementById('email').value
