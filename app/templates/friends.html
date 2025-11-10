@@ -54,6 +54,7 @@
     const groupEl = document.getElementById("group");
     const countEl = document.getElementById("count");
 
+  
     /* Load the group list from the backend for use in the dropdown filter */
     async function loadGroups() {
       const r = await fetch("/api/friends/groups");
@@ -120,11 +121,12 @@
         document.getElementById("name").value = "";
         document.getElementById("newGroup").value = "";
         await loadGroups();
-        await loadFriends();
+        await loadFriends(); 
       } else {
         alert("Failed to add friend");
       }
     });
+//small change
 
     // Initial load of groups and friends when the page is first opened
     loadGroups().then(loadFriends);
