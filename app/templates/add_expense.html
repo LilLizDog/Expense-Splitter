@@ -141,6 +141,34 @@
     .btn:hover{ border-color:#d1d5db; }
     .btn.primary{ background:#e8f8ee; color:var(--green-600); border-color:#cdebdc; }
 
+        /* Split type + error text */
+    .split-row{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:4px;
+    }
+    .split-row label{
+      font-weight:400;
+      margin:0;
+      display:flex;
+      align-items:center;
+      gap:6px;
+      white-space:nowrap;
+    }
+    .split-row input[type="radio"]{
+      margin:0;
+    }
+    .error-text{
+      color:var(--red);
+      font-size:0.85rem;
+      margin-top:4px;
+      display:none;
+    }
+    .req{
+      color:var(--red);
+    }
+
     /* ───────────────────────────────── Members dropdown (compact multi-select) */
     .dd-btn{
       width:100%; padding:10px 12px; border:1px solid #e5e7eb; border-radius:12px;
@@ -270,7 +298,7 @@
     <main class="main">
       <section class="panel" style="max-width: 920px; margin-inline:auto;">
         <h1>Add Expense</h1>
-        <p class="muted">Enter details below to add a new expense to your group.</p>
+        <p class="muted">Enter details below to add a new expense.</p>
 
         <!--
           FORM
@@ -280,13 +308,14 @@
         -->
         <form id="expenseForm" onsubmit="return false;">
           <!-- Group -->
-          <label for="group">Group *</label>
+          <label for="group">Group <span class="req">*</span></label>
           <select id="group" name="group" required>
             <option value="" disabled selected>Select a group...</option>
           </select>
 
-          <!-- Members (Dropdown Multi-select) -->
-          <label for="memberBtn" style="margin-top:12px;">Members *</label>
+          <!-- Members (Dropdown Multi-select) -->          
+           <label for="memberBtn" style="margin-top:12px;">Members <span class="req">*</span></label>
+
           <button id="memberBtn" class="dd-btn" type="button" disabled aria-expanded="false">
             Choose a group first.
           </button>
@@ -313,19 +342,53 @@
           <!-- Hidden container where checked member IDs are mirrored as inputs -->
           <div id="memberHiddenInputs" class="hidden"></div>
 
-          <!-- Amount, description, date -->
-          <label for="total">Total Amount *</label>
+          <!-- Split type --> 
+          <label>Split Type <span class="req">*</span></label>
+
+          <div class="split-row">
+            <label>
+              <input type="radio" name="split_type" value="equal" checked />
+              <span>Equal</span>
+            </label>
+            <label>
+              <input type="radio" name="split_type" value="amount" />
+              <span>Custom amounts</span>
+            </label>
+            <label>
+              <input type="radio" name="split_type" value="percentage" />
+              <span>Custom percentages</span>
+            </label>
+          </div>
+          <div id="splitError" class="error-text"></div>
+
+          <!-- Custom amounts (per member) -->
+          <div id="customAmountSection" class="hidden" style="margin-top:8px;">
+            <div class="muted" style="font-size:0.9rem; margin-bottom:4px;">
+              Enter each member&rsquo;s share in dollars. Total cannot exceed the amount.
+            </div>
+            <div id="customAmountRows"></div>
+          </div>
+
+          <!-- Custom percentages (per member) -->
+          <div id="customPercentageSection" class="hidden" style="margin-top:8px;">
+            <div class="muted" style="font-size:0.9rem; margin-bottom:4px;">
+              Enter each member&rsquo;s share in percent. All percentages must add up to 100.
+            </div>
+            <div id="customPercentageRows"></div>
+          </div>
+
+          <!-- Amount, description, date -->          
+          <label for="total">Total Amount <span class="req">*</span></label>
+
           <div class="money-field">
             <span class="prefix" aria-hidden="true">$</span>
             <input id="total" name="total" type="number" step="0.01" inputmode="decimal"
                   placeholder="0.00"
                   aria-label="Total amount in US dollars" required />
           </div>
-
-          <label for="description">Description *</label>
-          <input id="description" name="description" type="text" placeholder="e.g. Pizza Night" required />
-
-          <label for="date">Date *</label>
+          <label for="description">Description (optional)</label>
+          <input id="description" name="description" type="text" placeholder="e.g. Pizza Night" />
+          <label for="date">Date <span class="req">*</span></label>
           <input id="date" name="date" type="date" required />
 
           <!-- Actions -->
@@ -400,7 +463,13 @@
       const selectAll  = document.getElementById('memberSelectAll');
       const done       = document.getElementById('memberDone');
       const clear      = document.getElementById('memberClear');
-      const hiddenWrap = document.getElementById('memberHiddenInputs');
+      const hiddenWrap = document.getElementById('memberHiddenInputs');      
+      const customAmountSection = document.getElementById('customAmountSection');
+      const customPercentageSection = document.getElementById('customPercentageSection');
+      const customAmountRows = document.getElementById('customAmountRows');
+      const customPercentageRows = document.getElementById('customPercentageRows');
+      const splitRadios = document.querySelectorAll('input[name="split_type"]');
+
 
       // State
       let currentMembers = [];   // [{id, name}]
@@ -417,7 +486,6 @@
         syncSummary();
         mirrorHiddenInputs();
       }
-
       // Rendering
       function renderMembers(rows){
         currentMembers = rows.map(m => ({
@@ -435,6 +503,67 @@
         selectAll.checked = false;
         syncSummary();
         mirrorHiddenInputs(); // reset hidden inputs
+        buildCustomRows();
+      }
+      
+      function buildCustomRows() {
+        if (!customAmountRows || !customPercentageRows) return;
+
+        if (!currentMembers.length) {
+          customAmountRows.innerHTML = '';
+          customPercentageRows.innerHTML = '';
+          return;
+        }
+
+        // Custom amount inputs: $ per member
+        customAmountRows.innerHTML = currentMembers.map(m => `
+          <div style="margin-top:6px;">
+            <label style="margin:0 0 2px;">${m.name}</label>
+            <div class="money-field">
+              <span class="prefix" aria-hidden="true">$</span>
+              <input
+                type="number"
+                class="custom-amount-input"
+                data-member-id="${m.id}"
+                step="0.01"
+                min="0"
+                inputmode="decimal"
+                placeholder="0.00"
+              />
+            </div>
+          </div>
+        `).join('');
+
+        // Custom percentage inputs: % per member
+        customPercentageRows.innerHTML = currentMembers.map(m => `
+          <div style="margin-top:6px;">
+            <label style="margin:0 0 2px;">${m.name}</label>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <input
+                type="number"
+                class="custom-percentage-input"
+                data-member-id="${m.id}"
+                step="0.01"
+                min="0"
+                max="100"
+                inputmode="decimal"
+                placeholder="0"
+                style="width:120px;"
+              />
+              <span>%</span>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      function updateSplitSections() {
+        const selected = [...splitRadios].find(r => r.checked)?.value || 'equal';
+        if (customAmountSection) {
+          customAmountSection.classList.toggle('hidden', selected !== 'amount');
+        }
+        if (customPercentageSection) {
+          customPercentageSection.classList.toggle('hidden', selected !== 'percentage');
+        }
       }
 
       // Hidden inputs mirror (for normal form post)
@@ -529,8 +658,15 @@
       clear.addEventListener('click', ()=>{
         setCheckedByIds([]); // uncheck all and sync
       });
-            done.addEventListener('click', closePanel);
+      done.addEventListener('click', closePanel);
+
+      // ── Wire: split type toggle
+      splitRadios.forEach(radio => {
+        radio.addEventListener('change', updateSplitSections);
+      });
+      updateSplitSections(); // initial state (equal = hide both)
     })();
+
 
 /* ───────────────────────────────── Add Expense submit wiring (mock)
    - Wires the Save button.
@@ -571,11 +707,12 @@ document.addEventListener('DOMContentLoaded', function () {
     // temporary payer until auth is wired
     const payer = 'Preet';
 
-    // minimal validation
-    if (!group_id || !amount || !description || !expense_date || member_ids.length === 0) {
+    // minimal validation    
+    if (!group_id || !amount || !expense_date || member_ids.length === 0) {
       alert('Please fill all required fields and select at least one member.');
       return;
     }
+
 
     // basic submit UX
     saveBtn.disabled = true;
