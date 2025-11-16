@@ -4,7 +4,7 @@
 import os
 from pathlib import Path
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
@@ -31,12 +31,13 @@ templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 # ------------------------
 from .routers import groups, expenses, balances, auth
 from .routers import friends, history, settings, payments
+from .routers.auth import get_current_user
 from app.routers import inbox
 
 app.include_router(groups.router)
 app.include_router(expenses.router)
 app.include_router(balances.router)
-app.include_router(auth.router)
+app.include_router(auth.router, prefix= "/auth")
 app.include_router(friends.router)
 app.include_router(history.router)
 app.include_router(settings.router)
@@ -118,8 +119,21 @@ async def get_dashboard(request: Request):
     return templates.TemplateResponse("dashboard.html", {"request": request, **mock_data})
 
 @app.get("/add-expense", response_class=HTMLResponse)
-async def get_add_expense(request: Request):
-    return templates.TemplateResponse("add_expense.html", {"request": request})
+async def get_add_expense(
+    request: Request,
+    user=Depends(get_current_user),  # current authenticated user
+):
+    """
+    Render the Add Expense page with the current user's id
+    injected into the template as `current_user_id`.
+    """
+    return templates.TemplateResponse(
+        "add_expense.html",
+        {
+            "request": request,
+            "current_user_id": str(user["id"]),
+        },
+    )
 
 @app.get("/friends", response_class=HTMLResponse)
 @app.get("/friends.html", response_class=HTMLResponse)

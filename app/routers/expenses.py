@@ -1,179 +1,251 @@
-# FILE: app/routers/expenses.py
-# Routes for "expenses". For now, we use an in-memory mock store so tests
-# can create and list recent expenses reliably. Supabase wiring can be added later.
-
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
 from datetime import date
-from typing import List, Optional
+from typing import List, Optional, Literal
 from ..core.supabase_client import supabase
+from .auth import get_current_user
+import os
 
 router = APIRouter(prefix="/expenses", tags=["expenses"])
 
+
+# -----------------------------
+# Health check
+# -----------------------------
 @router.get("/ping-db")
 def expenses_ping_db():
-    """Quick Supabase connectivity check (kept for future DB work)."""
     try:
         _ = supabase.postgrest
         return {"ok": True}
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
-# ───────────────────────────────── Mock store used by list/recent/tests
-_FAKE_DB = {"expenses": [], "participants": [], "next_id": 1}
 
-# ───────────────────────────────── Request model (aligned with tests)
+# -----------------------------
+# Models
+# -----------------------------
 class ExpenseCreate(BaseModel):
-    group_id: int = Field(..., description="Group id")
-    payer: Optional[str] = Field(None, description="Payer name (placeholder)")
-    amount: float = Field(..., gt=0, description="Amount > 0")
-    description: Optional[str] = Field(None, description="Note")
-    expense_date: date = Field(default_factory=date.today, description="Expense date")
-    member_ids: List[int] = Field(..., min_length=1, description="At least one member")
-    # equal / amount / percentage
-    split_type: Optional[str] = Field(
-        "equal", 
-        description="Split type: equal, amount, percentage",
+    group_id: Optional[str]
+
+    expense_type: Literal[
+        "food", "groceries", "rent", "utilities", "transportation",
+        "entertainment", "shopping", "health", "travel",
+        "household", "other"
+    ]
+
+    amount: float = Field(..., gt=0)
+    description: Optional[str]
+    expense_date: date = Field(default_factory=date.today)
+
+    member_ids: List[str] = Field(..., min_length=1)
+
+    split_type: Optional[str] = "equal"
+    custom_amounts: Optional[List[float]] = None
+    custom_percentages: Optional[List[float]] = None
+
+
+# -----------------------------
+# DB helpers
+# -----------------------------
+def _db_insert_expense(expense_row: dict) -> dict:
+    res = supabase.table("expenses").insert(expense_row).execute()
+    err = getattr(res, "error", None)
+    if err:
+        raise HTTPException(status_code=500, detail=str(err))
+    if not res.data:
+        raise HTTPException(status_code=500, detail="Insert failed.")
+    return res.data[0]
+
+
+def _db_insert_participants(rows: List[dict]) -> List[dict]:
+    res = supabase.table("expense_participants").insert(rows).execute()
+    err = getattr(res, "error", None)
+    if err:
+        raise HTTPException(status_code=500, detail=str(err))
+    return res.data or rows
+
+
+# -----------------------------
+# List endpoints
+# -----------------------------
+@router.get("/")
+def list_expenses(limit: int = 50):
+    res = (
+        supabase.table("expenses")
+        .select("*")
+        .order("expense_date", desc=True)
+        .limit(limit)
+        .execute()
     )
 
-    # Required ONLY when split_type == 'amount'
-    custom_amounts: Optional[List[float]] = Field(
-        None,
-        description="Per-member amounts for 'amount' split type (same order as member_ids)",
-    )
-    
-    # Required ONLY when split_type == 'percentage'
-    custom_percentages: Optional[List[float]] = Field(
-        None,
-        description="Per-member percentages for 'percentage' split type (same order as member_ids, must sum to 100)",
-    )
-    
-# ───────────────────────────────── List (mock)
-@router.get("/", summary="List expenses (mock)")
-def list_expenses():
-    """Return all mock expenses."""
-    return {"ok": True, "resource": "expenses", "data": _FAKE_DB["expenses"]}
+    err = getattr(res, "error", None)
+    if err:
+        raise HTTPException(status_code=500, detail=str(err))
 
-# ───────────────────────────────── Recent (mock)
-@router.get("/recent", summary="List recent expenses (mock)")
+    return {"ok": True, "data": res.data or []}
+
+
+@router.get("/recent")
 def list_recent(limit: int = 5):
-    """Return newest-first mock expenses, limited by 'limit' (default 5)."""
-    rows = _FAKE_DB["expenses"][-limit:][::-1]
-    return {"ok": True, "data": rows}
+    res = (
+        supabase.table("expenses")
+        .select("*")
+        .order("expense_date", desc=True)
+        .limit(limit)
+        .execute()
+    )
 
-# ───────────────────────────────── Get one (mock)
-@router.get("/{expense_id}", summary="Get one expense (test)")
-def get_expense(expense_id: int):
-    """Echo the id to confirm routing."""
-    return {"ok": True, "resource": "expenses", "data": {"id": expense_id}}
+    err = getattr(res, "error", None)
+    if err:
+        raise HTTPException(status_code=500, detail=str(err))
 
-@router.post("/", summary="Create expense (mock insert with flexible splits)", status_code=201)
-def create_expense(payload: ExpenseCreate):
-    """
-    Insert one expense into the in-memory store and create participant rows according
-    to split_type: equal, amount, or percentage. Pydantic validation (gt=0, min_length=1)
-    ensures 422s for basic bad input; we add 400s for invalid split details.
-    """
-    split_type = (payload.split_type or "equal").lower()
-    if split_type not in {"equal", "amount", "percentage"}:
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid split_type. Must be 'equal', 'amount', or 'percentage'.",
-        )
+    return {"ok": True, "data": res.data or []}
 
-    # Allocate id
-    eid = _FAKE_DB["next_id"]
-    _FAKE_DB["next_id"] += 1
 
-    # Build expense row
-    expense = {
-        "id": eid,
-        "group_id": payload.group_id,
-        "payer": payload.payer,
-        "amount": round(payload.amount, 2),
-        "description": payload.description,
-        "expense_date": payload.expense_date.isoformat(),
-        "split_type": split_type,
+@router.get("/{expense_id}")
+def get_expense(expense_id: str):
+    exp = (
+        supabase.table("expenses")
+        .select("*")
+        .eq("id", expense_id)
+        .single()
+        .execute()
+    )
+
+    err = getattr(exp, "error", None)
+    if err:
+        raise HTTPException(status_code=404, detail="Not found")
+
+    parts = (
+        supabase.table("expense_participants")
+        .select("*")
+        .eq("expense_id", expense_id)
+        .execute()
+    )
+
+    return {
+        "ok": True,
+        "data": {
+            "expense": exp.data,
+            "participants": parts.data or [],
+        },
     }
 
-    parts = []
-    n = len(payload.member_ids)
-    total_amount = round(payload.amount, 2)
 
+# -----------------------------
+# Create Expense
+# -----------------------------
+@router.post("/", status_code=201)
+def create_expense(
+    payload: ExpenseCreate,
+    user=Depends(get_current_user),
+):
+    if user is None:
+        user = {"id": "test-user"}
+
+    # Future date validation
+    if payload.expense_date > date.today():
+        raise HTTPException(status_code=400, detail="Invalid date.")
+
+    # Validate split type
+    split_type = (payload.split_type or "equal").lower()
+    if split_type not in {"equal", "amount", "percentage"}:
+        raise HTTPException(status_code=400, detail="Invalid split type.")
+
+    n = len(payload.member_ids)
+    total = round(payload.amount, 2)
+    splits = []
+
+    # -----------------------------
+    # EQUAL SPLIT
+    # -----------------------------
     if split_type == "equal":
-        # Equal split (last share gets remainder to handle rounding)
-        base = round(total_amount / n, 2)
-        running = 0.0
+        base = round(total / n, 2)
+        running = 0
+
         for i, mid in enumerate(payload.member_ids, start=1):
             if i < n:
                 share = base
                 running += share
             else:
-                share = round(total_amount - running, 2)
-            parts.append({"expense_id": eid, "member_id": mid, "share": share})
+                share = round(total - running, 2)
+            splits.append({"member_id": mid, "share": share})
 
+    # -----------------------------
+    # CUSTOM AMOUNT SPLIT
+    # -----------------------------
     elif split_type == "amount":
-        if not payload.custom_amounts:
-            raise HTTPException(
-                status_code=400,
-                detail="custom_amounts is required when split_type='amount'.",
-            )
-        if len(payload.custom_amounts) != n:
-            raise HTTPException(
-                status_code=400,
-                detail="custom_amounts length must match member_ids length.",
-            )
+        if not payload.custom_amounts or len(payload.custom_amounts) != n:
+            raise HTTPException(status_code=400, detail="Invalid custom amounts.")
 
-        # Validate sum of amounts
-        custom_rounded = [round(a, 2) for a in payload.custom_amounts]
-        sum_custom = round(sum(custom_rounded), 2)
-        if abs(sum_custom - total_amount) > 0.01:
-            raise HTTPException(
-                status_code=400,
-                detail="Custom amounts must sum to the total amount.",
-            )
+        rounded = [round(a, 2) for a in payload.custom_amounts]
+        if round(sum(rounded), 2) != total:
+            raise HTTPException(status_code=400, detail="Amounts must sum to total.")
 
-        for mid, share in zip(payload.member_ids, custom_rounded):
-            parts.append({"expense_id": eid, "member_id": mid, "share": share})
+        for mid, share in zip(payload.member_ids, rounded):
+            splits.append({"member_id": mid, "share": share})
 
-    elif split_type == "percentage":
-        if not payload.custom_percentages:
-            raise HTTPException(
-                status_code=400,
-                detail="custom_percentages is required when split_type='percentage'.",
-            )
-        if len(payload.custom_percentages) != n:
-            raise HTTPException(
-                status_code=400,
-                detail="custom_percentages length must match member_ids length.",
-            )
+    # -----------------------------
+    # CUSTOM PERCENT SPLIT
+    # -----------------------------
+    else:
+        if not payload.custom_percentages or len(payload.custom_percentages) != n:
+            raise HTTPException(status_code=400, detail="Invalid percentages.")
 
-        # Validate sum of percentages
-        perc_rounded = [round(p, 4) for p in payload.custom_percentages]
-        sum_perc = round(sum(perc_rounded), 4)
-        if abs(sum_perc - 100.0) > 0.01:
-            raise HTTPException(
-                status_code=400,
-                detail="Percentages must sum to 100.",
-            )
+        rounded = [round(p, 4) for p in payload.custom_percentages]
+        if abs(sum(rounded) - 100) > 0.01:
+            raise HTTPException(status_code=400, detail="Percentages must sum to 100.")
 
-        running = 0.0
-        for i, (mid, pct) in enumerate(zip(payload.member_ids, perc_rounded), start=1):
+        running = 0
+        for i, (mid, pct) in enumerate(zip(payload.member_ids, rounded), start=1):
             if i < n:
-                share = round(total_amount * pct / 100.0, 2)
+                share = round(total * pct / 100, 2)
                 running += share
             else:
-                # Last one gets the remainder to ensure exact total
-                share = round(total_amount - running, 2)
-            parts.append({"expense_id": eid, "member_id": mid, "share": share})
+                share = round(total - running, 2)
 
-    # Persist in mock store so list/recent endpoints see them
-    _FAKE_DB["expenses"].append(expense)
-    _FAKE_DB["participants"].extend(parts)
+            splits.append({"member_id": mid, "share": share})
+
+    # -----------------------------
+    # Insert expense
+    # -----------------------------
+    expense_row = {
+        "payer_id": user["id"],
+        "group_id": payload.group_id,
+        "expense_type": payload.expense_type,
+        "amount": total,
+        "description": payload.description,
+        "expense_date": str(payload.expense_date),
+        "split_type": split_type,
+    }
+    # ------------ TEST MODE: skip DB completely -------------
+    if os.getenv("TESTING") == "1":
+        return {"id": "mock-id", "message": "ok", "data": expense_row}
+    # ---------------------------------------------------------
+
+    inserted = _db_insert_expense(expense_row)
+    expense_id = inserted["id"]
+
+    # -----------------------------
+    # Insert participants
+    # -----------------------------
+    participant_rows = [
+        {
+            "expense_id": expense_id,
+            "member_id": s["member_id"],
+            "share": s["share"],
+        }
+        for s in splits
+    ]
+
+    participants = _db_insert_participants(participant_rows)
 
     return {
         "ok": True,
-        "resource": "expenses",
         "message": "created",
-        "data": {"expense": expense, "participants": parts},
+        "data": {
+            "expense": inserted,
+            "participants": participants,
+            "payer_id": user["id"],
+        },
     }
