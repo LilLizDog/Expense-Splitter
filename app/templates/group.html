@@ -1,64 +1,158 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Expense Splitter - Group Details</title>
-<script type="module" src="group.js"></script>
-<style>
-  /* Reuse same styles as dashboard/groups.html */
-  :root{--green:#16a34a;--green-600:#15803d;--red:#b91c1c;--black:#111;--bg:#f6f7f8;--card:#fff;--muted:#6b7280;--sidebar-w:220px;--radius:14px;--shadow:0 8px 20px rgba(0,0,0,0.06);--content-max:1120px;}
-  *{box-sizing:border-box;} body{margin:0; background:var(--bg); font-family:Arial, Helvetica, sans-serif;}
-  .topbar{position:sticky; top:0; height:56px; display:flex; align-items:center; gap:12px; padding:0 14px; background:#fff; box-shadow:var(--shadow);}
-  .brand{font-weight:800;font-size:1.6rem;} .brand .accent{color:var(--green);}
-  #nav-toggle{display:none;} .hamburger{width:26px;height:20px; cursor:pointer; display:grid; gap:5px;} .hamburger span{display:block; height:3px; background:var(--black); border-radius:2px;}
-  .layout{display:block; min-height:calc(100dvh-56px);}
-  .sidebar{position:fixed; left:0; top:56px; width:0; height:calc(100dvh-56px); background:#fff; box-shadow: var(--shadow); overflow:hidden; transform:translateX(-100%); transition: transform .25s ease, width .25s ease, padding .25s ease;}
-  #nav-toggle:checked ~ .layout .sidebar{transform:translateX(0); width:var(--sidebar-w); padding:14px;}
-  .nav-title{ font-size:.85rem; color:var(--muted); margin:6px 8px 10px; }
-  .nav{ display:flex; flex-direction: column; gap:6px; }
-  .nav a{ display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:10px; text-decoration:none; color:var(--black); font-size:14px; }
-  .nav a:hover{ background:#f1f5f9; } .nav a.active{ background:#e8f8ee; color:var(--green-600); font-weight:600; }
-  .main{ padding:20px; max-width:var(--content-max); margin-inline:auto;}
-  .panel{background:var(--card); border-radius:var(--radius); box-shadow: var(--shadow); padding:16px; margin-bottom:16px;}
-  .btn{border:1px solid #e5e7eb; background:#fff; border-radius:12px; padding:9px 12px; text-decoration:none; color:var(--black); font-weight:600; box-shadow: var(--shadow); cursor:pointer;}
-  .btn:hover{border-color:#d1d5db;}
-  ul{list-style:none; padding-left:0;}
-  li{padding:10px; border:1px solid #eef2f7; border-radius:10px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;}
-  input, number{padding:8px; margin-right:8px; border-radius:6px; border:1px solid #ccc;}
-  form{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px;}
-</style>
-</head>
-<body>
-  <header class="topbar">
-    <label for="nav-toggle" class="hamburger"><span></span><span></span><span></span></label>
-    <div class="brand">Expense <span class="accent">Splitter</span></div>
-  </header>
-  <input id="nav-toggle" type="checkbox"/>
-  <div class="layout">
-    <aside class="sidebar">
-      <div class="nav-title">Menu</div>
-      <nav class="nav">
-        <a href="/dashboard">Home</a>
-        <a href="/groups" class="active">Groups</a>
-      </nav>
-    </aside>
-    <main class="main">
-      <section class="panel">
-        <h2 id="group-name">Group Name</h2>
-        <p id="group-description">Group description goes here.</p>
-      </section>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Expense Splitter - Group</title>
 
-      <section class="panel">
-        <h2>Expenses</h2>
-        <ul id="expenses-list"></ul>
-        <form id="create-expense-form">
-          <input type="text" id="expense-name" placeholder="Expense Name" required>
-          <input type="number" id="expense-amount" placeholder="Amount" step="0.01" required>
-          <button class="btn" type="submit">Add Expense</button>
-        </form>
-      </section>
-    </main>
-  </div>
+  <!-- STYLES COPIED EXACTLY FROM DASHBOARD -->
+  <style>
+    :root{
+      --green:#16a34a; --green-600:#15803d; --red:#b91c1c;
+      --black:#111111; --bg:#f6f7f8; --card:#ffffff; --muted:#6b7280;
+      --sidebar-w:220px; --radius:14px; --shadow:0 8px 20px rgba(0,0,0,0.06);
+      --content-max:1120px;
+    }
+    *{box-sizing:border-box;}
+    body{margin:0;background:var(--bg);color:var(--black);font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.35;}
+
+    .topbar{position:sticky;top:0;z-index:40;height:56px;background:#fff;box-shadow:var(--shadow);display:flex;align-items:center;gap:12px;padding:0 14px;}
+    .brand{font-weight:800;font-size:1.6rem;}
+    .brand .accent{color:var(--green);}
+    #nav-toggle{display:none;}
+    .hamburger{width:26px;height:20px;cursor:pointer;display:grid;gap:5px;}
+    .hamburger span{display:block;height:3px;background:var(--black);border-radius:2px;}
+
+    .layout{display:block;min-height:calc(100dvh - 56px);}
+    .sidebar{position:fixed;left:0;top:56px;z-index:50;width:0;padding:0;height:calc(100dvh - 56px);background:#fff;box-shadow:var(--shadow);overflow:hidden;transform:translateX(-100%);transition:.25s;}
+    #nav-toggle:checked ~ .layout .sidebar{transform:translateX(0);width:var(--sidebar-w);padding:14px;}
+    .nav-title{font-size:.85rem;color:var(--muted);margin:6px 8px 10px;}
+    .nav{display:flex;flex-direction:column;gap:6px;}
+    .nav a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;text-decoration:none;color:var(--black);font-size:14px;}
+    .nav a:hover{background:#f1f5f9;}
+    .nav a.active{background:#e8f8ee;color:var(--green-600);font-weight:600;}
+    .nav a svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;}
+
+    .main{padding:20px;max-width:var(--content-max);margin-inline:auto;}
+    .panel{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin-bottom:16px;}
+    h1,h2{margin:0 0 8px;}
+    .muted{color:var(--muted);}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;}
+    .btn{border:1px solid #e5e7eb;background:#fff;border-radius:12px;padding:9px 12px;text-decoration:none;color:var(--black);font-weight:600;box-shadow:var(--shadow);font-size:14px;}
+    .btn:hover{border-color:#d1d5db;}
+    .tx-list{display:flex;flex-direction:column;gap:10px;}
+    .tx{display:flex;justify-content:space-between;align-items:center;border:1px solid #eef2f7;border-radius:12px;padding:10px 12px;}
+    .tx .name{font-weight:600;}
+    .tx .meta{font-size:.9rem;color:var(--muted);}
+    .tx .amt.positive{color:var(--green-600);}
+    .tx .amt.negative{color:var(--red);}
+  </style>
+</head>
+
+<body>
+<header class="topbar">
+  <label for="nav-toggle" class="hamburger"><span></span><span></span><span></span></label>
+  <div class="brand">Expense <span class="accent">Splitter</span></div>
+</header>
+<input id="nav-toggle" type="checkbox"/>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="nav-title">Menu</div>
+    <nav class="nav">
+      <a href="/dashboard" class="active">
+        <svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>
+        Home
+      </a>
+      <a href="/groups">
+        <svg viewBox="0 0 24 24"><path d="M7 20a4 4 0 1 1 10 0"/><circle cx="12" cy="8" r="3"/></svg>
+        Groups
+      </a>
+      <a href="/account">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/></svg>
+        Account
+      </a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <!-- GROUP HEADER -->
+    <section class="panel">
+      <h1 id="group-name">Group Name</h1>
+      <p class="muted" id="group-desc"></p>
+      <p class="muted">Created on: <span id="group-date"></span></p>
+
+      <div class="actions">
+        <a class="btn" id="add-member-btn" href="#">+ Add Member</a>
+        <a class="btn" href="/add_expense.html">+ Add Expense</a>
+      </div>
+    </section>
+
+    <!-- Recent Transactions -->
+    <section class="panel">
+      <h2>Recent Transactions</h2>
+      <div class="tx-list" id="tx-list">
+        <div class="muted">Loading...</div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- SUPABASE -->
+<script type="module">
+  import { createClient } from "https://esm.sh/@supabase/supabase-js";
+
+  const supabase = createClient("YOUR_SUPABASE_URL", "YOUR_SUPABASE_ANON_KEY");
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const group_id = urlParams.get("group_id");
+
+  async function loadGroup() {
+    const { data, error } = await supabase
+      .from("groups")
+      .select("*")
+      .eq("id", group_id)
+      .single();
+
+    if (data) {
+      document.getElementById("group-name").textContent = data.name;
+      document.getElementById("group-desc").textContent = data.description || "";
+      document.getElementById("group-date").textContent = new Date(data.created_at).toLocaleDateString();
+    }
+  }
+
+  async function loadTransactions() {
+    const { data, error } = await supabase
+      .from("transactions")
+      .select("*")
+      .eq("group_id", group_id)
+      .order("created_at", { ascending: false })
+      .limit(10);
+
+    const list = document.getElementById("tx-list");
+    list.innerHTML = "";
+
+    if (!data || data.length === 0) {
+      list.innerHTML = `<div class="muted">No transactions yet.</div>`;
+      return;
+    }
+
+    data.forEach(t => {
+      const sign = t.amount >= 0 ? "positive" : "negative";
+      list.innerHTML += `
+        <div class="tx">
+          <div class="left">
+            <div class="name">${t.name}</div>
+            <div class="meta">${new Date(t.created_at).toLocaleDateString()}</div>
+          </div>
+          <div class="amt ${sign}">${sign === "positive" ? "+" : "-"}$${Math.abs(t.amount).toFixed(2)}</div>
+        </div>`;
+    });
+  }
+
+  loadGroup();
+  loadTransactions();
+</script>
+
 </body>
 </html>

@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Expense Splitter - Payments</title>
+  <script type="module" src="/static/js/payments.js"></script>
+  <style>
+    :root {
+      --green:#16a34a; --green-600:#15803d; --red:#b91c1c; --black:#111111; --bg:#f6f7f8;
+      --card:#fff; --muted:#6b7280; --sidebar-w:220px; --radius:14px; --shadow:0 8px 20px rgba(0,0,0,0.06);
+      --content-max:1120px;
+    }
+    *{box-sizing:border-box;}
+    body{margin:0; background:var(--bg); color:var(--black); font-family:Arial, Helvetica, sans-serif; font-size:15px;}
+    .topbar{position:sticky; top:0; height:56px; display:flex; align-items:center; gap:12px; padding:0 14px; background:#fff; box-shadow:var(--shadow);}
+    .brand{font-weight:800;font-size:1.6rem;} .brand .accent{color:var(--green);}
+    #nav-toggle{display:none;} .hamburger{width:26px;height:20px; cursor:pointer; display:grid; gap:5px;} .hamburger span{display:block; height:3px; background:var(--black); border-radius:2px;}
+    .layout{display:block; min-height:calc(100dvh - 56px);}
+    .sidebar{position:fixed; left:0; top:56px; width:0; height:calc(100dvh - 56px); background:#fff; box-shadow:var(--shadow);
+      overflow:hidden; transform:translateX(-100%); transition: transform .25s ease, width .25s ease, padding .25s ease;}
+    #nav-toggle:checked ~ .layout .sidebar{transform:translateX(0); width:var(--sidebar-w); padding:14px;}
+    .nav-title{ font-size:.85rem; color:var(--muted); margin:6px 8px 10px; }
+    .nav{ display:flex; flex-direction: column; gap:6px; }
+    .nav a{ display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:10px; text-decoration:none; color:var(--black); font-size:14px; }
+    .nav a:hover{ background:#f1f5f9; } .nav a.active{ background:#e8f8ee; color:var(--green-600); font-weight:600; }
+
+    .main{ padding:20px; max-width:var(--content-max); margin-inline:auto;}
+    .page-title{ display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;}
+    .page-title h1{ margin:0; font-size:1.8rem;}
+    .panel{background:var(--card); border-radius:var(--radius); box-shadow: var(--shadow); padding:16px; margin-bottom:16px;}
+    .panel h2{margin:0 0 10px 0; font-size:1.2rem;}
+    .subtle{color:var(--muted); font-size:.9rem;}
+
+    .cards{ display:grid; grid-template-columns: 1fr; gap:16px;}
+    @media (min-width: 880px){ .cards{ grid-template-columns: 1fr 1fr; } }
+
+    ul{list-style:none; padding-left:0; margin:0;}
+    li.payment{ display:grid; grid-template-columns: 1fr auto; align-items:center; gap:12px;
+      padding:12px; border:1px solid #eef2f7; border-radius:10px; margin-bottom:8px; background:#fff;}
+    .who{ font-weight:700;}
+    .meta{ color:var(--muted); font-size:.9rem;}
+    .amt{ font-weight:800;}
+    .positive{ color:var(--green-600);}
+    .negative{ color:var(--red);}
+    .row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+    .row .chip{ background:#f1f5f9; padding:3px 8px; border-radius:999px; font-size:.8rem; color:#111;}
+
+    .btn{border:1px solid #e5e7eb; background:#fff; border-radius:12px; padding:9px 12px; text-decoration:none; color:var(--black); font-weight:600; box-shadow: var(--shadow); cursor:pointer;}
+    .btn:hover{border-color:#d1d5db;}
+    .btn.primary{ background: #e8f8ee; color: var(--green-600); border-color:#cdebd8;}
+    .empty{padding:18px; text-align:center; color:var(--muted); border:1px dashed #e5e7eb; border-radius:12px;}
+
+    .toolbar{ display:flex; gap:10px; align-items:center;}
+    .search{ padding:8px 10px; border:1px solid #e5e7eb; border-radius:10px; min-width:220px;}
+    .filter{ padding:8px 10px; border:1px solid #e5e7eb; border-radius:10px; background:#fff;}
+
+    /* pay dropdown */
+    .pay-panel{ margin-top:10px; padding:12px; border:1px dashed #e5e7eb; border-radius:10px; background:#fafafa; display:none; }
+    .pay-panel.open{ display:block; }
+    .pay-methods{ display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+    .pay-option{ border:1px solid #e5e7eb; background:#fff; border-radius:999px; padding:6px 10px; cursor:pointer; font-weight:600; }
+    .pay-option:hover{ border-color:#d1d5db; }
+    .pay-note{ color:var(--muted); font-size:.88rem; }
+
+  </style>
+</head>
+<body>
+  <!-- Top bar -->
+  <header class="topbar">
+    <label for="nav-toggle" class="hamburger"><span></span><span></span><span></span></label>
+    <div class="brand">Expense <span class="accent">Splitter</span></div>
+  </header>
+
+  <input id="nav-toggle" type="checkbox"/>
+  <div class="layout">
+      <!-- Sidebar navigation -->
+    <aside class="sidebar">
+      <div class="nav-title">Menu</div>
+      <nav class="nav">
+        <a class="active" href="/dashboard">
+          <!-- Home -->
+          <svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>
+          Home
+        </a>
+        <a href="#">
+          <!-- Search -->
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+          Search
+        </a>
+        <a href="#">
+          <!-- Groups -->
+          <svg viewBox="0 0 24 24"><path d="M7 20a4 4 0 1 1 10 0"/><circle cx="12" cy="8" r="3"/><path d="M2 20a4 4 0 0 1 6-3.46"/><path d="M22 20a4 4 0 0 0-6-3.46"/></svg>
+          Groups
+        </a>
+        <a href="#">
+          <!-- Friends -->
+          <svg viewBox="0 0 24 24"><circle cx="8" cy="8" r="3"/><circle cx="16" cy="8" r="3"/><path d="M2 20a6 6 0 0 1 12 0"/><path d="M10 20a6 6 0 0 1 12 0"/></svg>
+          Friends
+        </a>
+        <a href="/payments">
+          <!-- Payments -->
+          <svg viewBox="0 0 24 24"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
+          Payments
+        </a>
+        <a href="#">
+          <!-- History -->
+          <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/><path d="M12 7v6l4 2"/></svg>
+          History
+        </a>
+        <a href="#">
+          <!-- Wallet -->
+          <svg viewBox="0 0 24 24"><path d="M3 7h14a4 4 0 0 1 4 4v2a4 4 0 0 1-4 4H3z"/><path d="M17 11h4v2h-4z"/></svg>
+          Wallet
+        </a>
+        <a href="#">
+          <!-- Notifications -->
+          <svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 1 1 12 0v5l2 3H4l2-3z"/><path d="M9 19a3 3 0 0 0 6 0"/></svg>
+          Notifications
+        </a>
+        <a href="#">
+          <!-- Settings -->
+          <svg viewBox="0 0 24 24"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1 1 0 0 0 .2 1.1l.1.1a2 2 0 0 1-2.9 2.9l-.1-.1a1 1 0 0 0-1.1-.2 1 1 0 0 0-.6.9V21a2 2 0 0 1-4 0v-.1a1 1 0 0 0-.6-.9 1 1 0 0 0-1.1.2l-.1.1a2 2 0 1 1-2.9-2.9l.1-.1a1 1 0 0 0 .2-1.1 1 1 0 0 0-.9-.6H3a2 2 0 0 1 0-4h.1a1 1 0 0 0 .9-.6 1 1 0 0 0-.2-1.1l-.1-.1a2 2 0 1 1 2.9-2.9l.1.1a1 1 0 0 0 1.1.2h.1c.5-.2.8-.6.8-1.1V3a2 2 0 0 1 4 0v.1c0 .5.3.9.8 1.1h.1a1 1 0 0 0 1.1-.2l.1-.1a2 2 0 1 1 2.9 2.9l-.1.1a1 1 0 0 0-.2 1.1v.1c.2.5.6.8 1.1.8H21a2 2 0 0 1 0 4h-.1a1 1 0 0 0-.9.6z"/></svg>
+          Settings
+        </a>
+        <a href="/account">
+        <!-- Account -->
+        <svg viewBox="0 0 24 24">
+          <circle cx="12" cy="8" r="4"/>
+          <path d="M6 20c0-3.314 2.686-6 6-6s6 2.686 6 6"/>
+        </svg>
+        Account
+      </a>
+      </nav>
+    </aside>
+
+
+    <!-- Main -->
+    <main class="main">
+      <div class="page-title">
+        <h1>Payments</h1>
+        <div class="toolbar">
+          <input id="search" class="search" placeholder="Search by group or expense..."/>
+          <select id="group-filter" class="filter">
+            <option value="">All groups</option>
+          </select>
+        </div>
+      </div>
+
+      <section class="cards">
+        <div class="panel">
+          <h2>Requested Payments</h2>
+          <div class="subtle">Stuff you still owe (requested by friends/groups).</div>
+          <ul id="requested-list"></ul>
+          <div id="requested-empty" class="empty" style="display:none;">No pending requests. Nice!</div>
+        </div>
+
+        <div class="panel">
+          <h2>Past Payments</h2>
+          <div class="subtle">Things you’ve already paid.</div>
+          <ul id="past-list"></ul>
+          <div id="past-empty" class="empty" style="display:none;">Nothing here yet.</div>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

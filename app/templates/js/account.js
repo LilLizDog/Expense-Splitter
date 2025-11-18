@@ -4,7 +4,7 @@
 const el = (id) => document.getElementById(id);
 const show = (n) => n && n.classList.remove('hidden');
 const hide = (n) => n && n.classList.add('hidden');
-
+ 
 const authNotice   = el('authNotice');
 const appArea      = el('appArea');
 const full_name    = el('full_name');

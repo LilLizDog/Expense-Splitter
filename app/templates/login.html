@@ -33,6 +33,7 @@
     .btn:hover{border-color:#d1d5db}
     .alt{margin-top:14px;font-size:.95rem}
     .alt a{text-decoration:none;color:var(--green-600)}
+    .error{display:none;color:#721c24;background:#f8d7da;padding:8px;border-radius:6px;margin:8px 0;}
   </style>
 </head>
 
@@ -45,6 +46,9 @@
     <section class="card">
       <h1>Welcome back</h1>
       <p class="muted">Sign in to continue.</p>
+
+      <!-- Status banner -->
+      <div id="login-error" class="error"></div>
 
       <form id="login-form">
         <label class="req" for="email">Email</label>
@@ -68,11 +72,20 @@
         <button class="btn" type="submit">Log In</button>
       </form>
 
-      <div class="alt">New here? <a href="/signup">Create an account</a></div>
+      <div class="alt">
+        <a href="/reset">Forgot password?</a>
+        &nbsp;·&nbsp;
+        New here? <a href="/signup">Create an account</a>
+      </div>
     </section>
   </main>
 
-  <script src="/static/js/login.js" defer></script>
+  <!-- Modules: Supabase client, guard for public page, and login logic -->
+  <script type="module" src="/static/js/supabaseClient.js"></script>
+  <script type="module" src="/static/js/guard_public.js"></script>
+  <script type="module" src="/static/js/login.js"></script>
+
+  <!-- Small helper: toggle password visibility -->
   <script>
     function togglePw(id, btn){
       const input = document.getElementById(id);
