@@ -12,6 +12,8 @@ on:
 jobs:
   test-and-build:
     runs-on: ubuntu-latest
+    env:
+      TESTING: "1"
 
     steps:
       - name: Checkout repository
@@ -27,6 +29,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pytest
+
+      - name: Install Playwright browsers
+        run: |
+          # Ensure Playwright downloads browser binaries for tests that use Playwright
+          python -m playwright install --with-deps
 
       - name: Run unit tests
         run: pytest
