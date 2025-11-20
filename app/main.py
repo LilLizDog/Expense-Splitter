@@ -71,17 +71,17 @@ def test_supabase_connection():
 @app.get("/welcome", response_class=HTMLResponse)
 @app.get("/welcome.html", response_class=HTMLResponse)
 async def get_welcome(request: Request):
-    return templates.TemplateResponse("welcome.html", {"request": request})
+    return templates.TemplateResponse(request, "welcome.html", {})
 
 @app.get("/login", response_class=HTMLResponse)
 @app.get("/login.html", response_class=HTMLResponse)
 async def get_login(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
+    return templates.TemplateResponse(request, "login.html", {})
 
 @app.get("/signup", response_class=HTMLResponse)
 @app.get("/signup.html", response_class=HTMLResponse)
 async def get_signup(request: Request):
-    return templates.TemplateResponse("signup.html", {"request": request})
+    return templates.TemplateResponse(request, "signup.html", {})
 
 @app.get("/account", response_class=HTMLResponse)
 @app.get("/account.html", response_class=HTMLResponse)
@@ -94,10 +94,7 @@ async def get_account(request: Request):
         "phone": "314-555-1234",
         "display_currency": "USD",
     }
-    return templates.TemplateResponse(
-        "account.html",
-        {"request": request, "mock_mode": True, "mock_user": mock_user},
-    )
+    return templates.TemplateResponse(request, "account.html", {"mock_mode": True, "mock_user": mock_user})
 
 @app.get("/dashboard", response_class=HTMLResponse)
 async def get_dashboard(request: Request):
@@ -116,7 +113,7 @@ async def get_dashboard(request: Request):
             "Invite: Join Group 'CS3300 Team'",
         ],
     }
-    return templates.TemplateResponse("dashboard.html", {"request": request, **mock_data})
+    return templates.TemplateResponse(request, "dashboard.html", mock_data)
 
 @app.get("/add-expense", response_class=HTMLResponse)
 async def get_add_expense(
@@ -128,29 +125,27 @@ async def get_add_expense(
     injected into the template as `current_user_id`.
     """
     return templates.TemplateResponse(
+        request,
         "add_expense.html",
-        {
-            "request": request,
-            "current_user_id": str(user["id"]),
-        },
+        {"current_user_id": str(user["id"])},
     )
 
 @app.get("/friends", response_class=HTMLResponse)
 @app.get("/friends.html", response_class=HTMLResponse)
 async def get_friends(request: Request):
-    return templates.TemplateResponse("friends.html", {"request": request})
+    return templates.TemplateResponse(request, "friends.html", {})
 
 @app.get("/history", response_class=HTMLResponse)
 @app.get("/history.html", response_class=HTMLResponse)
 async def get_history(request: Request):
-    return templates.TemplateResponse("history.html", {"request": request})
+    return templates.TemplateResponse(request, "history.html", {})
 
 @app.get("/settings", response_class=HTMLResponse)
 @app.get("/settings.html", response_class=HTMLResponse)
 async def get_settings(request: Request):
-    return templates.TemplateResponse("settings.html", {"request": request})
+    return templates.TemplateResponse(request, "settings.html", {})
 
 @app.get("/payments", response_class=HTMLResponse)
 @app.get("/payments.html", response_class=HTMLResponse)
 async def get_payments(request: Request):
-    return templates.TemplateResponse("payments.html", {"request": request})
+    return templates.TemplateResponse(request, "payments.html", {})
