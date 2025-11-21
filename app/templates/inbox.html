@@ -1,29 +1,23 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Inbox</title>
-    <script src="/static/js/inbox.js" defer></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss/dist/tailwind.min.css">
-</head>
-<body class="bg-gray-100">
+{% extends "base.html" %}
 
-    <nav class="bg-blue-600 text-white p-4">
-        <div class="flex justify-between">
-            <a href="/home" class="font-bold">Home</a>
-            <a href="/groups">Groups</a>
-            <a href="/inbox" class="underline">Inbox</a>
-        </div>
-    </nav>
+{% block title %}Inbox | Expense Splitter{% endblock %}
 
-    <div class="max-w-3xl mx-auto mt-6">
-        
-        <input id="searchInput" type="text" placeholder="Search messages..." 
-            class="w-full p-2 border rounded mb-4">
+{% block styles %}
+<!-- Optional: Add Tailwind or other page-specific styles if needed -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss/dist/tailwind.min.css">
+{% endblock %}
 
-        <ul id="threadList" class="bg-white shadow rounded divide-y">
-            <!-- JS will insert message threads here -->
-        </ul>
-    </div>
+{% block content %}
+<div class="max-w-3xl mx-auto mt-6">
+    <input id="searchInput" type="text" placeholder="Search messages..." 
+        class="w-full p-2 border rounded mb-4">
 
-</body>
-</html>
+    <ul id="threadList" class="bg-white shadow rounded divide-y">
+        <!-- JS will insert message threads here -->
+    </ul>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="/static/js/inbox.js"></script>
+{% endblock %}

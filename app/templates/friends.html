@@ -1,133 +1,143 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <title>Friends | Expense Splitter</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    /* Simple page design for better readability and spacing*/
-    body { font-family: system-ui, Arial, sans-serif; margin: 24px; }
-    nav a { margin-right: 12px; }
-    header { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin: 12px 0; }
-    input, select, button { padding: 8px; }
-    .pill { padding: 2px 8px; border-radius: 999px; background:#eee; font-size: 12px; margin-left: 8px; }
-    ul { padding-left: 18px; }
-    form { display:flex; gap:8px; flex-wrap:wrap; margin-top: 8px; }
-  </style>
-</head>
-<body>
-  <!-- Simple navigation bar(matches the structure of existing pages) -->
-  <nav>
-    <a href="/welcome">Welcome</a>
-    <a href="/groups">Groups</a>
-    <a href="/friends"><strong>Friends</strong></a>
-    <a href="/balances">Balances</a>
-    <a href="/login">Login</a>
-    <a href="/signup">Signup</a>
-  </nav> 
+{% extends "base.html" %}
 
-  <!-- Page title and also displays the total number of friends-->
-  <h1>Friends <span id="count" class="pill"></span></h1>
+{% block title %}Friends - Expense Splitter{% endblock %}
 
-  <!-- Search and filter part -->
-  <header>
-    <input id="q" placeholder="Search name…" />
-    <select id="group"><option value="">All groups</option></select>
-    <button id="btnSearch">Search</button>
-    <button id="btnClear" type="button">Clear</button>
-  </header>
+{% block styles %}
+<style>
+  body { margin: 0; } /* base.html already handles most styling */
 
-  <!-- Form for users to add a new friend -->
-  <form id="addForm">
-    <input id="name" placeholder="New friend name" required />
-    <input id="newGroup" placeholder="Group (e.g., Roommates)" required />
-    <button type="submit">Add Friend</button>
-  </form>
+  header { 
+    display:flex; 
+    gap:8px; 
+    align-items:center; 
+    flex-wrap:wrap; 
+    margin: 12px 0; 
+  }
 
-  <!-- A list of the user's friends will appear here-->
-  <ul id="list"></ul>
+  input, select, button { padding: 8px; }
+  .pill { 
+    padding: 2px 8px; 
+    border-radius: 999px; 
+    background:#eee; 
+    font-size: 12px; 
+    margin-left: 8px; 
+  }
 
-  <script>
-    /* Uses .get() functions to get references to HTML elements for manipulation */
-    const listEl = document.getElementById("list");
-    const qEl = document.getElementById("q");
-    const groupEl = document.getElementById("group");
-    const countEl = document.getElementById("count");
+  ul { padding-left: 18px; }
+  form { 
+    display:flex; 
+    gap:8px; 
+    flex-wrap:wrap; 
+    margin-top: 8px; 
+  }
+</style>
+{% endblock %}
 
-    /* Load the group list from the backend for use in the dropdown filter */
-    async function loadGroups() {
-      const r = await fetch("/api/friends/groups");
-      const data = await r.json();
-      // Set the dropdown back to default and include group options
-      groupEl.innerHTML = '<option value="">All groups</option>';
-      for (const g of data.groups) {
-        const opt = document.createElement("option");
-        opt.value = g; opt.textContent = g;
-        groupEl.appendChild(opt);
-      }
-    }
+{% block content %}
 
-    /* Load and filter your friends list by name or group */
-    async function loadFriends() {
-      const params = new URLSearchParams();
-      const qv = qEl.value.trim();
-      const gv = groupEl.value.trim();
-      if (qv) params.append("q", qv);
-      if (gv) params.append("group", gv);
+<h1>Friends <span id="count" class="pill"></span></h1>
 
-      // Fetches a GET request to retrieve the filtered friends list from the backend API
-      const r = await fetch("/api/friends/?" + params.toString());
-      const data = await r.json();
-      render(data.friends);
-    }
+<header>
+  <input id="q" placeholder="Search name…" />
+  <select id="group"><option value="">All groups</option></select>
+  <button id="btnSearch">Search</button>
+  <button id="btnClear" type="button">Clear</button>
+</header>
 
-    /* Renders the friends list in the HTML page */
-    function render(items) {
-      listEl.innerHTML = ""; // Clear existing list
-      countEl.textContent = items.length + " total";
-      for (const f of items) {
-        const li = document.createElement("li");
-        li.textContent = `${f.name} — ${f.group}`;
-        listEl.appendChild(li);
-      }
-    }
+<form id="addForm">
+  <input id="name" placeholder="New friend name" required />
+  <input id="newGroup" placeholder="Group (e.g., Roommates)" required />
+  <button type="submit">Add Friend</button>
+</form>
 
-    /* When the search button is clicked, load the friends list with the current filters */
-    document.getElementById("btnSearch").addEventListener("click", loadFriends);
+<ul id="list"></ul>
 
-    /* When the clear button is clicked, reset the search fields and reload the full friends list */
-    document.getElementById("btnClear").addEventListener("click", () => {
-      qEl.value = ""; groupEl.value = "";
-      loadFriends();
-    });
+{% endblock %}
 
-    /* When the user submits the add friend form, send a POST request to the backend API */
-    document.getElementById("addForm").addEventListener("submit", async (e) => {
-      e.preventDefault(); // Stop the form from reloading the page
-      const name = document.getElementById("name").value.trim();
-      const group = document.getElementById("newGroup").value.trim();
-      if (!name || !group) return;
+{% block scripts %}
+<script>
+// Highlight sidebar if /friends is added later
+const link = document.querySelector('.nav a[href="/friends"]');
+if (link) link.classList.add("active");
 
-      // Sends a POST request to add a new friend
-      const r = await fetch("/api/friends/", {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({ name, group })
-      });
+const listEl = document.getElementById("list");
+const qEl = document.getElementById("q");
+const groupEl = document.getElementById("group");
+const countEl = document.getElementById("count");
 
-      // If successful, clear the form and reload the friends and groups list
-      if (r.ok) {
-        document.getElementById("name").value = "";
-        document.getElementById("newGroup").value = "";
-        await loadGroups();
-        await loadFriends();
-      } else {
-        alert("Failed to add friend");
-      }
-    });
+// Load groups from backend
+async function loadGroups() {
+  const r = await fetch("/api/friends/groups");
+  const data = await r.json();
 
-    // Initial load of groups and friends when the page is first opened
-    loadGroups().then(loadFriends);
-  </script>
-</body>
-</html>
+  groupEl.innerHTML = '<option value="">All groups</option>';
+  for (const g of data.groups) {
+    const opt = document.createElement("option");
+    opt.value = g;
+    opt.textContent = g;
+    groupEl.appendChild(opt);
+  }
+}
+
+// Load & filter friends list
+async function loadFriends() {
+  const params = new URLSearchParams();
+  const qv = qEl.value.trim();
+  const gv = groupEl.value.trim();
+
+  if (qv) params.append("q", qv);
+  if (gv) params.append("group", gv);
+
+  const r = await fetch("/api/friends/?" + params.toString());
+  const data = await r.json();
+  render(data.friends);
+}
+
+function render(items) {
+  listEl.innerHTML = "";
+  countEl.textContent = items.length + " total";
+
+  for (const f of items) {
+    const li = document.createElement("li");
+    li.textContent = `${f.name} — ${f.group}`;
+    listEl.appendChild(li);
+  }
+}
+
+// Button handlers
+document.getElementById("btnSearch").addEventListener("click", loadFriends);
+
+document.getElementById("btnClear").addEventListener("click", () => {
+  qEl.value = "";
+  groupEl.value = "";
+  loadFriends();
+});
+
+// Add friend form
+document.getElementById("addForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const name = document.getElementById("name").value.trim();
+  const group = document.getElementById("newGroup").value.trim();
+  if (!name || !group) return;
+
+  const r = await fetch("/api/friends/", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ name, group })
+  });
+
+  if (r.ok) {
+    document.getElementById("name").value = "";
+    document.getElementById("newGroup").value = "";
+    await loadGroups();
+    await loadFriends();
+  } else {
+    alert("Failed to add friend");
+  }
+});
+
+// Initial load
+loadGroups().then(loadFriends);
+</script>
+{% endblock %}

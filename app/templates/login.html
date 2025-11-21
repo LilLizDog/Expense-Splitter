@@ -1,101 +1,97 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <!-- Login page UI -->
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Login</title>
+{% extends "base.html" %}
 
-  <style>
-    :root{
-      --green:#16a34a; --green-600:#15803d; --black:#111; --bg:#f6f7f8;
-      --card:#fff; --muted:#6b7280; --radius:14px; --shadow:0 8px 20px rgba(0,0,0,0.06);
-    }
-    *{box-sizing:border-box}
-    body{margin:0;background:var(--bg);font-family:Arial,Helvetica,sans-serif}
-    .topbar{height:56px;background:#fff;box-shadow:var(--shadow);display:flex;align-items:center;padding:0 14px}
-    .brand{font-weight:800;font-size:1.6rem}.brand .accent{color:var(--green)}
-    .wrap{min-height:calc(100vh - 56px);display:flex;align-items:center;justify-content:center;padding:24px}
-    .card{width:100%;max-width:520px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:28px}
+{% block title %}Login | Expense Splitter{% endblock %}
 
-    h1{margin:0 0 6px;font-size:1.5rem}
-    p.muted{margin:0 0 18px;color:var(--muted);font-size:.95rem}
+{% block styles %}
+<style>
+  :root{
+    --green:#16a34a; --green-600:#15803d; --black:#111; --bg:#f6f7f8;
+    --card:#fff; --muted:#6b7280; --radius:14px; --shadow:0 8px 20px rgba(0,0,0,0.06);
+  }
+  .wrap{
+    min-height: calc(100vh - 56px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .card{
+    width: 100%;
+    max-width: 520px;
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 28px;
+  }
+  h1{margin:0 0 6px; font-size:1.5rem;}
+  p.muted{margin:0 0 18px; color:var(--muted); font-size:.95rem;}
+  label{display:block; font-size:.92rem; margin:10px 0 6px;}
+  .req::after{content:" *"; color:#b91c1c;}
+  input{width:100%; padding:11px 12px; border:1px solid #e5e7eb; border-radius:10px; font-size:14px;}
+  .pw-wrap{position:relative;}
+  .eye-btn{position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; padding:0;}
+  .eye-icon{width:20px; height:20px; stroke:currentColor; stroke-width:2; fill:none;}
+  .btn{width:100%; margin-top:18px; padding:12px; border-radius:12px; border:1px solid #e5e7eb; background:#fff; font-weight:700; cursor:pointer; box-shadow:var(--shadow);}
+  .btn:hover{border-color:#d1d5db;}
+  .alt{margin-top:14px; font-size:.95rem;}
+  .alt a{text-decoration:none; color:var(--green-600);}
+  .error{display:none; color:#721c24; background:#f8d7da; padding:8px; border-radius:6px; margin:8px 0;}
+</style>
+{% endblock %}
 
-    label{display:block;font-size:.92rem;margin:10px 0 6px}
-    .req::after{content:" *";color:#b91c1c}
-    input{width:100%;padding:11px 12px;border:1px solid #e5e7eb;border-radius:10px;font-size:14px}
+{% block content %}
+<main class="wrap">
+  <section class="card">
+    <h1>Welcome back</h1>
+    <p class="muted">Sign in to continue.</p>
 
-    .pw-wrap{position:relative}
-    .eye-btn{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:0}
-    .eye-icon{width:20px;height:20px;stroke:currentColor;stroke-width:2;fill:none}
+    <div id="login-error" class="error"></div>
 
-    .btn{width:100%;margin-top:18px;padding:12px;border-radius:12px;border:1px solid #e5e7eb;background:#fff;font-weight:700;cursor:pointer;box-shadow:var(--shadow)}
-    .btn:hover{border-color:#d1d5db}
-    .alt{margin-top:14px;font-size:.95rem}
-    .alt a{text-decoration:none;color:var(--green-600)}
-    .error{display:none;color:#721c24;background:#f8d7da;padding:8px;border-radius:6px;margin:8px 0;}
-  </style>
-</head>
+    <form id="login-form">
+      <label class="req" for="email">Email</label>
+      <input id="email" name="email" type="email" required/>
 
-<body>
-  <header class="topbar">
-    <div class="brand">Expense <span class="accent">Splitter</span></div>
-  </header>
-
-  <main class="wrap">
-    <section class="card">
-      <h1>Welcome back</h1>
-      <p class="muted">Sign in to continue.</p>
-
-      <!-- Status banner -->
-      <div id="login-error" class="error"></div>
-
-      <form id="login-form">
-        <label class="req" for="email">Email</label>
-        <input id="email" name="email" type="email" required/>
-
-        <div class="pw-wrap">
-          <label class="req" for="password">Password</label>
-          <input id="password" name="password" type="password" required/>
-          <button class="eye-btn" type="button" onclick="togglePw('password', this)">
-            <svg class="eye-icon show" viewBox="0 0 24 24">
-              <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/>
-              <circle cx="12" cy="12" r="3"/>
-            </svg>
-            <svg class="eye-icon hide" viewBox="0 0 24 24" style="display:none">
-              <path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a21.8 21.8 0 0 1 5.06-5.94"/>
-              <line x1="1" y1="1" x2="23" y2="23"/>
-            </svg>
-          </button>
-        </div>
-
-        <button class="btn" type="submit">Log In</button>
-      </form>
-
-      <div class="alt">
-        <a href="/reset">Forgot password?</a>
-        &nbsp;·&nbsp;
-        New here? <a href="/signup">Create an account</a>
+      <div class="pw-wrap">
+        <label class="req" for="password">Password</label>
+        <input id="password" name="password" type="password" required/>
+        <button class="eye-btn" type="button" onclick="togglePw('password', this)">
+          <svg class="eye-icon show" viewBox="0 0 24 24">
+            <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+          <svg class="eye-icon hide" viewBox="0 0 24 24" style="display:none">
+            <path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a21.8 21.8 0 0 1 5.06-5.94"/>
+            <line x1="1" y1="1" x2="23" y2="23"/>
+          </svg>
+        </button>
       </div>
-    </section>
-  </main>
 
-  <!-- Modules: Supabase client, guard for public page, and login logic -->
-  <script type="module" src="/static/js/supabaseClient.js"></script>
-  <script type="module" src="/static/js/guard_public.js"></script>
-  <script type="module" src="/static/js/login.js"></script>
+      <button class="btn" type="submit">Log In</button>
+    </form>
 
-  <!-- Small helper: toggle password visibility -->
-  <script>
-    function togglePw(id, btn){
-      const input = document.getElementById(id);
-      const show = btn.querySelector('.show');
-      const hide = btn.querySelector('.hide');
-      const on = input.type === 'password';
-      input.type = on ? 'text' : 'password';
-      show.style.display = on ? 'none' : 'block';
-      hide.style.display = on ? 'block' : 'none';
-    }
-  </script>
-</body>
-</html>
+    <div class="alt">
+      <a href="/reset">Forgot password?</a>
+      &nbsp;·&nbsp;
+      New here? <a href="/signup">Create an account</a>
+    </div>
+  </section>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="/static/js/supabaseClient.js"></script>
+<script type="module" src="/static/js/guard_public.js"></script>
+<script type="module" src="/static/js/login.js"></script>
+
+<script>
+function togglePw(id, btn){
+  const input = document.getElementById(id);
+  const show = btn.querySelector('.show');
+  const hide = btn.querySelector('.hide');
+  const on = input.type === 'password';
+  input.type = on ? 'text' : 'password';
+  show.style.display = on ? 'none' : 'block';
+  hide.style.display = on ? 'block' : 'none';
+}
+</script>
+{% endblock %}
