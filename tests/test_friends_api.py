@@ -4,7 +4,7 @@
 import pytest
 from fastapi.testclient import TestClient
 from app.main import app
-from app.db import supabase
+from app.core.supabase_client import supabase
 
 client = TestClient(app)
 
