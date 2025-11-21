@@ -4,13 +4,20 @@
 import pytest
 from fastapi.testclient import TestClient
 from app.main import app
-from app.core.supabase_client import supabase
+from app.db import supabase
 
 client = TestClient(app)
 
 def clear_friends():
-    # Only delete rows for the demo test user so we don't wipe out real data
-    supabase.table("friends").delete().neq("id", 0).execute()
+    # Works in CI (FakeSupabase) and locally (real Supabase)
+    try:
+        # Try real delete first
+        supabase.table("friends").delete().neq("id", 0).execute()
+    except Exception:
+        # CI fallback
+        if hasattr(supabase, "_data"):
+            supabase._data["friends"] = []
+
 
 
 # Helper to make creating a test friend easier. 
@@ -67,7 +74,7 @@ def test_search_returns_expected_results():
     create_friend(name="Alice Wonder", email="alice@test.com")
     create_friend(name="Bob Stone", email="bob@test.com")
 
-        # Searching by part of name, should return at least one Alice match
+    # Searching by part of name, should return at least one Alice match
     resp = client.get("/api/friends/?q=alice")
     assert resp.status_code == 200
     data = resp.json()
