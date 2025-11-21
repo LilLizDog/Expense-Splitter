@@ -60,15 +60,12 @@
   </nav>
 
   <!-- Page title + total count -->
-  <h1>
-    Friends
-    <span id="count" class="pill"></span>
-  </h1>
+  <h1>Friends <span id="count" class="pill"></span></h1>
 
   <!-- Top row: search + group filter + buttons -->
   <header>
-    <input id="search" placeholder="Search by name, email, or group…" />
-    <select id="groupFilter">
+    <input id="q" placeholder="Search by name, email, or group…" />
+    <select id="group">
       <option value="">All groups</option>
     </select>
     <button id="btnSearch" type="button">Search</button>
@@ -76,10 +73,10 @@
   </header>
 
   <!-- Second row: add-friend form -->
-  <form id="addFriendForm">
-    <input id="friendName" placeholder="Name (optional)" />
-    <input id="friendEmail" type="email" placeholder="Email (optional)" />
-    <input id="friendGroup" placeholder="Group (e.g., Roommates) (optional)" />
+  <form id="addForm" onsubmit="event.preventDefault(); addFriend();">
+    <input id="nameInput" placeholder="Name (optional)" />
+    <input id="emailInput" placeholder="Email (optional)" />
+    <input id="groupInput" placeholder="Group (e.g., Roommates) (optional)" />
     <button type="submit">Add Friend</button>
   </form>
 
@@ -88,16 +85,16 @@
   </p>
 
   <!-- Friends list -->
-  <ul id="friendsList"></ul>
+  <ul id="list"></ul>
 
 <script>
   // Grab references to elements on the page so I can update them
-  const listEl   = document.getElementById("friendsList");
+  const listEl   = document.getElementById("list");
   const countEl  = document.getElementById("count");
   const emptyEl  = document.getElementById("friendsEmpty");
 
-  const searchEl = document.getElementById("search");
-  const groupEl  = document.getElementById("groupFilter");
+  const searchEl = document.getElementById("q");
+  const groupEl  = document.getElementById("group");
 
   const addForm   = document.getElementById("addFriendForm");
   const nameInput = document.getElementById("friendName");
