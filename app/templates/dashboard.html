@@ -1,70 +1,40 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Expense Splitter - Dashboard</title>
+{% extends "base.html" %}
 
-  <!--
-    DASHBOARD PAGE (team notes)
-    - Top bar only (brand + hamburger). No separate hero panel.
-    - Sidebar starts COLLAPSED by default; hamburger toggles it.
-    - Main shows:
-        • Greeting (left)
-        • Wallet summary (right; green = owed, red = owe)
-        • Two most recent transactions
-        • Quick actions + notifications
-    - Data keys expected:
-        user_name: str
-        wallet_balance: number
-        balance_class: "positive" | "negative"
-        recent_tx: [{name, amount, sign("+"/"-"), date, group}, ...]
-        notifications: [str, ...]
-  -->
+{% block title %}Dashboard - Expense Splitter{% endblock %}
 
-  <style>
-    :root{
-      /* Theme */
-      --green: #16a34a;
-      --green-600: #15803d;
-      --red: #b91c1c;
-      --black: #111111;
-      --bg: #f6f7f8;
-      --card: #ffffff;
-      --muted: #6b7280;
+{% block styles %}
+<!-- If dashboard needs custom styles, add them here -->
+<style>
+  /* Wallet colors */
+  .wallet.positive .amount { color: var(--green-600); }
+  .wallet.negative .amount { color: var(--red); }
 
-      /* Layout */
-      --sidebar-w: 220px;
-      --radius: 14px;
-      --shadow: 0 8px 20px rgba(0,0,0,0.06);
-      --content-max: 1120px;
-    }
+  /* Transactions */
+  .tx-list { display:flex; flex-direction:column; gap:10px; }
+  .tx {
+    display:flex; justify-content:space-between; align-items:center;
+    background:#fff; border:1px solid #eef2f7;
+    border-radius:12px; padding:10px 12px;
+  }
+  .tx .left { display:flex; flex-direction:column; }
+  .tx .name { font-weight:600; font-size:14.5px; }
+  .tx .meta { font-size:.9rem; color:var(--muted); }
+  .tx .amt { font-weight:700; font-size:14.5px; }
+  .tx .amt.positive { color:var(--green-600); }
+  .tx .amt.negative { color:var(--red); }
 
-    * { box-sizing: border-box; }
-    body{
-      margin:0;
-      background: var(--bg);
-      color: var(--black);
-      font-family: Arial, Helvetica, sans-serif;
-      font-size: 15px;
-      line-height: 1.35;
-    }
+  /* Quick actions */
+  .actions { display:flex; gap:10px; flex-wrap:wrap; }
+  .btn {
+    border:1px solid #e5e7eb; background:#fff; border-radius:12px;
+    padding:9px 12px; text-decoration:none; color:var(--black);
+    font-weight:600; box-shadow:var(--shadow); font-size:14px;
+  }
+  .btn:hover { border-color:#d1d5db; }
+</style>
+{% endblock %}
 
-    /* ===== Top Bar ===== */
-    .topbar{
-      position: sticky; top:0; z-index: 40;
-      height: 56px;
-      background: #fff;
-      box-shadow: var(--shadow);
-      display:flex; align-items:center; gap:12px;
-      padding: 0 14px;
-    }
-    .brand{
-      font-weight: 800;
-      font-size: 1.6rem;   /* larger app name per request */
-      letter-spacing: .2px;
-    }
-    .brand .accent{ color: var(--green); }
+{% block content %}
 
     /* ===== Shell ===== */
     .layout{
@@ -299,6 +269,84 @@
         </div>
       </section>
     </main>
+<!-- Greeting + Wallet -->
+<section class="panel-row grid-2" style="margin-bottom:16px;">
+  <div class="panel">
+    <h2>Welcome {{ user_name|default('User') }}!</h2>
+    <p class="muted">Quick overview of your account.</p>
   </div>
-</body>
-</html>
+
+  <div class="panel">
+    <div class="wallet {{ balance_class|default('positive') }}">
+      <div class="muted">Wallet Balance</div>
+      <div class="amount">
+        ${{ "%.2f"|format(wallet_balance|default(0.0)) }}
+      </div>
+      <div class="muted">
+        {% if balance_class == 'negative' %}
+          You owe money
+        {% else %}
+          You are owed money
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Recent Transactions -->
+<section class="panel" style="margin-bottom:16px;">
+  <h2>Recent Transactions</h2>
+
+  <div class="tx-list">
+    {% if recent_tx and recent_tx|length > 0 %}
+      {% for t in recent_tx[:2] %}
+        <div class="tx">
+          <div class="left">
+            <div class="name">{{ t.name }}</div>
+            <div class="meta">{{ t.date }} • {{ t.group }}</div>
+          </div>
+          <div class="amt {% if t.sign == '+' %}positive{% else %}negative{% endif %}">
+            {{ t.sign }}${{ "%.2f"|format(t.amount) }}
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="muted">No recent transactions.</div>
+    {% endif %}
+  </div>
+</section>
+
+<!-- Quick Actions + Notifications -->
+<section class="panel-row" style="margin-bottom:16px;">
+  <div class="panel">
+    <h2>Quick Actions</h2>
+    <div class="actions">
+      <a class="btn" href="#">+ Add Expense</a>
+      <a class="btn" href="#">Settle Up</a>
+      <a class="btn" href="#">Create Group</a>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Notifications</h2>
+    <ul style="margin:0; padding-left:18px;">
+      {% if notifications and notifications|length > 0 %}
+        {% for note in notifications[:4] %}
+          <li>{{ note }}</li>
+        {% endfor %}
+      {% else %}
+        <li class="muted">No new notifications.</li>
+      {% endif %}
+    </ul>
+  </div>
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  /* Highlight sidebar link */
+  const link = document.querySelector('.nav a[href="/dashboard"]');
+  if (link) link.classList.add("active");
+</script>
+{% endblock %}

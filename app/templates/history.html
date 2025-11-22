@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}History | Expense Splitter{% endblock %}
+
+{% block content %}
+<h1>History</h1>
+<p>View past expenses and payments. Use the filters to narrow down by group or person.</p>
+
+<!-- Filter section -->
+<header>
+  <select id="groupFilter">
+    <option value="">All groups</option>
+  </select>
+  <input id="personFilter" placeholder="Filter by person…" />
+  <button id="btnApply">Apply filters</button>
+  <button id="btnClear" type="button">Clear</button>
+</header>
+
+<!-- Two-column layout -->
+<div class="columns">
+  <div class="col">
+    <h2>Received Payments</h2>
+    <ul id="receivedList"></ul>
+  </div>
+  <div class="col">
+    <h2>Paid Expenses</h2>
+    <ul id="paidList"></ul>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const groupEl = document.getElementById("groupFilter");
+  const personEl = document.getElementById("personFilter");
+  const receivedList = document.getElementById("receivedList");
+  const paidList = document.getElementById("paidList");
+
+  async function loadFilters() {
+    const r = await fetch("/api/history/groups");
+    if (!r.ok) return;
+    const data = await r.json();
+    groupEl.innerHTML = '<option value="">All groups</option>';
+    for (const g of data.groups) {
+      const opt = document.createElement("option");
+      opt.value = g;
+      opt.textContent = g;
+      groupEl.appendChild(opt);
+    }
+  }
+
+  async function loadHistory() {
+    const params = new URLSearchParams();
+    const g = groupEl.value.trim();
+    const p = personEl.value.trim();
+    if (g) params.append("group", g);
+    if (p) params.append("person", p);
+
+    const r = await fetch("/api/history/?" + params.toString());
+    if (r.status === 401) {
+      receivedList.innerHTML = "<li class='empty'>You must be logged in to view history.</li>";
+      paidList.innerHTML = "";
+      return;
+    }
+    const data = await r.json();
+    renderLists(data.received, data.paid);
+  }
+
+  function renderLists(received, paid) {
+    receivedList.innerHTML = "";
+    if (!received.length) {
+      receivedList.innerHTML = "<li class='empty'>No received payments.</li>";
+    } else {
+      for (const item of received) {
+        const li = document.createElement("li");
+        li.textContent = `${item.from} → you • $${item.amount} • ${item.group}`;
+        receivedList.appendChild(li);
+      }
+    }
+
+    paidList.innerHTML = "";
+    if (!paid.length) {
+      paidList.innerHTML = "<li class='empty'>No paid expenses.</li>";
+    } else {
+      for (const item of paid) {
+        const li = document.createElement("li");
+        li.textContent = `You paid ${item.to} • $${item.amount} • ${item.group}`;
+        paidList.appendChild(li);
+      }
+    }
+  }
+
+  document.getElementById("btnApply").addEventListener("click", loadHistory);
+  document.getElementById("btnClear").addEventListener("click", () => {
+    groupEl.value = "";
+    personEl.value = "";
+    loadHistory();
+  });
+
+  loadFilters().then(loadHistory);
+</script>
+{% endblock %}

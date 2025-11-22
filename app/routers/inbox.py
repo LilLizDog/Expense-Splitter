@@ -6,7 +6,11 @@ router = APIRouter()
 
 @router.get("/inbox", response_class=HTMLResponse)
 async def inbox_page(request: Request):
-    return request.app.state.templates.TemplateResponse("inbox.html", {"request": request})
+    return request.app.state.templates.TemplateResponse(
+    request,
+    "inbox.html",
+    {}
+)
 
 @router.get("/inbox/data")
 async def inbox_data():

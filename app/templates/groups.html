@@ -1,32 +1,38 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Groups</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-    <header>
-        <nav>
-            <a href="/dashboard.html">Dashboard</a>
-            <a href="/groups.html">Groups</a>
-        </nav>
-    </header>
+{% extends "base.html" %}
 
-    <main>
-        <h1>Your Expense Groups</h1>
+{% block title %}Groups | Expense Splitter{% endblock %}
 
-        <!-- Group creation form -->
-        <form id="create-group-form">
-            <input type="text" id="group-name" placeholder="Group Name" required>
-            <textarea id="group-description" placeholder="Description"></textarea>
-            <button type="submit">Create Group</button>
-        </form>
+{% block content %}
+<section class="panel">
+  <h2>Create New Group</h2>
+  <form id="create-group-form">
+    <input type="text" id="group-name" placeholder="Group Name" required /><br/><br/>
+    <textarea id="group-desc" placeholder="Description" rows="2"></textarea><br/><br/>
+    <input type="text" id="group-members" placeholder="Member Emails (comma separated)" /><br/><br/>
+    <button type="submit" class="btn">Create Group</button>
+  </form>
+</section>
 
-        <!-- List of groups -->
-        <ul id="groups-list"></ul>
-    </main>
+<section class="panel">
+  <h2>Your Groups</h2>
+  <div id="groups-list" class="tx-list">
+    Loading groups...
+  </div>
+</section>
+{% endblock %}
 
-    <script type="module" src="groups.js"></script>
-</body>
-</html>
+{% block scripts %}
+<script type="module" src="/static/js/groups.js"></script>
+
+<script>
+  // Highlight the Groups tab in the sidebar
+  document.addEventListener("DOMContentLoaded", () => {
+    const links = document.querySelectorAll(".nav a");
+    links.forEach(a => {
+      if (a.textContent.trim() === "Groups") {
+        a.classList.add("active");
+      }
+    });
+  });
+</script>
+{% endblock %}

@@ -1,34 +1,100 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Group Details</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-    <header>
-        <nav>
-            <a href="/dashboard.html">Dashboard</a>
-            <a href="/groups.html">Groups</a>
-        </nav>
-    </header>
+{% extends "base.html" %}
 
-    <main>
-        <h1 id="group-name"></h1>
-        <p id="group-description"></p>
+{% block title %}Group | Expense Splitter{% endblock %}
 
-        <h2>Expenses</h2>
-        <ul id="expenses-list"></ul>
+{% block content %}
 
-        <!-- Add new expense -->
-        <h3>Add Expense</h3>
-        <form id="create-expense-form">
-            <input type="text" id="expense-name" placeholder="Expense Name" required />
-            <input type="number" id="expense-amount" placeholder="Amount" step="0.01" required />
-            <button type="submit">Add Expense</button>
-        </form>
-    </main>
+<!-- GROUP HEADER -->
+<section class="panel">
+  <h1 id="group-name">Group Name</h1>
+  <p class="muted" id="group-desc"></p>
+  <p class="muted">Created on: <span id="group-date"></span></p>
 
-    <script type="module" src="group.js"></script>
-</body>
-</html>
+  <div class="actions">
+    <a class="btn" id="add-member-btn" href="#">+ Add Member</a>
+    <a class="btn" href="/add_expense.html">+ Add Expense</a>
+  </div>
+</section>
+
+<!-- RECENT TRANSACTIONS -->
+<section class="panel">
+  <h2>Recent Transactions</h2>
+  <div class="tx-list" id="tx-list">
+    <div class="muted">Loading...</div>
+  </div>
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script type="module">
+  import { createClient } from "https://esm.sh/@supabase/supabase-js";
+
+  const supabase = createClient("https://ntivhddzzdldypdlcoqy.supabase.co", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50aXZoZGR6emRsZHlwZGxjb3F5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk2MTA4MTgsImV4cCI6MjA3NTE4NjgxOH0.2uyS6DAhbKJi2iXotnKjWygGvO6XQ1YqGWDRsjgErcw");
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const group_id = urlParams.get("group_id");
+
+  async function loadGroup() {
+    const { data, error } = await supabase
+      .from("groups")
+      .select("*")
+      .eq("id", group_id)
+      .single();
+
+    if (data) {
+      document.getElementById("group-name").textContent = data.name;
+      document.getElementById("group-desc").textContent = data.description || "";
+      document.getElementById("group-date").textContent =
+        new Date(data.created_at).toLocaleDateString();
+    }
+  }
+
+  async function loadTransactions() {
+    const { data, error } = await supabase
+      .from("transactions")
+      .select("*")
+      .eq("group_id", group_id)
+      .order("created_at", { ascending: false })
+      .limit(10);
+
+    const list = document.getElementById("tx-list");
+    list.innerHTML = "";
+
+    if (!data || data.length === 0) {
+      list.innerHTML = `<div class="muted">No transactions yet.</div>`;
+      return;
+    }
+
+    data.forEach((t) => {
+      const sign = t.amount >= 0 ? "positive" : "negative";
+      list.innerHTML += `
+        <div class="tx">
+          <div class="left">
+            <div class="name">${t.name}</div>
+            <div class="meta">${new Date(t.created_at).toLocaleDateString()}</div>
+          </div>
+          <div class="amt ${sign}">
+            ${sign === "positive" ? "+" : "-"}$${Math.abs(t.amount).toFixed(2)}
+          </div>
+        </div>
+      `;
+    });
+  }
+
+  loadGroup();
+  loadTransactions();
+</script>
+
+<!-- Highlight Groups tab -->
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const links = document.querySelectorAll(".nav a");
+    links.forEach(a => {
+      if (a.getAttribute("href") === "/groups") {
+        a.classList.add("active");
+      }
+    });
+  });
+</script>
+{% endblock %}

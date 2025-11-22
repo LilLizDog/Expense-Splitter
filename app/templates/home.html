@@ -1,27 +1,31 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>Home</title>
-</head>
-<body>
-  <h2>Welcome!</h2>
+{% extends "base.html" %}
+
+{% block title %}Home | Expense Splitter{% endblock %}
+
+{% block content %}
+  <h2 id="welcome">Welcome!</h2>
   <p>You are logged in.</p>
-  <button id="logout">Logout</button>
+{% endblock %}
 
-  <script type="module">
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+{% block scripts %}
+<script type="module">
+  import { supabase } from '/static/js/supabaseClient.js'
 
-    const supabaseUrl = 'https://ntivhddzzdldypdlcoqy.supabase.co'
-    const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50aXZoZGR6emRsZHlwZGxjb3F5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk2MTA4MTgsImV4cCI6MjA3NTE4NjgxOH0.2uyS6DAhbKJi2iXotnKjWygGvO6XQ1YqGWDRsjgErcw'
+  // Display user's name if available
+  const { data: { user } } = await supabase.auth.getUser()
+  if (user && user.user_metadata && user.user_metadata.name) {
+    document.getElementById('welcome').textContent = `Welcome, ${user.user_metadata.name}!`
+  }
 
-    const supabase = createClient(supabaseUrl, supabaseAnonKey)
-
-    document.getElementById('logout').addEventListener('click', async () => {
-      await supabase.auth.signOut()
-      localStorage.removeItem('session')
-      window.location.href = 'login.html'
-    })
-  </script>
-</body>
-</html>
+  // Logout functionality (if not already handled globally)
+  const logoutBtn = document.createElement('button')
+  logoutBtn.textContent = 'Logout'
+  logoutBtn.style.cssText = 'background:none;border:none;color:var(--green);font-weight:bold;cursor:pointer;margin-left:16px;'
+  logoutBtn.addEventListener('click', async () => {
+    await supabase.auth.signOut()
+    localStorage.removeItem('session')
+    window.location.href = 'login.html'
+  })
+  document.querySelector('.topbar').appendChild(logoutBtn)
+</script>
+{% endblock %}
