@@ -29,8 +29,6 @@ def get_settings():
         .table("settings")
         .select("*")
         .eq("user_id", user_id)
-        .order("created_at", desc=True)
-        .limit(1)
         .execute()
     )
 
@@ -63,7 +61,6 @@ def get_settings():
 
 # POST Updates or creates the current user's settings
 @router.post("/")
-@router.post("/")
 def update_settings(settings: SettingsIn):
     user_id = get_current_user_id()
 
@@ -73,8 +70,6 @@ def update_settings(settings: SettingsIn):
         .table("settings")
         .select("id")
         .eq("user_id", user_id)
-        .order("created_at", desc=True)
-        .limit(1)
         .execute()
     )
 
