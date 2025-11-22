@@ -1,62 +1,42 @@
-# tests/conftest.py
-import pytest
+# tests/test_groups.py
+import os
 
-class ExecResultMock:
-    def __init__(self, data=None, error=None, status_code=200):
-        self.data = data
-        self.error = error
-        self.status_code = status_code
+# --- Ensure supabase_client.py doesn't raise ValueError ---
+os.environ["SUPABASE_URL"] = "http://fake-url"
+os.environ["SUPABASE_KEY"] = "fake-key"
+os.environ["TESTING"] = "1"  # triggers in-memory fake client
 
-class TableMock:
-    def __init__(self, data=None):
-        # data should be a list (for select) or whatever you want execute() to return
-        self._data = data or []
-        self._last_insert = None
+from fastapi.testclient import TestClient
+from app.main import app
 
-    # chainable methods
-    def select(self, *args, **kwargs):
-        return self
-    def insert(self, insert_data):
-        self._last_insert = insert_data
-        return self
-    def contains(self, *args, **kwargs):
-        return self
-    def order(self, *args, **kwargs):
-        return self
-    def eq(self, *args, **kwargs):
-        return self
-    def single(self):
-        return self
-    def in_(self, *args, **kwargs):
-        return self
+client = TestClient(app)
 
-    def execute(self):
-        # If an insert occurred, pretend insert returns the new row
-        if self._last_insert is not None:
-            return ExecResultMock(data=[{**self._last_insert, "id": "new-id"}], error=None)
-        return ExecResultMock(data=self._data, error=None)
-
-class SupabaseMock:
-    def __init__(self, initial=None):
-        initial = initial or {}
-        self._initial = initial
-
-    def table(self, name):
-        data = self._initial.get(name, [])
-        return TableMock(data=list(data))
-
-@pytest.fixture(autouse=True)
-def mock_supabase(monkeypatch):
-    initial = {
-        "groups": [
-            {"id": "xyz", "members": ["uuid-123"], "created_at": "2025-11-01"}
-        ],
-        "users": [
-            {"id": "uuid-123", "name": "Liz", "email": "liz@example.com"}
-        ],
+# --- Tests ---
+def test_create_group():
+    payload = {
+        "name": "Test Group",
+        "description": "Demo",
+        "members": ["uuid-123"]
     }
-    mock = SupabaseMock(initial)
-    # patch the supabase objects used by the app (both routers and main)
-    monkeypatch.setattr("app.routers.groups.supabase", mock)
-    monkeypatch.setattr("app.main.supabase", mock)
-    yield
+
+    res = client.post("/groups/", json=payload)
+    assert res.status_code == 200
+    assert res.json()["ok"] is True
+
+def test_group_validation():
+    res = client.post("/groups/", json={
+        "name": "",
+        "description": "",
+        "members": []
+    })
+    assert res.status_code == 400
+
+def test_get_user_groups():
+    res = client.get("/groups/user/uuid-123")
+    assert res.status_code == 200
+    assert "groups" in res.json()
+
+def test_get_group_members():
+    res = client.get("/groups/xyz/members")
+    # 200 if valid, 404 if not found
+    assert res.status_code in (200, 404)
