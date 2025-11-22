@@ -23,16 +23,11 @@
 
 {% block scripts %}
 <script type="module" src="/static/js/groups.js"></script>
-
 <script>
-  // Highlight the Groups tab in the sidebar
-  document.addEventListener("DOMContentLoaded", () => {
-    const links = document.querySelectorAll(".nav a");
-    links.forEach(a => {
-      if (a.textContent.trim() === "Groups") {
-        a.classList.add("active");
-      }
-    });
+document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll(".nav a").forEach(a => {
+    if (a.textContent.trim() === "Groups") a.classList.add("active");
   });
+});
 </script>
 {% endblock %}

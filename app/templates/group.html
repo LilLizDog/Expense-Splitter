@@ -3,98 +3,22 @@
 {% block title %}Group | Expense Splitter{% endblock %}
 
 {% block content %}
-
-<!-- GROUP HEADER -->
 <section class="panel">
-  <h1 id="group-name">Group Name</h1>
-  <p class="muted" id="group-desc"></p>
-  <p class="muted">Created on: <span id="group-date"></span></p>
-
+  <h1 id="group-name"></h1>
+  <p id="group-desc"></p>
+  <p>Created on: <span id="group-date"></span></p>
   <div class="actions">
-    <a class="btn" id="add-member-btn" href="#">+ Add Member</a>
-    <a class="btn" href="/add_expense.html">+ Add Expense</a>
+    <button class="btn" id="add-member-btn">+ Add Member</button>
+    <button class="btn" id="add-expense-btn">+ Add Expense</button>
   </div>
 </section>
 
-<!-- RECENT TRANSACTIONS -->
 <section class="panel">
   <h2>Recent Transactions</h2>
-  <div class="tx-list" id="tx-list">
-    <div class="muted">Loading...</div>
-  </div>
+  <div id="tx-list" class="tx-list">Loading...</div>
 </section>
-
 {% endblock %}
 
 {% block scripts %}
-<script type="module">
-  import { createClient } from "https://esm.sh/@supabase/supabase-js";
-
-  const supabase = createClient("YOUR_SUPABASE_URL", "YOUR_SUPABASE_ANON_KEY");
-
-  const urlParams = new URLSearchParams(window.location.search);
-  const group_id = urlParams.get("group_id");
-
-  async function loadGroup() {
-    const { data, error } = await supabase
-      .from("groups")
-      .select("*")
-      .eq("id", group_id)
-      .single();
-
-    if (data) {
-      document.getElementById("group-name").textContent = data.name;
-      document.getElementById("group-desc").textContent = data.description || "";
-      document.getElementById("group-date").textContent =
-        new Date(data.created_at).toLocaleDateString();
-    }
-  }
-
-  async function loadTransactions() {
-    const { data, error } = await supabase
-      .from("transactions")
-      .select("*")
-      .eq("group_id", group_id)
-      .order("created_at", { ascending: false })
-      .limit(10);
-
-    const list = document.getElementById("tx-list");
-    list.innerHTML = "";
-
-    if (!data || data.length === 0) {
-      list.innerHTML = `<div class="muted">No transactions yet.</div>`;
-      return;
-    }
-
-    data.forEach((t) => {
-      const sign = t.amount >= 0 ? "positive" : "negative";
-      list.innerHTML += `
-        <div class="tx">
-          <div class="left">
-            <div class="name">${t.name}</div>
-            <div class="meta">${new Date(t.created_at).toLocaleDateString()}</div>
-          </div>
-          <div class="amt ${sign}">
-            ${sign === "positive" ? "+" : "-"}$${Math.abs(t.amount).toFixed(2)}
-          </div>
-        </div>
-      `;
-    });
-  }
-
-  loadGroup();
-  loadTransactions();
-</script>
-
-<!-- Highlight Groups tab -->
-<script>
-  document.addEventListener("DOMContentLoaded", () => {
-    const links = document.querySelectorAll(".nav a");
-    links.forEach(a => {
-      if (a.getAttribute("href") === "/groups") {
-        a.classList.add("active");
-      }
-    });
-  });
-</script>
+<script type="module" src="/static/js/group.js"></script>
 {% endblock %}
