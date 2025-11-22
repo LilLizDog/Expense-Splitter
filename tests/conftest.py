@@ -1,9 +1,15 @@
 # tests/conftest.py
 # Sets up a shared test client for all API tests.
 
-import os, sys
+import os
+import sys
+from dotenv import load_dotenv
 import pytest
 from fastapi.testclient import TestClient
+
+# Load .env first so SUPABASE_URL and SUPABASE_KEY are available
+load_dotenv()
+
 
 # Make sure the project root (where app/ lives) is importable
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
