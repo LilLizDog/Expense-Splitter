@@ -1,3 +1,4 @@
+// FILE: groups.js
 import { supabase } from './supabaseClient.js';
 
 const createForm = document.getElementById("create-group-form");
@@ -47,6 +48,7 @@ async function fetchGroups() {
     groupsList.appendChild(div);
   });
 
+  // Attach Add Member handlers
   document.querySelectorAll('.add-member').forEach(btn => {
     btn.addEventListener('click', async () => {
       const email = prompt("Enter email of member to add:");
@@ -82,4 +84,7 @@ createForm.addEventListener("submit", async e => {
   fetchGroups();
 });
 
+// ----------------------------
+// Initial load
+// ----------------------------
 fetchGroups();
