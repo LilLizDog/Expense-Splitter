@@ -1,4 +1,5 @@
 # tests/test_groups.py
+
 import pytest
 
 def test_create_group(client):
