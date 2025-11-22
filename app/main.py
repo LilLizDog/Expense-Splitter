@@ -9,9 +9,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 
-from .core.supabase_client import get_supabase
-supabase = get_supabase()
-
+from .core.supabase_client import supabase
 
 # ------------------------
 # APP + PATHS
