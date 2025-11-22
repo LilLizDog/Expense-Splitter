@@ -1,14 +1,20 @@
+// FILE: groups.js
 import { supabase } from './supabaseClient.js';
 
 const groupsList = document.getElementById('groups-list');
 const createForm = document.getElementById('create-group-form');
 
+// ----------------------------
+// Fetch and display groups
+// ----------------------------
 async function fetchGroups() {
-  const user = supabase.auth.user();
+  const currentUser = supabase.auth.user();
+  if (!currentUser) return;
+
   const { data: groups, error } = await supabase
     .from('groups')
     .select('*')
-    .contains('members', [user.id])
+    .contains('members', [currentUser.id])
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -28,7 +34,7 @@ async function fetchGroups() {
     div.classList.add('tx');
     div.innerHTML = `
       <div class="left">
-        <a href="group.html?id=${group.id}" class="name">${group.name}</a>
+        <a href="group.html?group_id=${group.id}" class="name">${group.name}</a>
         <div class="meta">${group.description || ''}</div>
         <div class="meta">Created: ${new Date(group.created_at).toLocaleDateString()}</div>
       </div>
@@ -37,11 +43,13 @@ async function fetchGroups() {
     groupsList.appendChild(div);
   });
 
+  // Attach Add Member handlers
   document.querySelectorAll('.add-member').forEach(btn => {
     btn.addEventListener('click', async () => {
       const memberEmail = prompt('Enter member email to add:');
       if (!memberEmail) return;
 
+      // Fetch the user ID from email
       const { data: userData, error: userError } = await supabase
         .from('users')
         .select('id')
@@ -54,13 +62,20 @@ async function fetchGroups() {
       }
 
       const groupId = btn.dataset.id;
-      const { data: group } = await supabase
+
+      // Get current members
+      const { data: group, error: groupError } = await supabase
         .from('groups')
         .select('members')
         .eq('id', groupId)
         .single();
 
-      const updatedMembers = [...group.members, userData.id];
+      if (groupError) {
+        alert('Error fetching group members');
+        return;
+      }
+
+      const updatedMembers = Array.from(new Set([...group.members, userData.id])); // prevent duplicates
 
       const { error: updateError } = await supabase
         .from('groups')
@@ -76,25 +91,40 @@ async function fetchGroups() {
   });
 }
 
+// ----------------------------
+// Handle creating a new group
+// ----------------------------
 createForm.addEventListener('submit', async e => {
   e.preventDefault();
-  const name = document.getElementById('group-name').value;
-  const desc = document.getElementById('group-desc').value;
+
+  const name = document.getElementById('group-name').value.trim();
+  const desc = document.getElementById('group-desc').value.trim();
   const membersInput = document.getElementById('group-members').value;
   const memberEmails = membersInput.split(',').map(e => e.trim()).filter(Boolean);
 
-  // Fetch user IDs for members
+  if (!name) {
+    alert('Group name cannot be empty');
+    return;
+  }
+
   const memberIds = [];
+
+  // Fetch member IDs from emails
   for (const email of memberEmails) {
     const { data: user } = await supabase.from('users').select('id').eq('email', email).single();
     if (user) memberIds.push(user.id);
   }
 
   const currentUser = supabase.auth.user();
+  if (!currentUser) return;
+
   memberIds.push(currentUser.id); // include creator
 
   const { error } = await supabase.from('groups').insert([{
-    name, description: desc, members: memberIds, created_at: new Date().toISOString()
+    name,
+    description: desc,
+    members: memberIds,
+    created_at: new Date().toISOString()
   }]);
 
   if (error) {
@@ -106,4 +136,7 @@ createForm.addEventListener('submit', async e => {
   }
 });
 
+// ----------------------------
+// Initial load
+// ----------------------------
 fetchGroups();

@@ -30,7 +30,7 @@
 <script type="module">
   import { createClient } from "https://esm.sh/@supabase/supabase-js";
 
-  const supabase = createClient("YOUR_SUPABASE_URL", "YOUR_SUPABASE_ANON_KEY");
+  const supabase = createClient("https://ntivhddzzdldypdlcoqy.supabase.co", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50aXZoZGR6emRsZHlwZGxjb3F5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk2MTA4MTgsImV4cCI6MjA3NTE4NjgxOH0.2uyS6DAhbKJi2iXotnKjWygGvO6XQ1YqGWDRsjgErcw");
 
   const urlParams = new URLSearchParams(window.location.search);
   const group_id = urlParams.get("group_id");
