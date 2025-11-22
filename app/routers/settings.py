@@ -86,9 +86,7 @@ def update_settings(settings: SettingsIn):
                     "notifications_enabled": settings.notifications_enabled,
                     "theme": settings.theme,
                     "font_size": settings.font_size,
-                },
-                returning="representation"       
-            )
+            })
             .eq("id", settings_id)
             .execute()
         )
@@ -103,9 +101,7 @@ def update_settings(settings: SettingsIn):
                     "notifications_enabled": settings.notifications_enabled,
                     "theme": settings.theme,
                     "font_size": settings.font_size,
-                },
-                returning="representation"  # Return the new row   
-            )
+            })
             .execute()
         )
 
