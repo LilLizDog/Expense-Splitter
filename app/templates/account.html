@@ -54,7 +54,7 @@
     }
   </style>
 
-  <!-- Variables injected by FastAPI -->
+  <!-- Variables injected by FastAPI  -->
   <script>
     window.MOCK_MODE = {{ "true" if mock_mode else "false" }};
     window.MOCK_USER = {{ mock_user | tojson if mock_user else "null" }};

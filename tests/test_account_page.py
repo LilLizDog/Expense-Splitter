@@ -1,7 +1,7 @@
 # tests/test_account_page.py
 import pytest
 from playwright.sync_api import sync_playwright
-
+ 
 HTML = r"""
 <!DOCTYPE html><html><head><meta charset="utf-8"><title>Account</title></head>
 <body>
