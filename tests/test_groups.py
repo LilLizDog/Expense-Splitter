@@ -1,22 +1,23 @@
-import pytest
-from supabase import create_client, Client
-import uuid
-import os
+# tests/test_groups.py
 
-# --- Setup Supabase client ---
-SUPABASE_URL = os.environ.get("SUPABASE_URL")
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+import os
+from dotenv import load_dotenv
+import pytest
+import uuid
+from app.core.supabase_client import supabase  # your actual Supabase client
+
+# --- Load .env ---
+load_dotenv()  # loads SUPABASE_URL and SUPABASE_KEY into environment
 
 # --- Fixtures ---
 @pytest.fixture
 def test_user():
-    """Create a test user ID"""
+    """Create a unique test user ID."""
     return str(uuid.uuid4())
 
 @pytest.fixture
 def test_group(test_user):
-    """Create a test group and clean up after"""
+    """Create a temporary group for testing and clean up afterward."""
     group_data = {
         "name": "Test Group",
         "description": "A group for testing",
@@ -29,7 +30,6 @@ def test_group(test_user):
     supabase.table("groups").delete().eq("id", group_id).execute()
 
 # --- Tests ---
-
 def test_create_group_inserts_correct_record(test_user):
     group_data = {
         "name": "Unit Test Group",
@@ -37,7 +37,8 @@ def test_create_group_inserts_correct_record(test_user):
         "members": [test_user],
     }
     result = supabase.table("groups").insert(group_data).execute()
-    
+
+    # Check insertion succeeded
     assert result.status_code == 201 or result.status_code == 200
     inserted = result.data[0]
     assert inserted["name"] == group_data["name"]
@@ -49,20 +50,16 @@ def test_create_group_inserts_correct_record(test_user):
 
 def test_fetch_groups_returns_only_user_groups(test_user, test_group):
     group_id, group_data = test_group
-    
-    # Fetch all groups where user is a member
+
     result = supabase.table("groups").select("*").contains("members", [test_user]).execute()
-    
     assert result.status_code == 200
     groups = result.data
-    # All returned groups must include the test_user
     for g in groups:
         assert test_user in g["members"]
 
 def test_fetch_group_members_returns_correct_list(test_group, test_user):
     group_id, group_data = test_group
-    
-    # Fetch members of the group
+
     result = supabase.table("groups").select("members").eq("id", group_id).execute()
     assert result.status_code == 200
     members = result.data[0]["members"]
