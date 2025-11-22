@@ -55,6 +55,10 @@
     </div>
   </div>
 
+  <!-- Global empty-state message when there is no history at all -->
+  <p id="globalEmpty" class="empty" style="margin-top: 12px;"></p>
+
+
   <script>
     // References to HTML elements for manipulation
     const groupEl = document.getElementById("groupFilter");
@@ -89,6 +93,7 @@
       if (r.status === 401) {
         receivedList.innerHTML = "<li class='empty'>You must be logged in to view history.</li>";
         paidList.innerHTML = "";
+        document.getElementById("globalEmpty").textContent = "";
         return;
       }
       const data = await r.json();
@@ -97,6 +102,7 @@
 
     // Display the previously received and paid lists in the HTML page
     function renderLists(received, paid) {
+      const globalEmptyEl = document.getElementById("globalEmpty");
       // Show the received payments
       receivedList.innerHTML = "";
       if (!received.length) {
@@ -119,7 +125,14 @@
           paidList.appendChild(li);
         }
       }
+      // Global empty-state when there is absolutely no history
+      if (!received.length && !paid.length) {
+        globalEmptyEl.textContent = "No history yet. Your past expenses and payments will appear here.";
+      } else {
+        globalEmptyEl.textContent = "";
+      }
     }
+    
 
     // Apply button that reloads the history list with the current filters
     document.getElementById("btnApply").addEventListener("click", loadHistory);
