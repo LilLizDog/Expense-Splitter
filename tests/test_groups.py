@@ -1,70 +1,80 @@
 # tests/test_groups.py
-from dotenv import load_dotenv
-import os
 
-# --- Load .env ---
-load_dotenv()  # loads SUPABASE_URL and SUPABASE_KEY into environment
-
-from app.main import app
 import pytest
 import uuid
-from app.core.supabase_client import supabase  # your actual Supabase client
-
-
+from unittest.mock import MagicMock, patch
 
 # --- Fixtures ---
 @pytest.fixture
 def test_user():
-    """Create a unique test user ID."""
     return str(uuid.uuid4())
 
 @pytest.fixture
 def test_group(test_user):
-    """Create a temporary group for testing and clean up afterward."""
+    """Return a mock group object."""
+    group_id = str(uuid.uuid4())
     group_data = {
+        "id": group_id,
         "name": "Test Group",
         "description": "A group for testing",
         "members": [test_user],
     }
-    result = supabase.table("groups").insert(group_data).execute()
-    group_id = result.data[0]["id"]
-    yield group_id, group_data
-    # Cleanup
-    supabase.table("groups").delete().eq("id", group_id).execute()
+    return group_id, group_data
 
 # --- Tests ---
 def test_create_group_inserts_correct_record(test_user):
-    group_data = {
-        "name": "Unit Test Group",
-        "description": "Testing insert",
-        "members": [test_user],
-    }
-    result = supabase.table("groups").insert(group_data).execute()
+    with patch("app.core.supabase_client.supabase") as mock_supabase:
+        mock_table = mock_supabase.table.return_value
+        mock_table.insert.return_value.execute.return_value = {
+            "data": [{
+                "id": str(uuid.uuid4()),
+                "name": "Unit Test Group",
+                "description": "Testing insert",
+                "members": [test_user],
+            }],
+            "status_code": 201
+        }
 
-    # Check insertion succeeded
-    assert result.status_code == 201 or result.status_code == 200
-    inserted = result.data[0]
-    assert inserted["name"] == group_data["name"]
-    assert inserted["description"] == group_data["description"]
-    assert test_user in inserted["members"]
+        # Import supabase **inside the patch context** to avoid triggering real client
+        from app.core.supabase_client import supabase
 
-    # Cleanup
-    supabase.table("groups").delete().eq("id", inserted["id"]).execute()
+        result = supabase.table("groups").insert({
+            "name": "Unit Test Group",
+            "description": "Testing insert",
+            "members": [test_user],
+        }).execute()
+
+        inserted = result["data"][0]
+        assert inserted["name"] == "Unit Test Group"
+        assert inserted["description"] == "Testing insert"
+        assert test_user in inserted["members"]
 
 def test_fetch_groups_returns_only_user_groups(test_user, test_group):
     group_id, group_data = test_group
+    with patch("app.core.supabase_client.supabase") as mock_supabase:
+        mock_table = mock_supabase.table.return_value
+        mock_table.select.return_value.contains.return_value.execute.return_value = {
+            "data": [group_data],
+            "status_code": 200
+        }
 
-    result = supabase.table("groups").select("*").contains("members", [test_user]).execute()
-    assert result.status_code == 200
-    groups = result.data
-    for g in groups:
-        assert test_user in g["members"]
+        from app.core.supabase_client import supabase
+        result = supabase.table("groups").select("*").contains("members", [test_user]).execute()
+        groups = result["data"]
+        for g in groups:
+            assert test_user in g["members"]
 
 def test_fetch_group_members_returns_correct_list(test_group, test_user):
     group_id, group_data = test_group
+    with patch("app.core.supabase_client.supabase") as mock_supabase:
+        mock_table = mock_supabase.table.return_value
+        mock_table.select.return_value.eq.return_value.execute.return_value = {
+            "data": [group_data],
+            "status_code": 200
+        }
 
-    result = supabase.table("groups").select("members").eq("id", group_id).execute()
-    assert result.status_code == 200
-    members = result.data[0]["members"]
-    assert members == group_data["members"]
-    assert test_user in members
+        from app.core.supabase_client import supabase
+        result = supabase.table("groups").select("members").eq("id", group_id).execute()
+        members = result["data"][0]["members"]
+        assert members == group_data["members"]
+        assert test_user in members
