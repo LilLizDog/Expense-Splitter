@@ -30,7 +30,7 @@
 
   <!-- Page title and description -->
   <h1>Settings</h1>
-  <p>Update your app preferences. Right now these are stored in mock data.</p>
+  <p>Update your app preferences. These are saved to your account and applied automatically.</p>
 
   <!-- Notification section -->
   <div class="section">
@@ -71,9 +71,13 @@
     const fontEl = document.getElementById("fontSelect");
     const statusEl = document.getElementById("status");
 
-    // Load existing settings from the backend (mock data for now)
+    // Load existing settings from the backend (Supabase)
     async function loadSettings() {
       const r = await fetch("/api/settings/");
+      if (!r.ok) {
+        console.error("Error loading settings");
+        return;
+      }
       const data = await r.json();
       notifyEl.checked = data.notifications_enabled;
       themeEl.value = data.theme;
@@ -100,7 +104,7 @@
       if (size === "xlarge") document.body.style.fontSize = "20px";
     }
 
-    // Save settings to the backend (mock implementation)
+    // Save settings to the backend (Supabase)
     async function saveSettings() {
       const payload = {
         notifications_enabled: notifyEl.checked,
@@ -115,7 +119,7 @@
 
       // Display status message based on success or failure
       if (r.ok) {
-        statusEl.textContent = "Settings saved (mock).";
+        statusEl.textContent = "Settings saved.";
         setTimeout(() => statusEl.textContent = "", 2000);
       } else {
         statusEl.textContent = "Error saving settings.";
