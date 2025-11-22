@@ -1,13 +1,16 @@
 # tests/test_groups.py
-
-import os
 from dotenv import load_dotenv
+import os
+
+# --- Load .env ---
+load_dotenv()  # loads SUPABASE_URL and SUPABASE_KEY into environment
+
+from app.main import app
 import pytest
 import uuid
 from app.core.supabase_client import supabase  # your actual Supabase client
 
-# --- Load .env ---
-load_dotenv()  # loads SUPABASE_URL and SUPABASE_KEY into environment
+
 
 # --- Fixtures ---
 @pytest.fixture
