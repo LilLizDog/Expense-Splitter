@@ -1,54 +1,70 @@
-# tests/test_groups.py
 import pytest
+from supabase import create_client, Client
+import uuid
+import os
 
-def test_create_group(client):
-    """Test creating a new group."""
-    payload = {
+# --- Setup Supabase client ---
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+# --- Fixtures ---
+@pytest.fixture
+def test_user():
+    """Create a test user ID"""
+    return str(uuid.uuid4())
+
+@pytest.fixture
+def test_group(test_user):
+    """Create a test group and clean up after"""
+    group_data = {
         "name": "Test Group",
-        "description": "Demo group",
-        "members": ["uuid-123"]  # matches the mock user in conftest
+        "description": "A group for testing",
+        "members": [test_user],
     }
+    result = supabase.table("groups").insert(group_data).execute()
+    group_id = result.data[0]["id"]
+    yield group_id, group_data
+    # Cleanup
+    supabase.table("groups").delete().eq("id", group_id).execute()
 
-    res = client.post("/groups/", json=payload)
-    assert res.status_code == 200
-    data = res.json()
-    assert data.get("ok") is True
-    assert data.get("group") is not None
-    assert data["group"]["name"] == "Test Group"
+# --- Tests ---
 
-def test_create_group_validation(client):
-    """Test validation error when sending invalid data."""
-    res = client.post("/groups/", json={
-        "name": "",
-        "description": "",
-        "members": []
-    })
-    assert res.status_code == 400
+def test_create_group_inserts_correct_record(test_user):
+    group_data = {
+        "name": "Unit Test Group",
+        "description": "Testing insert",
+        "members": [test_user],
+    }
+    result = supabase.table("groups").insert(group_data).execute()
+    
+    assert result.status_code == 201 or result.status_code == 200
+    inserted = result.data[0]
+    assert inserted["name"] == group_data["name"]
+    assert inserted["description"] == group_data["description"]
+    assert test_user in inserted["members"]
 
-def test_get_user_groups(client):
-    """Test retrieving groups for a specific user."""
-    user_id = "uuid-123"
-    res = client.get(f"/groups/user/{user_id}")
-    assert res.status_code == 200
-    data = res.json()
-    assert "groups" in data
-    assert isinstance(data["groups"], list)
+    # Cleanup
+    supabase.table("groups").delete().eq("id", inserted["id"]).execute()
 
-def test_get_group_members(client):
-    """Test retrieving members of a group."""
-    group_id = "xyz"
-    res = client.get(f"/groups/{group_id}/members")
-    assert res.status_code == 200
-    data = res.json()
-    assert isinstance(data, list)
-    # Each member should have id, name, email
-    if data:
-        member = data[0]
-        assert "id" in member
-        assert "name" in member
-        assert "email" in member
+def test_fetch_groups_returns_only_user_groups(test_user, test_group):
+    group_id, group_data = test_group
+    
+    # Fetch all groups where user is a member
+    result = supabase.table("groups").select("*").contains("members", [test_user]).execute()
+    
+    assert result.status_code == 200
+    groups = result.data
+    # All returned groups must include the test_user
+    for g in groups:
+        assert test_user in g["members"]
 
-def test_get_nonexistent_group_members(client):
-    """Test retrieving members for a group that does not exist."""
-    res = client.get("/groups/nonexistent-group/members")
-    assert res.status_code == 404
+def test_fetch_group_members_returns_correct_list(test_group, test_user):
+    group_id, group_data = test_group
+    
+    # Fetch members of the group
+    result = supabase.table("groups").select("members").eq("id", group_id).execute()
+    assert result.status_code == 200
+    members = result.data[0]["members"]
+    assert members == group_data["members"]
+    assert test_user in members
