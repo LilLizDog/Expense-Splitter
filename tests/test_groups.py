@@ -1,5 +1,4 @@
 # tests/test_groups.py
-
 import pytest
 import uuid
 from unittest.mock import MagicMock, patch
@@ -23,26 +22,19 @@ def test_group(test_user):
 # --- Auto-mock Supabase ---
 @pytest.fixture(autouse=True)
 def mock_supabase_client():
-    """Mock the Supabase client for all tests."""
-    with patch("app.core.supabase_client.supabase") as mock_supabase:
-        mock_table = MagicMock()
-        mock_supabase.table.return_value = mock_table
+    """Automatically mock the Supabase client for all tests."""
+    with patch("app.core.supabase_client.get_supabase") as mock_get:
+        mock_client = MagicMock()
+        mock_get.return_value = mock_client
 
         # Default behavior for common methods
-        mock_table.insert.return_value.execute.return_value = {
-            "data": [],
-            "status_code": 201
-        }
-        mock_table.select.return_value.contains.return_value.execute.return_value = {
-            "data": [],
-            "status_code": 200
-        }
-        mock_table.select.return_value.eq.return_value.execute.return_value = {
-            "data": [],
-            "status_code": 200
-        }
+        mock_table = MagicMock()
+        mock_client.table.return_value = mock_table
+        mock_table.insert.return_value.execute.return_value = {"data": [], "status_code": 201}
+        mock_table.select.return_value.contains.return_value.execute.return_value = {"data": [], "status_code": 200}
+        mock_table.select.return_value.eq.return_value.execute.return_value = {"data": [], "status_code": 200}
 
-        yield mock_supabase
+        yield mock_client
 
 # --- Tests ---
 def test_create_group_inserts_correct_record(test_user):
@@ -53,7 +45,8 @@ def test_create_group_inserts_correct_record(test_user):
         "members": [test_user],
     }
 
-    from app.core.supabase_client import supabase
+    from app.core.supabase_client import get_supabase
+    supabase = get_supabase()
     supabase.table.return_value.insert.return_value.execute.return_value = {
         "data": [mock_data],
         "status_code": 201
@@ -72,8 +65,9 @@ def test_create_group_inserts_correct_record(test_user):
 
 def test_fetch_groups_returns_only_user_groups(test_user, test_group):
     group_id, group_data = test_group
-    from app.core.supabase_client import supabase
 
+    from app.core.supabase_client import get_supabase
+    supabase = get_supabase()
     supabase.table.return_value.select.return_value.contains.return_value.execute.return_value = {
         "data": [group_data],
         "status_code": 200
@@ -86,8 +80,9 @@ def test_fetch_groups_returns_only_user_groups(test_user, test_group):
 
 def test_fetch_group_members_returns_correct_list(test_group, test_user):
     group_id, group_data = test_group
-    from app.core.supabase_client import supabase
 
+    from app.core.supabase_client import get_supabase
+    supabase = get_supabase()
     supabase.table.return_value.select.return_value.eq.return_value.execute.return_value = {
         "data": [group_data],
         "status_code": 200
