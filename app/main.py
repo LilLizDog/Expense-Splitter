@@ -118,17 +118,18 @@ async def get_dashboard(request: Request):
 @app.get("/add-expense", response_class=HTMLResponse)
 async def get_add_expense(
     request: Request,
-    user=Depends(get_current_user),  # current authenticated user
 ):
     """
-    Render the Add Expense page with the current user's id
-    injected into the template as `current_user_id`.
+    Render the Add Expense page. Auth is enforced on the frontend
+    and on the API endpoints, not on this HTML route.
     """
     return templates.TemplateResponse(
-        request,
         "add_expense.html",
-        {"current_user_id": str(user["id"])},
+        {
+            "request": request,
+        },
     )
+
 
 @app.get("/friends", response_class=HTMLResponse)
 @app.get("/friends.html", response_class=HTMLResponse)
