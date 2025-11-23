@@ -1,89 +1,117 @@
-// --- Elements ---
-const threadList = document.getElementById("threadList");
-const notificationsList = document.getElementById("notificationsList");
-const searchInput = document.getElementById("searchInput");
+// ------------------------
+// Inbox JS
+// ------------------------
 
-// --- Fetch messages ---
-async function fetchMessages() {
+// Fetch and display messages
+async function loadMessages() {
+    const threadList = document.getElementById("threadList");
+    threadList.innerHTML = "";
+
     try {
-        const res = await fetch("/inbox/data");
-        if (!res.ok) throw new Error("Failed to fetch messages");
-        const threads = await res.json();
+        const response = await fetch("/inbox/data");
+        const threads = await response.json();
 
-        threadList.innerHTML = ""; // Clear old threads
+        if (!threads || threads.length === 0) {
+            threadList.innerHTML = `<li class="p-2 text-gray-500">No messages</li>`;
+            return;
+        }
 
         threads.forEach(thread => {
             const li = document.createElement("li");
-            li.className = "p-3 hover:bg-gray-100 cursor-pointer";
+            li.className = "p-2 border-b";
             li.textContent = `${thread.name}: ${thread.last_message}`;
             threadList.appendChild(li);
         });
     } catch (err) {
-        console.error("Error fetching messages:", err);
-        threadList.innerHTML = "<li class='p-3 text-red-500'>Could not load messages</li>";
+        threadList.innerHTML = `<li class="p-2 text-red-500">Could not load messages</li>`;
+        console.error(err);
     }
 }
 
-// --- Fetch notifications ---
-async function fetchNotifications() {
-    try {
-        const res = await fetch("/inbox/notifications");
-        if (!res.ok) throw new Error("Failed to fetch notifications");
-        const notifications = await res.json();
+// Fetch and display notifications
+async function loadNotifications() {
+    const notificationsList = document.getElementById("notificationsList");
+    notificationsList.innerHTML = "";
 
-        notificationsList.innerHTML = ""; // Clear old notifications
+    try {
+        const response = await fetch("/inbox/notifications");
+        const notifications = await response.json();
+
+        if (!notifications || notifications.length === 0) {
+            notificationsList.innerHTML = `<li class="p-2 text-gray-500">No notifications</li>`;
+            return;
+        }
 
         notifications.forEach(notif => {
             const li = document.createElement("li");
-            li.className = "p-3 flex justify-between items-center hover:bg-gray-100";
+            li.className = "p-2 border-b flex justify-between items-center";
 
-            li.innerHTML = `
-                <span>${notif.type} from ${notif.from_user}</span>
-                <div>
-                    <button class="accept-btn bg-green-500 text-white px-2 py-1 rounded mr-2" data-id="${notif.id}">Accept</button>
-                    <button class="decline-btn bg-red-500 text-white px-2 py-1 rounded" data-id="${notif.id}">Decline</button>
-                </div>
-            `;
+            const textSpan = document.createElement("span");
+            textSpan.textContent = `${notif.type} from ${notif.from_user}`;
+            li.appendChild(textSpan);
+
+            // Only show buttons for friend requests or group invites
+            if (notif.type === "friend_request" || notif.type === "group_invite") {
+                const buttonContainer = document.createElement("div");
+
+                const acceptBtn = document.createElement("button");
+                acceptBtn.className = "mr-2 px-2 py-1 bg-green-500 text-white rounded";
+                acceptBtn.textContent = "Accept";
+                acceptBtn.onclick = () => handleNotificationAction(notif.id, "accept");
+
+                const declineBtn = document.createElement("button");
+                declineBtn.className = "px-2 py-1 bg-red-500 text-white rounded";
+                declineBtn.textContent = "Decline";
+                declineBtn.onclick = () => handleNotificationAction(notif.id, "decline");
+
+                buttonContainer.appendChild(acceptBtn);
+                buttonContainer.appendChild(declineBtn);
+                li.appendChild(buttonContainer);
+            }
+
             notificationsList.appendChild(li);
         });
-
-        // Add click handlers
-        document.querySelectorAll(".accept-btn").forEach(btn => {
-            btn.addEventListener("click", () => handleNotification(btn.dataset.id, "accept"));
-        });
-        document.querySelectorAll(".decline-btn").forEach(btn => {
-            btn.addEventListener("click", () => handleNotification(btn.dataset.id, "decline"));
-        });
     } catch (err) {
-        console.error("Error fetching notifications:", err);
-        notificationsList.innerHTML = "<li class='p-3 text-red-500'>Could not load notifications</li>";
+        notificationsList.innerHTML = `<li class="p-2 text-red-500">Could not load notifications</li>`;
+        console.error(err);
     }
 }
 
-// --- Handle accept/decline ---
-async function handleNotification(notificationId, action) {
+// Handle Accept / Decline actions
+async function handleNotificationAction(notificationId, action) {
     try {
-        const res = await fetch("/inbox/notifications/action", {
+        const response = await fetch("/inbox/notifications/action", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json"
+            },
             body: JSON.stringify({ notification_id: notificationId, action })
         });
-        if (!res.ok) throw new Error("Failed to update notification");
 
-        fetchNotifications();
+        const data = await response.json();
+        if (data.success) {
+            // Refresh notifications after action
+            loadNotifications();
+        } else {
+            alert("Failed to process action: " + (data.error || "Unknown error"));
+        }
     } catch (err) {
-        console.error("Error handling notification:", err);
+        alert("Error performing action: " + err);
+        console.error(err);
     }
 }
 
-// --- Search messages ---
-searchInput.addEventListener("input", () => {
-    const query = searchInput.value.toLowerCase();
-    threadList.querySelectorAll("li").forEach(li => {
+// Optional: Search messages
+document.getElementById("searchInput")?.addEventListener("input", function () {
+    const query = this.value.toLowerCase();
+    const threadList = document.getElementById("threadList");
+    [...threadList.children].forEach(li => {
         li.style.display = li.textContent.toLowerCase().includes(query) ? "" : "none";
     });
 });
 
-// --- Initial fetch ---
-fetchMessages();
-fetchNotifications();
+// Initialize inbox
+document.addEventListener("DOMContentLoaded", () => {
+    loadMessages();
+    loadNotifications();
+});
