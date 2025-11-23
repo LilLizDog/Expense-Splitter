@@ -42,21 +42,11 @@
     {% block content %}{% endblock %}
   </main>
 
-  <!-- Supabase SDK -->
-  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <!-- Shared Supabase client for all pages -->
+  <script type="module" src="/static/js/supabaseClient.js"></script>
 
-  <!-- Global Supabase client (LOGIN, SIGNUP, SESSION) -->
-  <script>
-    const SUPABASE_URL = "https://ntivhddzzdldypdlcoqy.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50aXZoZGR6emRsZHlwZGxjb3F5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk2MTA4MTgsImV4cCI6MjA3NTE4NjgxOH0.2uyS6DAhbKJi2iXotnKjWygGvO6XQ1YqGWDRsjgErcw";
-
-    try {
-      window.sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-      console.log("Supabase client created");
-    } catch (err) {
-      console.error("Failed to create Supabase client", err);
-    }
-  </script>
+  <!-- On public pages, if already logged in, go to dashboard -->
+  <script type="module" src="/static/js/guard_public.js"></script>
 
   {% block scripts %}{% endblock %}
 </body>

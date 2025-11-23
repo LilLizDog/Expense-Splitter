@@ -1,16 +1,12 @@
 # FILE: app/main.py
 # Main FastAPI entry point. Wires routes, templates, static, and health checks.
 
-import os
 from pathlib import Path
 
-from fastapi import FastAPI, Request, Depends
+from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
-from fastapi import Form, HTTPException
-from fastapi.responses import RedirectResponse
-
 
 from .core.supabase_client import supabase
 
@@ -19,14 +15,11 @@ from .core.supabase_client import supabase
 # ------------------------
 app = FastAPI(title="Expense Splitter API")
 
-BASE_DIR = Path(__file__).parent            # app/
-STATIC_DIR = BASE_DIR / "static"            # app/static
-TEMPLATES_DIR = BASE_DIR / "templates"      # app/templates
+BASE_DIR = Path(__file__).parent
+STATIC_DIR = BASE_DIR / "static"
+TEMPLATES_DIR = BASE_DIR / "templates"
 
-# Mount static assets (JS/CSS/images)
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
-
-# Template engine
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
 # ------------------------
@@ -34,13 +27,12 @@ templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 # ------------------------
 from .routers import groups, expenses, balances, auth
 from .routers import friends, history, settings, payments
-from .routers.auth import get_current_user
 from app.routers import inbox
 
 app.include_router(groups.router)
 app.include_router(expenses.router)
 app.include_router(balances.router)
-app.include_router(auth.router, prefix= "/auth")
+app.include_router(auth.router, prefix="/auth")
 app.include_router(friends.router)
 app.include_router(history.router)
 app.include_router(settings.router)
@@ -54,9 +46,11 @@ app.include_router(payments.router, prefix="/api/payments")
 def health():
     return {"status": "ok"}
 
+
 @app.get("/supabase-health")
 def supabase_health():
     return {"connected": True}
+
 
 @app.get("/test-supabase")
 def test_supabase_connection():
@@ -66,7 +60,6 @@ def test_supabase_connection():
     except Exception as e:
         return {"connected": False, "error": str(e)}
 
-
 # ------------------------
 # FRONTEND HTML ROUTES
 # ------------------------
@@ -74,18 +67,29 @@ def test_supabase_connection():
 @app.get("/welcome", response_class=HTMLResponse)
 @app.get("/welcome.html", response_class=HTMLResponse)
 async def get_welcome(request: Request):
-    return templates.TemplateResponse(request, "welcome.html", {})
+    return templates.TemplateResponse(
+        "welcome.html",
+        {"request": request},
+    )
+
 
 @app.get("/login", response_class=HTMLResponse)
 @app.get("/login.html", response_class=HTMLResponse)
 async def get_login(request: Request):
-    return templates.TemplateResponse(request, "login.html", {})
+    return templates.TemplateResponse(
+        "login.html",
+        {"request": request},
+    )
 
 
 @app.get("/signup", response_class=HTMLResponse)
 @app.get("/signup.html", response_class=HTMLResponse)
 async def get_signup(request: Request):
-    return templates.TemplateResponse(request, "signup.html", {})
+    return templates.TemplateResponse(
+        "signup.html",
+        {"request": request},
+    )
+
 
 @app.get("/account", response_class=HTMLResponse)
 @app.get("/account.html", response_class=HTMLResponse)
@@ -98,17 +102,26 @@ async def get_account(request: Request):
         "phone": "314-555-1234",
         "display_currency": "USD",
     }
-    return templates.TemplateResponse(request, "account.html", {"mock_mode": True, "mock_user": mock_user})
+    return templates.TemplateResponse(
+        "account.html",
+        {
+            "request": request,
+            "mock_mode": True,
+            "mock_user": mock_user,
+        },
+    )
+
 
 @app.get("/dashboard", response_class=HTMLResponse)
 async def get_dashboard(request: Request):
     mock_data = {
+        "request": request,
         "user_name": "Preet",
         "wallet_balance": 25.50,
         "balance_class": "positive",
         "recent_tx": [
             {"name": "Pizza Night", "amount": 18.25, "sign": "-", "date": "2025-10-29", "group": "Roommates"},
-            {"name": "Uber to AWM", "amount": 9.60,  "sign": "-", "date": "2025-10-28", "group": "AWM"},
+            {"name": "Uber to AWM", "amount": 9.60, "sign": "-", "date": "2025-10-28", "group": "AWM"},
             {"name": "Reimbursement from Liz", "amount": 12.40, "sign": "+", "date": "2025-10-27", "group": "CS3300"},
         ],
         "notifications": [
@@ -117,40 +130,51 @@ async def get_dashboard(request: Request):
             "Invite: Join Group 'CS3300 Team'",
         ],
     }
-    return templates.TemplateResponse(request, "dashboard.html", mock_data)
+    return templates.TemplateResponse(
+        "dashboard.html",
+        mock_data,
+    )
+
 
 @app.get("/add-expense", response_class=HTMLResponse)
-async def get_add_expense(
-    request: Request,
-):
-    """
-    Render the Add Expense page. Auth is enforced on the frontend
-    and on the API endpoints, not on this HTML route.
-    """
+async def get_add_expense(request: Request):
     return templates.TemplateResponse(
         "add_expense.html",
-        {
-            "request": request,
-        },
+        {"request": request},
     )
 
 
 @app.get("/friends", response_class=HTMLResponse)
 @app.get("/friends.html", response_class=HTMLResponse)
 async def get_friends(request: Request):
-    return templates.TemplateResponse(request, "friends.html", {})
+    return templates.TemplateResponse(
+        "friends.html",
+        {"request": request},
+    )
+
 
 @app.get("/history", response_class=HTMLResponse)
 @app.get("/history.html", response_class=HTMLResponse)
 async def get_history(request: Request):
-    return templates.TemplateResponse(request, "history.html", {})
+    return templates.TemplateResponse(
+        "history.html",
+        {"request": request},
+    )
+
 
 @app.get("/settings", response_class=HTMLResponse)
 @app.get("/settings.html", response_class=HTMLResponse)
 async def get_settings(request: Request):
-    return templates.TemplateResponse(request, "settings.html", {})
+    return templates.TemplateResponse(
+        "settings.html",
+        {"request": request},
+    )
+
 
 @app.get("/payments", response_class=HTMLResponse)
 @app.get("/payments.html", response_class=HTMLResponse)
 async def get_payments(request: Request):
-    return templates.TemplateResponse(request, "payments.html", {})
+    return templates.TemplateResponse(
+        "payments.html",
+        {"request": request},
+    )

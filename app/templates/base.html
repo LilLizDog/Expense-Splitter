@@ -157,6 +157,12 @@
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 3"/></svg>
           Payments
         </a>
+        <a href="/inbox">
+          <svg viewBox="0 0 24 24">
+            <path d="M4 5h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-5l-3 4-3-4H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/>
+          </svg>
+          Inbox
+        </a>
         <a href="/history">
           <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/><path d="M12 7v6l4 2"/></svg>
           History
@@ -176,8 +182,11 @@
 
   </div>
 
-  <!-- Shared scripts -->
+  <!-- Shared Supabase client for all protected pages -->
   <script type="module" src="/static/js/supabaseClient.js"></script>
+
+  <!-- Protect all pages that extend base.html -->
+  <script src="/static/js/guard_protected.js"></script>
 
   {% block scripts %}{% endblock %}
 </body>
