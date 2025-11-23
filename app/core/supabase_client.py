@@ -121,3 +121,11 @@ else:
 
     # Expose fake client as module level supabase object
     supabase = FakeSupabase()
+
+def get_supabase():
+    """
+    Return the Supabase client used by the application.
+
+    Tests patch this function to inject a mock client.
+    """
+    return supabase
