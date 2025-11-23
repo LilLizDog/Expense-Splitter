@@ -178,3 +178,14 @@ async def get_payments(request: Request):
         "payments.html",
         {"request": request},
     )
+
+@app.get("/groups", response_class=HTMLResponse)
+@app.get("/groups.html", response_class=HTMLResponse)
+async def get_groups(request: Request):
+    return templates.TemplateResponse("groups.html", {"request": request})
+
+
+@app.get("/group", response_class=HTMLResponse)
+@app.get("/group.html", response_class=HTMLResponse)
+async def get_group(request: Request):
+    return templates.TemplateResponse("group.html", {"request": request})
