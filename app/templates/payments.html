@@ -2,78 +2,23 @@
 
 {% block title %}Payments | Expense Splitter{% endblock %}
 
-{% block styles %}
-<style>
-  .page-title{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    margin-bottom:12px;
-  }
-  .page-title h1{ margin:0; font-size:1.8rem; }
-  .subtle{ color:var(--muted); font-size:.9rem; }
-
-  .cards{ display:grid; grid-template-columns:1fr; gap:16px; }
-  @media (min-width:880px){ .cards{ grid-template-columns:1fr 1fr; } }
-
-  ul{list-style:none; padding-left:0; margin:0;}
-  li.payment{
-    display:grid; grid-template-columns:1fr auto; align-items:center; gap:12px;
-    padding:12px; border:1px solid #eef2f7; border-radius:10px; margin-bottom:8px; background:#fff;
-  }
-  .who{ font-weight:700; }
-  .meta{ color:var(--muted); font-size:.9rem; }
-  .amt{ font-weight:800; }
-  .positive{ color:var(--green-600); }
-  .negative{ color:var(--red); }
-  .row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-  .row .chip{ background:#f1f5f9; padding:3px 8px; border-radius:999px; font-size:.8rem; color:#111; }
-
-  .btn{ border:1px solid #e5e7eb; background:#fff; border-radius:12px; padding:9px 12px; text-decoration:none; color:var(--black); font-weight:600; box-shadow: var(--shadow); cursor:pointer; }
-  .btn:hover{ border-color:#d1d5db; }
-  .btn.primary{ background: #e8f8ee; color: var(--green-600); border-color:#cdebd8; }
-  .empty{ padding:18px; text-align:center; color:var(--muted); border:1px dashed #e5e7eb; border-radius:12px; }
-
-  .toolbar{ display:flex; gap:10px; align-items:center; }
-  .search{ padding:8px 10px; border:1px solid #e5e7eb; border-radius:10px; min-width:220px; }
-  .filter{ padding:8px 10px; border:1px solid #e5e7eb; border-radius:10px; background:#fff; }
-
-  /* pay dropdown */
-  .pay-panel{ margin-top:10px; padding:12px; border:1px dashed #e5e7eb; border-radius:10px; background:#fafafa; display:none; }
-  .pay-panel.open{ display:block; }
-  .pay-methods{ display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
-  .pay-option{ border:1px solid #e5e7eb; background:#fff; border-radius:999px; padding:6px 10px; cursor:pointer; font-weight:600; }
-  .pay-option:hover{ border-color:#d1d5db; }
-  .pay-note{ color:var(--muted); font-size:.88rem; }
-</style>
-{% endblock %}
-
 {% block content %}
 <div class="page-title">
   <h1>Payments</h1>
-  <div class="toolbar">
-    <input id="search" class="search" placeholder="Search by group or expense..."/>
-    <select id="group-filter" class="filter">
-      <option value="">All groups</option>
-    </select>
-  </div>
 </div>
 
 <section class="cards">
   <div class="panel">
-    <h2>Requested Payments</h2>
-    <div class="subtle">Stuff you still owe (requested by friends/groups).</div>
-    <ul id="requested-list"></ul>
-    <div id="requested-empty" class="empty" style="display:none;">No pending requests. Nice!</div>
+    <h2>Outstanding Payments</h2>
+    <div id="outstanding-payments"></div>
   </div>
 
   <div class="panel">
     <h2>Past Payments</h2>
-    <div class="subtle">Things you’ve already paid.</div>
-    <ul id="past-list"></ul>
-    <div id="past-empty" class="empty" style="display:none;">Nothing here yet.</div>
+    <div id="past-payments"></div>
   </div>
 </section>
+
 {% endblock %}
 
 {% block scripts %}
