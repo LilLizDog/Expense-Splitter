@@ -1,92 +1,125 @@
-document.addEventListener("DOMContentLoaded", () => {
-  loadPayments();
-});
+// payments.js
 
-// Backend base URL (adjust if needed)
-const API_BASE = "/api/payments";
+const requestedList = document.getElementById("requested-list");
+const pastList = document.getElementById("past-list");
+const requestedEmpty = document.getElementById("requested-empty");
+const pastEmpty = document.getElementById("past-empty");
+const searchEl = document.getElementById("search");
 
-// Fetch all payments
-async function loadPayments() {
+let CURRENT_USER_ID = null;
+let allPayments = [];
+
+async function getCurrentUserId() {
   try {
-    const res = await fetch(`${API_BASE}`, { credentials: "include" });
-    if (!res.ok) throw new Error("Failed to fetch payments");
-
-    const payments = await res.json();
-
-    // Split into outstanding (requested) and past (paid)
-    const outstanding = payments.filter(p => p.status === "requested" && p.to_user_id === CURRENT_USER_ID);
-    const past = payments.filter(p => p.status === "paid" && (p.to_user_id === CURRENT_USER_ID || p.from_user_id === CURRENT_USER_ID));
-
-    renderPayments("outstanding-payments", outstanding, false);
-    renderPayments("past-payments", past, true);
-
-  } catch (err) {
-    console.error(err);
-    document.getElementById("outstanding-payments").innerHTML = "<p>Error loading payments.</p>";
-    document.getElementById("past-payments").innerHTML = "<p>Error loading payments.</p>";
-  }
-}
-
-// Render payments into a container
-function renderPayments(containerId, payments, isPast) {
-  const container = document.getElementById(containerId);
-  container.innerHTML = "";
-
-  if (payments.length === 0) {
-    container.innerHTML = "<p>No payments here.</p>";
-    return;
-  }
-
-  payments.forEach(p => {
-    const div = document.createElement("div");
-    div.classList.add("payment-item");
-    div.style.border = "1px solid #ddd";
-    div.style.padding = "10px";
-    div.style.marginBottom = "8px";
-    div.style.borderRadius = "8px";
-
-    div.innerHTML = `
-      <p><strong>Expense:</strong> ${p.expense_name || "N/A"}</p>
-      <p><strong>From:</strong> ${p.from_user_id}</p>
-      <p><strong>To:</strong> ${p.to_user_id}</p>
-      <p><strong>Amount:</strong> $${p.amount.toFixed(2)}</p>
-      <p><strong>Requested On:</strong> ${p.created_at ? new Date(p.created_at).toLocaleDateString() : "-"}</p>
-      ${isPast ? `<p><strong>Paid On:</strong> ${p.paid_at ? new Date(p.paid_at).toLocaleDateString() : "-"}</p>` : ""}
-    `;
-
-    if (!isPast) {
-      const btn = document.createElement("button");
-      btn.textContent = "Mark as Paid";
-      btn.style.marginTop = "6px";
-      btn.classList.add("btn", "primary");
-      btn.onclick = () => markAsPaid(p.id);
-      div.appendChild(btn);
+    const resp = await fetch("/api/payments");
+    const data = await resp.json();
+    if (data.length) {
+      CURRENT_USER_ID = data[0].to_user_id; // fallback if mock
+    } else {
+      CURRENT_USER_ID = "user_mock_1";
     }
-
-    container.appendChild(div);
-  });
+  } catch {
+    CURRENT_USER_ID = "user_mock_1";
+  }
+  return CURRENT_USER_ID;
 }
 
-// Call backend to mark a payment as paid
-async function markAsPaid(paymentId) {
-  try {
-    const res = await fetch(`${API_BASE}/${paymentId}/pay`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ paid_via: "Cash" }), // optional, can be dynamic
-      credentials: "include"
-    });
+function formatMoney(n) {
+  return `$${Number(n || 0).toFixed(2)}`;
+}
 
-    if (!res.ok) throw new Error("Failed to mark as paid");
+function fmtDate(s) {
+  if (!s) return "";
+  return new Date(s).toLocaleDateString();
+}
 
-    // Refresh the lists
-    loadPayments();
+async function loadPayments() {
+  const resp = await fetch("/api/payments");
+  const data = await resp.json();
+  allPayments = data;
+  render();
+}
 
-  } catch (err) {
-    console.error(err);
-    alert("Could not mark payment as paid. Try again.");
+function render() {
+  const q = (searchEl.value || "").toLowerCase();
+
+  const requested = allPayments.filter(p =>
+    p.status === "requested" &&
+    p.to_user_id === CURRENT_USER_ID &&
+    (`${p.expense_name || ""}`.toLowerCase().includes(q))
+  );
+
+  const past = allPayments.filter(p =>
+    p.status === "paid" &&
+    (p.from_user_id === CURRENT_USER_ID || p.to_user_id === CURRENT_USER_ID) &&
+    (`${p.expense_name || ""}`.toLowerCase().includes(q))
+  );
+
+  requestedList.innerHTML = "";
+  pastList.innerHTML = "";
+
+  if (requested.length === 0) requestedEmpty.style.display = "block";
+  else {
+    requestedEmpty.style.display = "none";
+    requested.forEach(p => requestedList.appendChild(renderPaymentRow(p, true)));
+  }
+
+  if (past.length === 0) pastEmpty.style.display = "block";
+  else {
+    pastEmpty.style.display = "none";
+    past.forEach(p => pastList.appendChild(renderPaymentRow(p, false)));
   }
 }
 
-// Optional: mock CURRENT_USER_ID if not set by your backend
-const CURRENT_USER_ID = window.CURRENT_USER_ID || "user_mock_1";
+function renderPaymentRow(p, allowPay) {
+  const li = document.createElement("li");
+  li.className = "payment";
+
+  const title = document.createElement("div");
+  title.innerHTML = `<div class="who">${p.expense_name || "Expense"}</div>
+                     <div class="meta">Requested on ${fmtDate(p.created_at)}${p.paid_at ? ` · Paid on ${fmtDate(p.paid_at)}` : ""}</div>`;
+
+  const right = document.createElement("div");
+  right.style.display = "flex";
+  right.style.alignItems = "center";
+  right.style.gap = "8px";
+
+  const amt = document.createElement("div");
+  amt.className = "amt " + (p.status === "requested" ? "negative" : "positive");
+  amt.textContent = formatMoney(p.amount);
+  right.appendChild(amt);
+
+  if (allowPay) {
+    const btn = document.createElement("button");
+    btn.className = "btn primary";
+    btn.textContent = "Mark as Paid";
+    btn.addEventListener("click", async () => {
+      await markPaid(p.id);
+    });
+    right.appendChild(btn);
+  }
+
+  li.appendChild(title);
+  li.appendChild(right);
+  return li;
+}
+
+async function markPaid(paymentId) {
+  const resp = await fetch(`/api/payments/${paymentId}/pay`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ paid_via: "Cash" }),
+  });
+  if (resp.ok) {
+    await loadPayments();
+  } else {
+    alert("Failed to mark payment as paid");
+  }
+}
+
+searchEl.addEventListener("input", render);
+
+(async () => {
+  await getCurrentUserId();
+  await loadPayments();
+})();
