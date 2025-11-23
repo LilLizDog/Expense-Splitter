@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request, Depends
 from fastapi.responses import HTMLResponse, JSONResponse
 from app.core.supabase_client import supabase
-from app.auth import get_current_user
+from app.routers.auth import get_current_user
 
 router = APIRouter()
 
