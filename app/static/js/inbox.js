@@ -1,81 +1,89 @@
-document.addEventListener("DOMContentLoaded", async () => {
-    const searchInput = document.getElementById("searchInput");
-    const threadList = document.getElementById("threadList");
-    const notificationsList = document.getElementById("notificationsList");
+// --- Elements ---
+const threadList = document.getElementById("threadList");
+const notificationsList = document.getElementById("notificationsList");
+const searchInput = document.getElementById("searchInput");
 
-    // --- Load messages ---
-    async function loadThreads() {
+// --- Fetch messages ---
+async function fetchMessages() {
+    try {
         const res = await fetch("/inbox/data");
+        if (!res.ok) throw new Error("Failed to fetch messages");
         const threads = await res.json();
-        renderThreads(threads);
 
-        searchInput.addEventListener("input", () => {
-            const filtered = threads.filter(t =>
-                t.name.toLowerCase().includes(searchInput.value.toLowerCase()) ||
-                t.last_message.toLowerCase().includes(searchInput.value.toLowerCase())
-            );
-            renderThreads(filtered);
-        });
-    }
+        threadList.innerHTML = ""; // Clear old threads
 
-    function renderThreads(data) {
-        threadList.innerHTML = "";
-        data.forEach(t => {
+        threads.forEach(thread => {
             const li = document.createElement("li");
             li.className = "p-3 hover:bg-gray-100 cursor-pointer";
-            li.innerHTML = `
-                <div class="font-bold">${t.name}</div>
-                <div class="text-sm text-gray-600">${t.last_message}</div>
-            `;
-            li.onclick = () => window.location.href = `/conversation/${t.thread_id}`;
+            li.textContent = `${thread.name}: ${thread.last_message}`;
             threadList.appendChild(li);
         });
+    } catch (err) {
+        console.error("Error fetching messages:", err);
+        threadList.innerHTML = "<li class='p-3 text-red-500'>Could not load messages</li>";
     }
+}
 
-    // --- Load notifications ---
-    async function loadNotifications() {
+// --- Fetch notifications ---
+async function fetchNotifications() {
+    try {
         const res = await fetch("/inbox/notifications");
+        if (!res.ok) throw new Error("Failed to fetch notifications");
         const notifications = await res.json();
-        renderNotifications(notifications);
-    }
 
-    function renderNotifications(notifications) {
-        notificationsList.innerHTML = "";
-        notifications.forEach(n => {
+        notificationsList.innerHTML = ""; // Clear old notifications
+
+        notifications.forEach(notif => {
             const li = document.createElement("li");
             li.className = "p-3 flex justify-between items-center hover:bg-gray-100";
 
             li.innerHTML = `
+                <span>${notif.type} from ${notif.from_user}</span>
                 <div>
-                    <span class="font-bold">${n.from_user_name}</span>
-                    <span class="text-sm text-gray-600">${n.type === 'friend_request' ? 'sent you a friend request' : 'invited you to a group: ' + (n.group_name || '')}</span>
-                </div>
-                <div class="space-x-2">
-                    <button class="accept-btn bg-green-500 text-white px-3 py-1 rounded">Accept</button>
-                    <button class="decline-btn bg-red-500 text-white px-3 py-1 rounded">Decline</button>
+                    <button class="accept-btn bg-green-500 text-white px-2 py-1 rounded mr-2" data-id="${notif.id}">Accept</button>
+                    <button class="decline-btn bg-red-500 text-white px-2 py-1 rounded" data-id="${notif.id}">Decline</button>
                 </div>
             `;
-
-            li.querySelector(".accept-btn").addEventListener("click", () => handleAction(n.id, "accept", li));
-            li.querySelector(".decline-btn").addEventListener("click", () => handleAction(n.id, "decline", li));
-
             notificationsList.appendChild(li);
         });
-    }
 
-    async function handleAction(notificationId, action, liElement) {
+        // Add click handlers
+        document.querySelectorAll(".accept-btn").forEach(btn => {
+            btn.addEventListener("click", () => handleNotification(btn.dataset.id, "accept"));
+        });
+        document.querySelectorAll(".decline-btn").forEach(btn => {
+            btn.addEventListener("click", () => handleNotification(btn.dataset.id, "decline"));
+        });
+    } catch (err) {
+        console.error("Error fetching notifications:", err);
+        notificationsList.innerHTML = "<li class='p-3 text-red-500'>Could not load notifications</li>";
+    }
+}
+
+// --- Handle accept/decline ---
+async function handleNotification(notificationId, action) {
+    try {
         const res = await fetch("/inbox/notifications/action", {
             method: "POST",
-            headers: {"Content-Type": "application/json"},
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ notification_id: notificationId, action })
         });
-        if (res.ok) {
-            liElement.remove();
-        } else {
-            alert("Failed to process notification.");
-        }
-    }
+        if (!res.ok) throw new Error("Failed to update notification");
 
-    loadThreads();
-    loadNotifications();
+        fetchNotifications();
+    } catch (err) {
+        console.error("Error handling notification:", err);
+    }
+}
+
+// --- Search messages ---
+searchInput.addEventListener("input", () => {
+    const query = searchInput.value.toLowerCase();
+    threadList.querySelectorAll("li").forEach(li => {
+        li.style.display = li.textContent.toLowerCase().includes(query) ? "" : "none";
+    });
 });
+
+// --- Initial fetch ---
+fetchMessages();
+fetchNotifications();
