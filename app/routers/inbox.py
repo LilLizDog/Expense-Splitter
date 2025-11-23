@@ -1,14 +1,18 @@
 from fastapi import APIRouter, Request, Depends
 from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.templating import Jinja2Templates
 from app.core.supabase_client import supabase
 from app.routers.auth import get_current_user
 
 router = APIRouter()
 
+# Initialize templates locally
+templates = Jinja2Templates(directory="app/templates")
+
 # --- Inbox page ---
 @router.get("/inbox", response_class=HTMLResponse)
 async def inbox_page(request: Request):
-    return request.app.state.templates.TemplateResponse(
+    return templates.TemplateResponse(
         "inbox.html",
         {"request": request}
     )
@@ -16,7 +20,9 @@ async def inbox_page(request: Request):
 # --- Messages data ---
 @router.get("/inbox/data")
 async def inbox_data():
-    result = supabase.table("messages").select("thread_id, sender_name, message").order("created_at", desc=True).execute()
+    result = supabase.table("messages").select(
+        "thread_id, sender_name, message"
+    ).order("created_at", desc=True).execute()
 
     threads = {}
     for row in result.data:
