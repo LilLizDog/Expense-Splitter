@@ -1,40 +1,228 @@
-{% extends "base.html" %}
+{% extends "base_public.html" %}
 
 {% block title %}Welcome | Expense Splitter{% endblock %}
 
 {% block styles %}
 <style>
-  main {
+  .welcome-shell {
+    max-width: 1000px;
+    width: 100%;
+    background-color: #ffffff;
+    border-radius: 18px;
+    box-shadow: var(--shadow);
+    padding: 32px 32px 28px;
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 32px;
+    align-self: center;
+  }
+
+  .welcome-copy {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    margin-top: 60px;
+    gap: 16px;
   }
-  .card {
-    background-color: #fff;
-    padding: 30px;
-    border-radius: 10px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    width: 320px;
-    text-align: center;
+
+  .welcome-eyebrow {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--green);
+    font-weight: 700;
   }
-  h1 { margin-bottom: 16px; }
-  p { margin: 10px 0; font-size: 1rem; }
-  a {
-    color: #16a34a;
-    text-decoration: none;
+
+  .welcome-title {
+    font-size: 2.3rem;
+    line-height: 1.2;
+    margin: 0;
+  }
+
+  .brand-name {
+    font-weight: 800;
+  }
+
+  .brand-accent {
+    color: var(--green);
+  }
+
+  .welcome-subtitle {
+    font-size: 1.05rem;
+    color: #4b5563;
+    margin: 0;
+  }
+
+  .welcome-list {
+    list-style: none;
+    padding: 0;
+    margin: 4px 0 0 0;
+    font-size: 0.98rem;
+    color: #4b5563;
+  }
+
+  .welcome-list li {
+    margin-bottom: 6px;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .welcome-list li::before {
+    content: "•";
+    margin-top: 1px;
+    color: var(--green);
+  }
+
+  .welcome-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-top: 4px;
+  }
+
+  .btn-primary {
+    padding: 11px 22px;
+    border-radius: 999px;
+    border: none;
+    background-color: var(--green);
+    color: #ffffff;
     font-weight: 600;
+    font-size: 0.98rem;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
-  a:hover { text-decoration: underline; }
+
+  .btn-primary:hover {
+    background-color: var(--green-600);
+  }
+
+  .btn-link {
+    font-size: 0.98rem;
+    font-weight: 600;
+    color: var(--green);
+    text-decoration: none;
+    align-self: center;
+  }
+
+  .btn-link:hover {
+    text-decoration: underline;
+  }
+
+  .welcome-panel-header {
+    font-weight: 700;
+    font-size: 0.95rem;
+    margin-bottom: 12px;
+    color: #111827;
+  }
+
+  .welcome-panel-text {
+    font-size: 0.9rem;
+    color: #4b5563;
+    margin-bottom: 16px;
+  }
+
+  .welcome-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .stat-card {
+    background-color: #f9fafb;
+    border-radius: 10px;
+    padding: 10px 12px;
+  }
+
+  .stat-label {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #6b7280;
+    margin-bottom: 4px;
+  }
+
+  .stat-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 2px;
+  }
+
+  .stat-note {
+    font-size: 0.8rem;
+    color: #6b7280;
+  }
+
+  @media (max-width: 900px) {
+    .welcome-shell {
+      grid-template-columns: 1fr;
+      padding: 24px 20px 22px;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .welcome-title {
+      font-size: 1.9rem;
+    }
+  }
 </style>
 {% endblock %}
 
 {% block content %}
-<main>
-  <section class="card">
-    <h1>Welcome to Expense Splitter!</h1>
-    <p>Ready to start managing your shared expenses better? <a href="/signup">Sign up</a> to get started!</p>
-    <p>Already have an account? <a href="/login">Login here</a></p>
-  </section>
-</main>
+<section class="welcome-shell">
+  <div class="welcome-copy">
+    <p class="welcome-eyebrow">Shared expenses made simple</p>
+    <h1 class="welcome-title">
+      Welcome to
+      <span class="brand-name">Expense <span class="brand-accent">Splitter</span></span>
+    </h1>
+    <p class="welcome-subtitle">
+      Keep group balances clear, avoid awkward reminders, and settle up with confidence.
+    </p>
+
+    <ul class="welcome-list">
+      <li>See who owes what at a glance across all groups.</li>
+      <li>Organize expenses by trips, households, or projects.</li>
+      <li>Review a clean history so nothing gets missed.</li>
+    </ul>
+
+    <div class="welcome-actions">
+      <a href="/signup" class="btn-primary">Sign up and get started</a>
+      <a href="/login" class="btn-link">Already have an account? Log in</a>
+    </div>
+  </div>
+
+  <div>
+    <div class="welcome-panel-header">Getting started</div>
+    <p class="welcome-panel-text">
+      Create an account, add a group, and log your first shared expense. Expense Splitter
+      takes care of the running totals so you do not have to track them by hand.
+    </p>
+
+    <div class="welcome-stats">
+      <div class="stat-card">
+        <div class="stat-label">Groups</div>
+        <div class="stat-value">Create</div>
+        <div class="stat-note">Set up a group for each trip or household.</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Expenses</div>
+        <div class="stat-value">Record</div>
+        <div class="stat-note">Add what you paid and who shared the cost.</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Balances</div>
+        <div class="stat-value">Track</div>
+        <div class="stat-note">See who owes you and who you owe.</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">History</div>
+        <div class="stat-value">Review</div>
+        <div class="stat-note">Use the history view when you need details.</div>
+      </div>
+    </div>
+  </div>
+</section>
 {% endblock %}

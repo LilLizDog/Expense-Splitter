@@ -8,6 +8,9 @@ from fastapi import FastAPI, Request, Depends
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
+from fastapi import Form, HTTPException
+from fastapi.responses import RedirectResponse
+
 
 from .core.supabase_client import supabase
 
@@ -77,6 +80,7 @@ async def get_welcome(request: Request):
 @app.get("/login.html", response_class=HTMLResponse)
 async def get_login(request: Request):
     return templates.TemplateResponse(request, "login.html", {})
+
 
 @app.get("/signup", response_class=HTMLResponse)
 @app.get("/signup.html", response_class=HTMLResponse)
