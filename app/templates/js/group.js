@@ -1,61 +1,55 @@
-document.addEventListener("DOMContentLoaded", async () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const groupId = urlParams.get("group_id");
+import { supabase } from './supabaseClient.js';
 
-    if (!groupId) {
-        alert("No group selected.");
-        window.location.href = "/groups.html";
-        return;
-    }
+const params = new URLSearchParams(window.location.search);
+const groupId = params.get('group_id');
+if (!groupId) window.location.href = '/groups.html';
 
-    const groupNameEl = document.getElementById("groupName");
-    const membersListEl = document.getElementById("membersList");
-    const expensesListEl = document.getElementById("expensesList");
-    const addExpenseBtn = document.getElementById("addExpenseBtn");
+const nameEl = document.getElementById('group-name');
+const descEl = document.getElementById('group-desc');
+const dateEl = document.getElementById('group-date');
+const txList = document.getElementById('tx-list');
+const addMemberBtn = document.getElementById('add-member-btn');
+const addExpenseBtn = document.getElementById('add-expense-btn');
 
-    // Load Group Info
-    async function loadGroup() {
-        const res = await fetch(`/groups/${groupId}`);
-        const data = await res.json();
-        groupNameEl.textContent = data.name;
-    }
+async function loadGroup() {
+  const { data, error } = await supabase.from('groups').select('*').eq('id', groupId).single();
+  if (error) return alert('Group not found');
+  nameEl.textContent = data.name;
+  descEl.textContent = data.description || '';
+  dateEl.textContent = new Date(data.created_at).toLocaleDateString();
+}
 
-    // Load Members
-    async function loadMembers() {
-        const res = await fetch(`/groups/${groupId}/members`);
-        const members = await res.json();
+async function loadTransactions() {
+  const { data, error } = await supabase.from('transactions').select('*').eq('group_id', groupId).order('created_at', { ascending: false }).limit(10);
+  txList.innerHTML = '';
+  if (error || !data.length) txList.innerHTML = '<div class="muted">No transactions yet.</div>';
+  data?.forEach(t => {
+    const sign = t.amount >= 0 ? 'positive' : 'negative';
+    txList.innerHTML += `
+      <div class="tx">
+        <div class="left">
+          <div class="name">${t.name}</div>
+          <div class="meta">${new Date(t.created_at).toLocaleDateString()}</div>
+        </div>
+        <div class="amt ${sign}">${sign === 'positive' ? '+' : '-'}$${Math.abs(t.amount).toFixed(2)}</div>
+      </div>`;
+  });
+}
 
-        membersListEl.innerHTML = "";
-        members.forEach(member => {
-            const p = document.createElement("p");
-            p.textContent = member.name;
-            membersListEl.appendChild(p);
-        });
-    }
-
-    // Load Expenses
-    async function loadExpenses() {
-        const res = await fetch(`/groups/${groupId}/expenses`);
-        const expenses = await res.json();
-
-        expensesListEl.innerHTML = "";
-        expenses.forEach(exp => {
-            const div = document.createElement("div");
-            div.className = "expense-item";
-            div.innerHTML = `
-                <p><strong>${exp.title}</strong> - $${exp.amount}</p>
-                <p>Paid by: ${exp.paid_by}</p>
-            `;
-            expensesListEl.appendChild(div);
-        });
-    }
-
-    // Add Expense Button → redirect to add_expense.html
-    addExpenseBtn.addEventListener("click", () => {
-        window.location.href = `/add_expense.html?group_id=${groupId}`;
-    });
-
-    await loadGroup();
-    await loadMembers();
-    await loadExpenses();
+addMemberBtn.addEventListener('click', async () => {
+  const email = prompt('Enter member email to add:');
+  if (!email) return;
+  const { data: user } = await supabase.from('users').select('id').eq('email', email).single();
+  if (!user) return alert('User not found');
+  const { data: group } = await supabase.from('groups').select('members').eq('id', groupId).single();
+  const updated = [...new Set([...group.members, user.id])];
+  await supabase.from('groups').update({ members: updated }).eq('id', groupId);
+  alert('Member added!');
 });
+
+addExpenseBtn.addEventListener('click', () => {
+  window.location.href = `/add_expense.html?group_id=${groupId}`;
+});
+
+loadGroup();
+loadTransactions();

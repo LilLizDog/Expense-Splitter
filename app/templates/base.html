@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{% block title %}Expense Splitter{% endblock %}</title>
+
+  <!-- Shared Layout Styles -->
+  <style>
+    :root{
+      --green: #16a34a;
+      --green-600: #15803d;
+      --red: #b91c1c;
+      --black: #111111;
+      --bg: #f6f7f8;
+      --card: #ffffff;
+      --muted: #6b7280;
+
+      --sidebar-w: 220px;
+      --radius: 14px;
+      --shadow: 0 8px 20px rgba(0,0,0,0.06);
+      --content-max: 1120px;
+    }
+
+    * { box-sizing: border-box; }
+    body{
+      margin:0;
+      background: var(--bg);
+      color:var(--black);
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 15px;
+      line-height: 1.35;
+    }
+
+    /* Top Bar */
+    .topbar{
+      position: sticky; top:0; z-index:40;
+      height:56px; background:#fff;
+      box-shadow: var(--shadow);
+      display:flex; align-items:center; gap:12px;
+      padding:0 14px;
+    }
+    .brand{
+      font-weight:800;
+      font-size:1.6rem;
+      letterletter-spacing:.2px;
+    }
+    .brand .accent{ color:var(--green); }
+
+    /* Shell layout */
+    .layout{
+      display:block;
+      min-height: calc(100dvh - 56px);
+    }
+
+    /* Hamburger */
+    #nav-toggle{ display:none; }
+    .hamburger{
+      width:26px; height:20px;
+      cursor:pointer;
+      display:grid; gap:5px;
+    }
+    .hamburger span{
+      height:3px; background:var(--black); border-radius:2px;
+    }
+
+    /* Sidebar */
+    .sidebar{
+      position:fixed; left:0; top:56px; z-index:50;
+      width:0; padding:0;
+      height: calc(100dvh - 56px);
+      background:#fff; box-shadow:var(--shadow);
+      overflow:hidden;
+      transform:translateX(-100%);
+      transition: transform .25s ease, width .25s ease, padding .25s ease;
+    }
+    #nav-toggle:checked ~ .layout .sidebar{
+      transform: translateX(0);
+      width:var(--sidebar-w);
+      padding:14px;
+    }
+
+    .nav-title{
+      font-size:.85rem; color:var(--muted);
+      margin:6px 8px 10px;
+    }
+    .nav{
+      display:flex; flex-direction:column; gap:6px;
+    }
+    .nav a{
+      display:flex; align-items:center; gap:10px;
+      padding:10px 12px; border-radius:10px;
+      text-decoration:none; color:var(--black);
+      font-size:14px;
+    }
+    .nav a:hover{ background:#f1f5f9; }
+    .nav a.active{ background:#e8f8ee; color:var(--green-600); font-weight:600; }
+    .nav a svg{
+      width:18px; height:18px;
+      stroke:currentColor; fill:none; stroke-width:2;
+    }
+
+    /* Main */
+    .main{
+      padding:20px;
+      max-width: var(--content-max);
+      margin-inline:auto;
+    }
+
+    /* Panels */
+    .panel{
+      background:var(--card);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:16px;
+    }
+    .panel-row{ display:grid; gap:16px; }
+    .grid-2{ grid-template-columns:1.35fr .65fr; }
+    @media (max-width:1024px){
+      .grid-2{ grid-template-columns:1fr; }
+    }
+
+    .muted{ color:var(--muted); }
+  </style>
+
+  {% block styles %}{% endblock %}
+</head>
+
+<body>
+
+  <!-- Top Bar -->
+  <header class="topbar">
+    <label for="nav-toggle" class="hamburger" title="Menu">
+      <span></span><span></span><span></span>
+    </label>
+    <div class="brand">Expense <span class="accent">Splitter</span></div>
+  </header>
+
+  <!-- Sidebar Toggle -->
+  <input id="nav-toggle" type="checkbox"/>
+
+  <div class="layout">
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="nav-title">Menu</div>
+      <nav class="nav">
+        <a href="/dashboard">
+          <svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>
+          Home
+        </a>
+        <a href="/groups">
+          <svg viewBox="0 0 24 24"><path d="M7 20a4 4 0 1 1 10 0"/><circle cx="12" cy="8" r="3"/></svg>
+          Groups
+        </a>
+        <a href="/payments">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 3"/></svg>
+          Payments
+        </a>
+        <a href="/history">
+          <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/><path d="M12 7v6l4 2"/></svg>
+          History
+        </a>
+        <a href="/account">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M6 20c0-3.314 2.686-6 6-6s6 2.686 6 6"/></svg>
+          Account
+        </a>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main">
+      {% block content %}
+      {% endblock %}
+    </main>
+
+  </div>
+
+  <!-- Shared scripts -->
+  <script type="module" src="/static/js/supabaseClient.js"></script>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

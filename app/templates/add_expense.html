@@ -5,25 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Expense Splitter - Add Expense</title>
 
-  <!--
-    Add Expense page
-    - Shell, typography, and components match the dashboard for consistency.
-    - Sidebar is collapsed by default and opens via the hamburger checkbox.
-    - Members field uses a compact dropdown with checkboxes (search + select all).
-  -->
-
   <style>
     :root{
-      /* Theme — copied from dashboard */
       --green: #16a34a;
       --green-600: #15803d;
       --red: #b91c1c;
+      --orange: #f97316;
       --black: #111111;
       --bg: #f6f7f8;
       --card: #ffffff;
       --muted: #6b7280;
 
-      /* Layout — copied from dashboard */
       --sidebar-w: 220px;
       --radius: 14px;
       --shadow: 0 8px 20px rgba(0,0,0,0.06);
@@ -40,7 +32,6 @@
       line-height: 1.35;
     }
 
-    /* ───────────────────────────────── Top bar (identical to dashboard) */
     .topbar{
       position: sticky; top:0; z-index: 40;
       height: 56px;
@@ -52,15 +43,12 @@
     .brand{ font-weight: 800; font-size: 1.6rem; letter-spacing: .2px; }
     .brand .accent{ color: var(--green); }
 
-    /* ───────────────────────────────── Shell */
     .layout{ display:block; min-height: calc(100dvh - 56px); }
 
-    /* Hamburger + toggle */
     #nav-toggle{ display:none; }
     .hamburger{ width:26px; height:20px; cursor:pointer; display:grid; gap:5px; }
     .hamburger span{ display:block; height:3px; background:var(--black); border-radius:2px; }
 
-    /* Sidebar (collapsed by default) */
     .sidebar{
       position: fixed; left:0; top:56px; z-index: 50;
       width: 0; padding:0;
@@ -88,7 +76,6 @@
     .nav a.active{ background:#e8f8ee; color:var(--green-600); font-weight:600; }
     .nav a svg{ width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:2; flex:0 0 18px; }
 
-    /* ───────────────────────────────── Main content */
     .main{ padding:20px; max-width:var(--content-max); margin-inline:auto; }
     .panel{
       background: var(--card);
@@ -99,49 +86,84 @@
     h1{ margin:0 0 8px; font-size:1.5rem; }
     .muted{ color: var(--muted); }
 
-    /* ───────────────────────────────── Form controls */
     label{ font-weight:600; display:block; margin:10px 0 6px; }
     input, select, textarea{
       width:100%; padding:10px 12px; font-size:14px;
       border:1px solid #e5e7eb; border-radius:12px; outline:none; background:#fff;
     }
-          /* Currency input styling */
-      .money-field {
-        position: relative;
-      }
 
-      .money-field .prefix {
-        position: absolute;
-        left: 12px;
-        top: 50%;
-        transform: translateY(-50%);
-        color: var(--muted);
-        font-weight: 600;
-      }
+    .money-field {
+      position: relative;
+    }
+    .money-field .prefix {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .money-field input {
+      padding-left: 28px;
+      -moz-appearance: textfield;
+    }
+    .money-field input::-webkit-outer-spin-button,
+    .money-field input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
 
-      .money-field input {
-        padding-left: 28px; /* space for the $ */
-        -moz-appearance: textfield;
-      }
+    input:focus, select:focus, textarea:focus{
+      border-color:#d1d5db; box-shadow: var(--shadow);
+    }
 
-      .money-field input::-webkit-outer-spin-button,
-      .money-field input::-webkit-inner-spin-button {
-        -webkit-appearance: none;
-        margin: 0;
-      }
-
-    input:focus, select:focus, textarea:focus{ border-color:#d1d5db; box-shadow: var(--shadow); }
-
-    .actions{ margin-top:14px; display:flex; gap:10px; flex-wrap:wrap; }
+    .actions{
+      margin-top:14px;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
     .btn{
       border:1px solid #e5e7eb; background:#fff; border-radius:12px;
       padding:9px 12px; text-decoration:none; color:var(--black); font-weight:600;
       box-shadow: var(--shadow); font-size:14px; cursor:pointer;
     }
+    .btn[disabled]{
+      opacity:0.6;
+      cursor:not-allowed;
+    }
     .btn:hover{ border-color:#d1d5db; }
     .btn.primary{ background:#e8f8ee; color:var(--green-600); border-color:#cdebdc; }
 
-    /* ───────────────────────────────── Members dropdown (compact multi-select) */
+    .split-row{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:4px;
+    }
+    .split-row label{
+      font-weight:400;
+      margin:0;
+      display:flex;
+      align-items:center;
+      gap:6px;
+      white-space:nowrap;
+    }
+    .split-row input[type="radio"]{
+      margin:0;
+    }
+
+    .error-text{
+      color:var(--red);
+      font-size:0.85rem;
+      margin-top:4px;
+      display:none;
+    }
+    .req{
+      color:var(--red);
+    }
+
     .dd-btn{
       width:100%; padding:10px 12px; border:1px solid #e5e7eb; border-radius:12px;
       background:#fff; text-align:left; cursor:pointer; font-size:14px;
@@ -158,24 +180,23 @@
       align-items:center;
       gap:8px;
       user-select:none;
-      flex:0 0 auto;        /* don't let this item shrink */
-      white-space:nowrap;   /* keep "Select all" on one line */
+      flex:0 0 auto;
+      white-space:nowrap;
     }
     .dd-check input[type="checkbox"]{
-      margin:0 6px 0 2px;   /* tidy spacing */
+      margin:0 6px 0 2px;
     }
 
     .dd-search{
-      flex:1 1 auto;        /* grow and shrink to use remaining space */
-      min-width:0;          /* allow proper shrinking without wrapping .dd-check */
+      flex:1 1 auto;
+      min-width:0;
       padding:8px 10px;
       border:1px solid #e5e7eb;
       border-radius:10px;
       font-size:14px;
     }
 
-   .dd-list{
-      /* list is a left-aligned vertical stack; no centering */
+    .dd-list{
       display:flex;
       flex-direction:column;
       align-items:flex-start;
@@ -186,7 +207,6 @@
     }
 
     .dd-item{
-      /* compact row that does NOT stretch full width */
       display:flex;
       align-items:center;
       gap:8px;
@@ -194,24 +214,36 @@
       border-radius:8px;
       cursor:pointer;
       justify-content:flex-start;
-      width:max-content;          
+      width:max-content;
       max-width:100%;
     }
     .dd-item:hover{ background:#f3f4f6; }
-    /* tighten checkbox + name */
     .dd-item input[type="checkbox"]{ margin:0 8px 0 2px; }
     .dd-item span{ flex:0 0 auto; display:inline-block; }
-
 
     .dd-actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:8px; }
     .dd-primary{ padding:8px 12px; border-radius:10px; border:1px solid #111; background:#111; color:#fff; }
     .dd-link{ background:transparent; border:none; color:#6B7280; padding:8px; cursor:pointer; }
+
     .hidden{ display:none !important; }
+
+    .status-badge{
+      font-size:0.85rem;
+      margin-top:4px;
+      font-weight:600;
+      display:none;
+    }
+    .status-badge.under{
+      color:var(--red);
+    }
+    .status-badge.over{
+      color:var(--orange);
+    }
   </style>
 </head>
 
 <body>
-  <!-- ───────────────────────────────── Top bar -->
+
   <header class="topbar">
     <label for="nav-toggle" class="hamburger" title="Menu">
       <span></span><span></span><span></span>
@@ -219,11 +251,9 @@
     <div class="brand">Expense <span class="accent">Splitter</span></div>
   </header>
 
-  <!-- Sidebar toggle (unchecked by default => collapsed) -->
   <input id="nav-toggle" type="checkbox"/>
 
   <div class="layout">
-    <!-- ───────────────────────────────── Sidebar navigation -->
     <aside class="sidebar">
       <div class="nav-title">Menu</div>
       <nav class="nav">
@@ -266,110 +296,165 @@
       </nav>
     </aside>
 
-    <!-- ───────────────────────────────── Main content -->
     <main class="main">
       <section class="panel" style="max-width: 920px; margin-inline:auto;">
         <h1>Add Expense</h1>
-        <p class="muted">Enter details below to add a new expense to your group.</p>
+        <p class="muted">Enter details below to add a new expense.</p>
 
-        <!--
-          FORM
-          - Groups are fetched from /groups.
-          - Members are fetched from /groups/:id/members and shown in a dropdown multi-select.
-          - Selected member IDs are mirrored into hidden inputs (name="member_ids") for form submission.
-        -->
         <form id="expenseForm" onsubmit="return false;">
-          <!-- Group -->
-          <label for="group">Group *</label>
-          <select id="group" name="group" required>
-            <option value="" disabled selected>Select a group...</option>
-          </select>
 
-          <!-- Members (Dropdown Multi-select) -->
-          <label for="memberBtn" style="margin-top:12px;">Members *</label>
-          <button id="memberBtn" class="dd-btn" type="button" disabled aria-expanded="false">
-            Choose a group first.
-          </button>
+          <label>Is this a group expense? <span class="req">*</span></label>
+          <div class="split-row">
+            <label>
+              <input type="radio" name="is_group_expense" value="yes" checked />
+              <span>Yes</span>
+            </label>
+            <label>
+              <input type="radio" name="is_group_expense" value="no" />
+              <span>No</span>
+            </label>
+          </div>
 
-          <div id="memberPanel" class="dd-panel hidden" role="dialog" aria-label="Select members">
-            <div class="dd-head">
-              <label class="dd-check">
-                <input type="checkbox" id="memberSelectAll" />
-                <span>Select all</span>
-              </label>
-              <input id="memberSearch" class="dd-search" type="text" placeholder="Search members…">
+          <div id="groupSection">
+            <label for="group">Group <span class="req">*</span></label>
+            <select id="group" name="group" required>
+              <option value="" disabled selected>Select a group...</option>
+            </select>
+
+            <label for="memberBtn" style="margin-top:12px;">Members <span class="req">*</span></label>
+            <button id="memberBtn" class="dd-btn" type="button" disabled aria-expanded="false">
+              Choose a group first.
+            </button>
+
+            <div id="memberPanel" class="dd-panel hidden" role="dialog" aria-label="Select members">
+              <div class="dd-head">
+                <label class="dd-check">
+                  <input type="checkbox" id="memberSelectAll" />
+                  <span>Select all</span>
+                </label>
+                <input id="memberSearch" class="dd-search" type="text" placeholder="Search members…">
+              </div>
+
+              <div id="memberList" class="dd-list" role="listbox" aria-multiselectable="true"></div>
+
+              <div class="dd-actions">
+                <button type="button" id="memberDone" class="dd-primary">Done</button>
+                <button type="button" id="memberClear" class="dd-link">Clear</button>
+              </div>
             </div>
 
-            <div id="memberList" class="dd-list" role="listbox" aria-multiselectable="true">
-              <!-- Member items injected here -->
-            </div>
+            <div id="memberHiddenInputs" class="hidden"></div>
+          </div>
 
-            <div class="dd-actions">
-              <button type="button" id="memberDone" class="dd-primary">Done</button>
-              <button type="button" id="memberClear" class="dd-link">Clear</button>
+          <div id="friendSection" class="hidden">
+            <label for="friendSelect">Friends <span class="req">*</span></label>
+            <select id="friendSelect" name="friend">
+              <option value="" disabled selected>Select a friend...</option>
+            </select>
+            <div class="muted" style="font-size:0.85rem; margin-top:4px;">
+              Missing someone? You can manage friends from the Friends page.
             </div>
           </div>
 
-          <!-- Hidden container where checked member IDs are mirrored as inputs -->
-          <div id="memberHiddenInputs" class="hidden"></div>
+          <label for="date">Date <span class="req">*</span></label>
+          <input id="date" name="date" type="date" required />
 
-          <!-- Amount, description, date -->
-          <label for="total">Total Amount *</label>
+          <label for="expense_type">Expense Type <span class="req">*</span></label>
+          <select id="expense_type" name="expense_type" required>
+            <option value="" disabled selected>Select a type...</option>
+            <option value="food">Food</option>
+            <option value="groceries">Groceries</option>
+            <option value="rent">Rent</option>
+            <option value="utilities">Utilities</option>
+            <option value="transportation">Transportation</option>
+            <option value="entertainment">Entertainment</option>
+            <option value="shopping">Shopping</option>
+            <option value="health">Health</option>
+            <option value="travel">Travel</option>
+            <option value="household">Household</option>
+            <option value="other">Other</option>
+          </select>
+
+          <label for="description">Description (optional)</label>
+          <input id="description" name="description" type="text" placeholder="e.g. Pizza Night" />
+
+          <label for="total">Total Amount <span class="req">*</span></label>
           <div class="money-field">
             <span class="prefix" aria-hidden="true">$</span>
             <input id="total" name="total" type="number" step="0.01" inputmode="decimal"
-                  placeholder="0.00"
-                  aria-label="Total amount in US dollars" required />
+                   placeholder="0.00"
+                   aria-label="Total amount in US dollars" required />
           </div>
 
-          <label for="description">Description *</label>
-          <input id="description" name="description" type="text" placeholder="e.g. Pizza Night" required />
+          <label>Split Type <span class="req">*</span></label>
+          <div class="split-row">
+            <label>
+              <input type="radio" name="split_type" value="equal" checked />
+              <span>Equal</span>
+            </label>
+            <label>
+              <input type="radio" name="split_type" value="amount" />
+              <span>Custom amounts</span>
+            </label>
+            <label>
+              <input type="radio" name="split_type" value="percentage" />
+              <span>Custom percentages</span>
+            </label>
+          </div>
+          <div id="splitError" class="error-text"></div>
 
-          <label for="date">Date *</label>
-          <input id="date" name="date" type="date" required />
+          <div id="customAmountSection" class="hidden" style="margin-top:8px;">
+            <div class="muted" style="font-size:0.9rem; margin-bottom:4px;">
+              Enter each member&rsquo;s share in dollars. Total must add up to the amount.
+            </div>
+            <div id="customAmountRows"></div>
+            <div id="amountRemaining" class="status-badge"></div>
+          </div>
 
-          <!-- Actions -->
+          <div id="customPercentageSection" class="hidden" style="margin-top:8px;">
+            <div class="muted" style="font-size:0.9rem; margin-bottom:4px;">
+              Enter each member&rsquo;s share in percent. All percentages must add up to 100.
+            </div>
+            <div id="customPercentageRows"></div>
+            <div id="percentageRemaining" class="status-badge"></div>
+          </div>
+
           <div class="actions">
             <button class="btn primary" disabled>Save Expense</button>
+            <div id="saveHint" class="error-text"></div>
           </div>
         </form>
       </section>
     </main>
   </div>
+  
+  <script type="module" src="/static/js/guard_protected.js"></script>
 
-  <!--
-    Scripts
-    - Dependency-free.
-    - Robust to response shapes: accepts either array ([...]) or object with "data" ([...]).
-    - Endpoints assumed:
-        GET /groups
-        GET /groups/:id/members
-  -->
   <script>
-    /* ───────────────────────────────── Utility: today as default date */
+    /* Prefill date and block future dates */
     (function presetToday(){
       const d = document.getElementById('date');
       if (!d) return;
       const t = new Date();
       const mm = String(t.getMonth() + 1).padStart(2, '0');
       const dd = String(t.getDate()).padStart(2, '0');
-      d.value = `${t.getFullYear()}-${mm}-${dd}`;
+      const todayStr = `${t.getFullYear()}-${mm}-${dd}`;
+      d.value = todayStr;
+      d.max = todayStr;
     })();
 
-    /* ───────────────────────────────── Fetch helpers */
     async function fetchJson(url){
       const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
       if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
       return res.json();
     }
     function normalizeRows(payload){
-      // Accepts [ ... ] or { data: [ ... ] } and returns an array.
       return Array.isArray(payload) ? payload : (Array.isArray(payload?.data) ? payload.data : []);
     }
 
-    /* ───────────────────────────────── Populate Group dropdown */
     (async function loadGroups(){
       const sel = document.getElementById('group');
+      if (!sel) return;
       const addOpt = (value, label, disabled=false) => {
         const o = document.createElement('option');
         o.value = value; o.textContent = label; o.disabled = disabled;
@@ -377,7 +462,11 @@
       };
       try{
         const data = normalizeRows(await fetchJson('/groups'));
-        if (!data.length){ addOpt('', 'No groups found', true); sel.value=''; sel.disabled=true; return; }
+        if (!data.length){
+          addOpt('', 'No groups found', true);
+          sel.value=''; sel.disabled=true;
+          return;
+        }
         data.forEach(g=>{
           const id = g.id ?? g.group_id ?? g.uuid ?? g.pk;
           const name = g.name ?? g.group_name ?? g.title ?? `Group ${id}`;
@@ -385,13 +474,12 @@
         });
       }catch(err){
         console.error('Failed to load groups:', err);
-        addOpt('', 'Error loading groups', true); sel.value=''; sel.disabled=true;
+        addOpt('', 'Error loading groups', true);
+        sel.value=''; sel.disabled=true;
       }
     })();
 
-    /* ───────────────────────────────── Members dropdown logic */
     (function membersDropdown(){
-      // Elements
       const groupSel   = document.getElementById('group');
       const btn        = document.getElementById('memberBtn');
       const panel      = document.getElementById('memberPanel');
@@ -402,11 +490,24 @@
       const clear      = document.getElementById('memberClear');
       const hiddenWrap = document.getElementById('memberHiddenInputs');
 
-      // State
-      let currentMembers = [];   // [{id, name}]
+      const customAmountSection = document.getElementById('customAmountSection');
+      const customPercentageSection = document.getElementById('customPercentageSection');
+      const customAmountRows = document.getElementById('customAmountRows');
+      const customPercentageRows = document.getElementById('customPercentageRows');
+      const amountRemainingEl = document.getElementById('amountRemaining');
+      const percentageRemainingEl = document.getElementById('percentageRemaining');
+
+      const splitRadios = document.querySelectorAll('input[name="split_type"]');
+      const totalInput = document.getElementById('total');
+      const saveBtn = document.querySelector('.btn.primary');
+      const saveHint = document.getElementById('saveHint');
+
+      let currentMembers = [];
       let open = false;
 
-      // Accessors
+      let amountTotalsValid = true;
+      let percentageTotalsValid = true;
+
       function getCheckedIds(){
         return [...list.querySelectorAll('.memberChk:checked')].map(c=>c.value);
       }
@@ -418,7 +519,224 @@
         mirrorHiddenInputs();
       }
 
-      // Rendering
+      function updateSaveState(){
+        const selected = [...splitRadios].find(r => r.checked)?.value || 'equal';
+        let ok = true;
+        if (selected === 'amount') ok = amountTotalsValid;
+        if (selected === 'percentage') ok = percentageTotalsValid;
+
+        if (saveBtn){
+          saveBtn.disabled = !ok;
+        }
+        if (saveHint){
+          if (!ok){
+            saveHint.textContent = 'Fix split totals to enable saving.';
+            saveHint.style.display = 'block';
+          } else {
+            saveHint.textContent = '';
+            saveHint.style.display = 'none';
+          }
+        }
+      }
+
+      function updateAmountRemaining() {
+        if (!amountRemainingEl) return;
+        const selected = [...splitRadios].find(r => r.checked)?.value || 'equal';
+
+        amountRemainingEl.style.display = 'none';
+        amountRemainingEl.classList.remove('under', 'over');
+        amountRemainingEl.innerHTML = '';
+
+        if (selected !== 'amount') {
+          amountTotalsValid = true;
+          updateSaveState();
+          return;
+        }
+
+        const total = parseFloat(totalInput?.value || '0');
+        const inputs = document.querySelectorAll('.custom-amount-input');
+
+        if (!total || inputs.length === 0) {
+          amountTotalsValid = true;
+          updateSaveState();
+          return;
+        }
+
+        let sum = 0;
+        inputs.forEach(inp => {
+          const v = parseFloat(inp.value || '0');
+          if (!isNaN(v)) sum += v;
+        });
+        const remaining = +(total - sum).toFixed(2);
+
+        const diffValid = Math.abs(remaining) <= 0.01;
+        amountTotalsValid = diffValid;
+
+        if (!diffValid){
+          amountRemainingEl.style.display = 'block';
+          if (remaining > 0){
+            amountRemainingEl.classList.add('under');
+            amountRemainingEl.innerHTML =
+              `+ <strong>$${remaining.toFixed(2)}</strong> remaining`;
+          } else if (remaining < 0){
+            amountRemainingEl.classList.add('over');
+            const over = Math.abs(remaining);
+            amountRemainingEl.innerHTML =
+              `- <strong>$${over.toFixed(2)}</strong> over`;
+          }
+        }
+
+        updateSaveState();
+      }
+
+      function updatePercentageAmounts() {
+        const total = parseFloat(totalInput?.value || '0');
+        const pctInputs = document.querySelectorAll('.custom-percentage-input');
+
+        pctInputs.forEach(inp => {
+          const id = inp.dataset.memberId;
+          const span = document.querySelector(`.percentage-amount[data-member-id="${id}"]`);
+          if (!span) return;
+
+          const pct = parseFloat(inp.value || '0');
+          if (!total || isNaN(pct)) {
+            span.textContent = '$0.00';
+          } else {
+            const amt = (total * pct) / 100;
+            span.textContent = `$${amt.toFixed(2)}`;
+          }
+        });
+      }
+
+      function updatePercentageRemaining() {
+        if (!percentageRemainingEl) return;
+        const selected = [...splitRadios].find(r => r.checked)?.value || 'equal';
+
+        percentageRemainingEl.style.display = 'none';
+        percentageRemainingEl.classList.remove('under', 'over');
+        percentageRemainingEl.innerHTML = '';
+
+        const inputs = document.querySelectorAll('.custom-percentage-input');
+        if (selected !== 'percentage' || inputs.length === 0) {
+          percentageTotalsValid = true;
+          updateSaveState();
+          updatePercentageAmounts();
+          return;
+        }
+
+        let sum = 0;
+        inputs.forEach(inp => {
+          const v = parseFloat(inp.value || '0');
+          if (!isNaN(v)) sum += v;
+        });
+        const remaining = +(100 - sum).toFixed(2);
+
+        const diffValid = Math.abs(remaining) <= 0.01;
+        percentageTotalsValid = diffValid;
+
+        if (!diffValid){
+          percentageRemainingEl.style.display = 'block';
+          if (remaining > 0){
+            percentageRemainingEl.classList.add('under');
+            percentageRemainingEl.innerHTML =
+              `+ <strong>${remaining.toFixed(2)}%</strong> remaining`;
+          } else if (remaining < 0){
+            percentageRemainingEl.classList.add('over');
+            const over = Math.abs(remaining);
+            percentageRemainingEl.innerHTML =
+              `- <strong>${over.toFixed(2)}%</strong> over`;
+          }
+        }
+
+        updateSaveState();
+        updatePercentageAmounts();
+      }
+
+      function buildCustomRows() {
+        if (!customAmountRows || !customPercentageRows) return;
+
+        if (!currentMembers.length) {
+          customAmountRows.innerHTML = '';
+          customPercentageRows.innerHTML = '';
+          updateAmountRemaining();
+          updatePercentageRemaining();
+          updatePercentageAmounts();
+          return;
+        }
+
+        customAmountRows.innerHTML = currentMembers.map(m => `
+          <div style="margin-top:6px; display:flex; align-items:center; gap:10px;">
+            <span style="min-width:120px;">${m.name}</span>
+            <div class="money-field" style="flex:0 0 160px;">
+              <span class="prefix" aria-hidden="true">$</span>
+              <input
+                type="number"
+                class="custom-amount-input"
+                data-member-id="${m.id}"
+                step="0.01"
+                min="0"
+                inputmode="decimal"
+                placeholder="0.00"
+              />
+            </div>
+          </div>
+        `).join('');
+
+        customPercentageRows.innerHTML = currentMembers.map(m => `
+          <div style="margin-top:6px; display:flex; align-items:center; gap:10px;">
+            <span style="min-width:120px;">${m.name}</span>
+            <div style="display:flex; align-items:center; gap:6px; flex:1 1 auto;">
+              <input
+                type="number"
+                class="custom-percentage-input"
+                data-member-id="${m.id}"
+                step="0.01"
+                min="0"
+                max="100"
+                inputmode="decimal"
+                placeholder="0"
+                style="width:80px;"
+              />
+              <span>%</span>
+              <span
+                class="percentage-amount"
+                data-member-id="${m.id}"
+                style="margin-left:auto; font-size:0.85rem; color:var(--muted); min-width:80px; text-align:right;"
+              >
+                $0.00
+              </span>
+            </div>
+          </div>
+        `).join('');
+
+        customAmountRows.querySelectorAll('.custom-amount-input').forEach(inp => {
+          inp.addEventListener('input', updateAmountRemaining);
+        });
+        customPercentageRows.querySelectorAll('.custom-percentage-input').forEach(inp => {
+          inp.addEventListener('input', () => {
+            updatePercentageRemaining();
+            updatePercentageAmounts();
+          });
+        });
+
+        updateAmountRemaining();
+        updatePercentageRemaining();
+        updatePercentageAmounts();
+      }
+
+      function updateSplitSections() {
+        const selected = [...splitRadios].find(r => r.checked)?.value || 'equal';
+        if (customAmountSection) {
+          customAmountSection.classList.toggle('hidden', selected !== 'amount');
+        }
+        if (customPercentageSection) {
+          customPercentageSection.classList.toggle('hidden', selected !== 'percentage');
+        }
+        updateAmountRemaining();
+        updatePercentageRemaining();
+        updatePercentageAmounts();
+      }
+
       function renderMembers(rows){
         currentMembers = rows.map(m => ({
           id: String(m.id ?? m.member_id ?? m.user_id),
@@ -434,10 +752,10 @@
 
         selectAll.checked = false;
         syncSummary();
-        mirrorHiddenInputs(); // reset hidden inputs
+        mirrorHiddenInputs();
+        buildCustomRows();
       }
 
-      // Hidden inputs mirror (for normal form post)
       function mirrorHiddenInputs(){
         hiddenWrap.innerHTML = '';
         getCheckedIds().forEach(id => {
@@ -449,19 +767,16 @@
         });
       }
 
-      // Summary on the button (e.g., "3 selected")
       function syncSummary(){
         const count = getCheckedIds().length;
         btn.textContent = count ? `${count} selected` : 'Select members';
       }
 
-      // Keep "Select all" in sync with individual changes
       function syncSelectAll(){
         const checks = [...list.querySelectorAll('.memberChk')];
         selectAll.checked = checks.length > 0 && checks.every(c=>c.checked);
       }
 
-      // Open/close panel
       function openPanel(){
         panel.classList.remove('hidden'); btn.setAttribute('aria-expanded','true'); open = true;
         setTimeout(()=>search.focus(), 0);
@@ -470,7 +785,6 @@
         panel.classList.add('hidden'); btn.setAttribute('aria-expanded','false'); open = false;
       }
 
-      // Fetch members for selected group
       async function loadMembersFor(groupId){
         list.innerHTML = `<div class="muted" style="padding:8px;">Loading members…</div>`;
         selectAll.checked = false;
@@ -483,17 +797,24 @@
         }
       }
 
-      // ── Wire: group change → enable dropdown and fetch members
-      groupSel.addEventListener('change', (e)=>{
-        const gid = e.target.value;
-        if (!gid){ btn.disabled = true; btn.textContent = 'Choose a group first.'; return; }
-        btn.disabled = false; btn.textContent = 'Select members';
-        closePanel();
-        loadMembersFor(gid);
-      });
+      if (groupSel) {
+        groupSel.addEventListener('change', (e)=>{
+          const gid = e.target.value;
+          if (!gid){
+            btn.disabled = true;
+            btn.textContent = 'Choose a group first.';
+            return;
+          }
+          btn.disabled = false;
+          btn.textContent = 'Select members';
+          closePanel();
+          loadMembersFor(gid);
+        });
+      }
 
-      // ── Wire: open/close
-      btn.addEventListener('click', ()=> open ? closePanel() : openPanel());
+      if (btn) {
+        btn.addEventListener('click', ()=> open ? closePanel() : openPanel());
+      }
       document.addEventListener('click', (e)=>{
         if (!open) return;
         if (e.target === btn || panel.contains(e.target)) return;
@@ -501,23 +822,24 @@
       });
       document.addEventListener('keydown', (e)=>{ if (open && e.key === 'Escape') closePanel(); });
 
-      // ── Wire: search filter
-      search.addEventListener('input', ()=>{
-        const q = search.value.toLowerCase();
-        [...list.querySelectorAll('.dd-item')].forEach(item=>{
-          const name = item.textContent.toLowerCase();
-          item.style.display = name.includes(q) ? '' : 'none';
+      if (search) {
+        search.addEventListener('input', ()=>{
+          const q = search.value.toLowerCase();
+          [...list.querySelectorAll('.dd-item')].forEach(item=>{
+            const name = item.textContent.toLowerCase();
+            item.style.display = name.includes(q) ? '' : 'none';
+          });
         });
-      });
+      }
 
-      // ── Wire: select all
-      selectAll.addEventListener('change', ()=>{
-        list.querySelectorAll('.memberChk').forEach(c => c.checked = selectAll.checked);
-        syncSummary();
-        mirrorHiddenInputs();
-      });
+      if (selectAll) {
+        selectAll.addEventListener('change', ()=>{
+          list.querySelectorAll('.memberChk').forEach(c => c.checked = selectAll.checked);
+          syncSummary();
+          mirrorHiddenInputs();
+        });
+      }
 
-      // ── Wire: individual checks
       list.addEventListener('change', (e)=>{
         if (!e.target.classList.contains('memberChk')) return;
         syncSelectAll();
@@ -525,93 +847,212 @@
         mirrorHiddenInputs();
       });
 
-      // ── Wire: actions
-      clear.addEventListener('click', ()=>{
-        setCheckedByIds([]); // uncheck all and sync
-      });
-            done.addEventListener('click', closePanel);
-    })();
-
-/* ───────────────────────────────── Add Expense submit wiring (mock)
-   - Wires the Save button.
-   - Validates required fields and selected members.
-   - Calls POST /expenses with JSON payload.
-   - On success: alert, reset UI, redirect to /dashboard.
-*/
-document.addEventListener('DOMContentLoaded', function () {
-  const form = document.getElementById('expenseForm');
-  const saveBtn = document.querySelector('.btn.primary'); // same class used in markup
-  const memberHidden = document.getElementById('memberHiddenInputs');
-  const memberBtn = document.getElementById('memberBtn');
-
-  if (!form || !saveBtn) return;
-
-  // enable the Save button now that the endpoint exists
-  saveBtn.disabled = false;
-
-  form.addEventListener('submit', async function (e) {
-    e.preventDefault(); // prevent default form navigation
-
-    // read required fields
-    const groupEl = document.getElementById('group');
-    const amountEl = document.getElementById('total');
-    const descEl = document.getElementById('description');
-    const dateEl = document.getElementById('date');
-
-    const group_id = parseInt((groupEl?.value || '0'), 10);
-    const amount = parseFloat((amountEl?.value || '0'));
-    const description = (descEl?.value || '').trim();
-    const expense_date = dateEl?.value || '';
-
-    // collect selected members mirrored as hidden inputs (name="member_ids")
-    const member_ids = memberHidden
-      ? [...memberHidden.querySelectorAll('input[name="member_ids"]')].map(i => parseInt(i.value, 10))
-      : [];
-
-    // temporary payer until auth is wired
-    const payer = 'Preet';
-
-    // minimal validation
-    if (!group_id || !amount || !description || !expense_date || member_ids.length === 0) {
-      alert('Please fill all required fields and select at least one member.');
-      return;
-    }
-
-    // basic submit UX
-    saveBtn.disabled = true;
-    const oldLabel = saveBtn.textContent;
-    saveBtn.textContent = 'Saving…';
-
-    try {
-      const res = await fetch('/expenses', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({ group_id, payer, amount, description, expense_date, member_ids })
-      });
-      const json = await res.json().catch(() => ({}));
-
-      if (!res.ok || !json?.ok) {
-        const msg = json?.detail || json?.error || `Save failed (${res.status}).`;
-        throw new Error(msg);
+      if (clear) {
+        clear.addEventListener('click', ()=>{
+          setCheckedByIds([]);
+        });
+      }
+      if (done) {
+        done.addEventListener('click', closePanel);
       }
 
-      alert('Expense created!');
-      // reset form and member UI
-      form.reset();
-      if (memberHidden) memberHidden.innerHTML = '';
-      if (memberBtn) memberBtn.textContent = 'Select members';
+      splitRadios.forEach(radio => {
+        radio.addEventListener('change', updateSplitSections);
+      });
+      updateSplitSections();
 
-      // redirect to dashboard
-      window.location.href = '/dashboard';
-    } catch (err) {
-      console.error(err);
-      alert(err.message || 'Save failed. Please try again.');
-    } finally {
+      if (totalInput) {
+        totalInput.addEventListener('input', ()=>{
+          updateAmountRemaining();
+          updatePercentageRemaining();
+          updatePercentageAmounts();
+        });
+      }
+
+      updateSaveState();
+    })();
+
+    (function groupToggle(){
+      const radios = document.querySelectorAll('input[name="is_group_expense"]');
+      const groupSection = document.getElementById('groupSection');
+      const friendSection = document.getElementById('friendSection');
+
+      if (!radios.length || !groupSection || !friendSection) return;
+
+      function syncMode() {
+        const value = [...radios].find(r => r.checked)?.value || 'yes';
+        const isGroup = value === 'yes';
+
+        groupSection.classList.toggle('hidden', !isGroup);
+        friendSection.classList.toggle('hidden', isGroup);
+      }
+
+      radios.forEach(r => r.addEventListener('change', syncMode));
+      syncMode();
+    })();
+
+    document.addEventListener('DOMContentLoaded', function () {
+      const form = document.getElementById('expenseForm');
+      const saveBtn = document.querySelector('.btn.primary');
+      const memberHidden = document.getElementById('memberHiddenInputs');
+      const memberBtn = document.getElementById('memberBtn');
+      const splitError = document.getElementById('splitError');
+
+      if (!form || !saveBtn) return;
       saveBtn.disabled = false;
-      saveBtn.textContent = oldLabel;
-    }
-  });
-});
+
+      form.addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        if (splitError) {
+          splitError.textContent = '';
+          splitError.style.display = 'none';
+        }
+
+        const groupEl = document.getElementById('group');
+        const amountEl = document.getElementById('total');
+        const descEl = document.getElementById('description');
+        const dateEl = document.getElementById('date');
+        const typeEl = document.getElementById('expense_type');
+
+        const group_id = groupEl?.value || null;   //keep UUID as string
+        const amount = parseFloat((amountEl?.value || '0'));
+        const description = (descEl?.value || '').trim();
+        const expense_date = dateEl?.value || '';
+        const expense_type = typeEl?.value || null;
+
+        if (expense_date) {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const chosen = new Date(expense_date);
+          if (chosen > today) {
+            alert('Date cannot be in the future.');
+            return;
+          }
+        }
+        const memberInputs = memberHidden
+          ? [...memberHidden.querySelectorAll('input[name="member_ids"]')]
+          : [];
+        const member_ids = memberInputs.map(i => i.value);  // use raw UUID strings
+
+        const splitRadio = document.querySelector('input[name="split_type"]:checked');
+        const split_type = splitRadio ? splitRadio.value : 'equal';
+
+        let custom_amounts;
+        let custom_percentages;
+
+        if (!group_id || !amount || !expense_date || member_ids.length === 0) {
+          alert('Please fill all required fields and select at least one member.');
+          return;
+        }
+
+        if (split_type === 'amount') {
+          const amountInputs = document.querySelectorAll('.custom-amount-input');
+          const byId = {};
+          amountInputs.forEach(inp => {
+            const id = inp.dataset.memberId;
+            const val = parseFloat(inp.value || '0');
+            byId[id] = isNaN(val) ? 0 : val;
+          });
+
+          custom_amounts = memberInputs.map(inp => {
+            const id = inp.value;
+            return byId[id] ?? 0;
+          });
+
+          const sumCustom = custom_amounts.reduce((acc, v) => acc + (v || 0), 0);
+          const diff = Math.abs(sumCustom - amount);
+
+          if (diff > 0.01) {
+            const msg = 'Custom amounts must add up to the total amount.';
+            if (splitError) {
+              splitError.textContent = msg;
+              splitError.style.display = 'block';
+            } else {
+              alert(msg);
+            }
+            return;
+          }
+        }
+
+        if (split_type === 'percentage') {
+          const pctInputs = document.querySelectorAll('.custom-percentage-input');
+          const byId = {};
+          pctInputs.forEach(inp => {
+            const id = inp.dataset.memberId;
+            const val = parseFloat(inp.value || '0');
+            byId[id] = isNaN(val) ? 0 : val;
+          });
+
+          custom_percentages = memberInputs.map(inp => {
+            const id = inp.value;
+            return byId[id] ?? 0;
+          });
+
+          const sumPct = custom_percentages.reduce((acc, v) => acc + (v || 0), 0);
+          const diffPct = Math.abs(sumPct - 100);
+
+          if (diffPct > 0.01) {
+            const msg = 'Custom percentages must add up to 100.';
+            if (splitError) {
+              splitError.textContent = msg;
+              splitError.style.display = 'block';
+            } else {
+              alert(msg);
+            }
+            return;
+          }
+        }
+
+        saveBtn.disabled = true;
+        const oldLabel = saveBtn.textContent;
+        saveBtn.textContent = 'Saving…';
+
+        try {
+          const payload = {
+            group_id,
+            amount,
+            description,
+            expense_date,
+            member_ids,
+            split_type,
+            expense_type,
+          };
+
+          if (split_type === 'amount') payload.custom_amounts = custom_amounts;
+          if (split_type === 'percentage') payload.custom_percentages = custom_percentages;
+
+          const res = await fetch('/expenses/', {
+            method: 'POST',
+            credentials: "include",
+            headers: { 
+              'Content-Type': 'application/json', 
+              'Accept': 'application/json' 
+            },
+            body: JSON.stringify(payload)
+          });
+          const json = await res.json().catch(() => ({}));
+
+          if (!res.ok || !json?.ok) {
+            const msg = json?.detail || json?.error || `Save failed (${res.status}).`;
+            throw new Error(msg);
+          }
+
+          alert('Expense created!');
+          form.reset();
+          if (memberHidden) memberHidden.innerHTML = '';
+          if (memberBtn) memberBtn.textContent = 'Select members';
+
+          window.location.href = '/dashboard';
+        } catch (err) {
+          console.error(err);
+          alert(err.message || 'Save failed. Please try again.');
+        } finally {
+          saveBtn.disabled = false;
+          saveBtn.textContent = oldLabel;
+        }
+      });
+    });
   </script>
 </body>
 </html>

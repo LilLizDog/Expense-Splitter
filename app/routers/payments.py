@@ -9,4 +9,8 @@ router = APIRouter()
 
 @router.get("/payments", response_class=HTMLResponse)
 def payments(request: Request):
-    return templates.TemplateResponse("payments.html", {"request": request})
+    return templates.TemplateResponse(
+    request,
+    "payments.html",
+    {}
+)

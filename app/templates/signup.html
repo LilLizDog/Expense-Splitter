@@ -1,185 +1,390 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <!-- Signup page UI -->
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Sign Up</title>
+{% extends "base_public.html" %}
 
-  <style>
-    :root{
-      --green:#16a34a; --green-600:#15803d; --red:#b91c1c; --black:#111;
-      --bg:#f6f7f8; --card:#fff; --muted:#6b7280; --radius:14px;
-      --shadow:0 8px 20px rgba(0,0,0,0.06);
-    }
-    *{box-sizing:border-box}
-    body{margin:0;background:var(--bg);font-family:Arial,Helvetica,sans-serif}
-    .topbar{height:56px;background:#fff;box-shadow:var(--shadow);display:flex;align-items:center;padding:0 14px}
-    .brand{font-weight:800;font-size:1.6rem}.brand .accent{color:var(--green)}
+{% block title %}Sign Up | Expense Splitter{% endblock %}
 
-    .wrap{min-height:calc(100vh - 56px);display:flex;align-items:center;justify-content:center;padding:24px}
-    .card{width:100%;max-width:560px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:28px}
+{% block styles %}
+<style>
+  .auth-shell{
+    width:100%;
+    max-width:540px;
+  }
 
-    h1{margin:0 0 6px;font-size:1.5rem}
-    p.muted{margin:0 0 18px;color:var(--muted);font-size:.95rem}
+  .brand{
+    text-align:center;
+    font-size:2rem;
+    font-weight:700;
+    margin-bottom:16px;
+  }
 
-    label{display:block;font-size:.92rem;margin:10px 0 6px}
-    .req::after{content:" *";color:var(--red)}
+  .brand span{
+    color:var(--green);
+  }
 
-    input{width:100%;padding:11px 12px;border:1px solid #e5e7eb;border-radius:10px;font-size:14px}
+  .auth-wrapper{
+    width:100%;
+    background:var(--card);
+    padding:40px 36px;
+    border-radius:18px;
+    box-shadow:var(--shadow);
+  }
 
-    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  h2{
+    margin:0;
+    font-size:1.4rem;
+    font-weight:600;
+    text-align:center;
+  }
 
-    .pw-wrap{position:relative}
-    .eye-btn{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:0}
-    .eye-icon{width:20px;height:20px;stroke:currentColor;stroke-width:2;fill:none}
+  p.sub{
+    text-align:center;
+    margin:6px 0 24px;
+    color:var(--muted);
+    font-size:.95rem;
+  }
 
-    .strength{display:flex;align-items:center;gap:10px;margin-top:6px}
-    .bar{flex:1;height:8px;background:#e5e7eb;border-radius:999px;overflow:hidden}
-    .bar span{display:block;height:100%;width:0;background:var(--red);transition:width .2s}
-    .hint{font-size:.85rem;color:var(--muted)}
+  label{
+    display:block;
+    margin:12px 0 6px;
+    font-size:.92rem;
+  }
 
-    .btn{width:100%;margin-top:18px;padding:12px;border-radius:12px;border:1px solid #e5e7eb;background:#fff;font-weight:700;cursor:pointer;box-shadow:var(--shadow)}
-    .btn:hover{border-color:#d1d5db}
+  .req::after{
+    content:" *";
+    color:#b91c1c;
+  }
 
-    .alt{margin-top:14px;font-size:.95rem}
-    .alt a{text-decoration:none;color:var(--green-600)}
-  </style>
-</head>
+  input{
+    width:100%;
+    padding:12px 14px;
+    border:1px solid #e5e7eb;
+    border-radius:10px;
+    font-size:14px;
+  }
 
-<body>
-  <header class="topbar">
-    <div class="brand">Expense <span class="accent">Splitter</span></div>
-  </header>
+  .row{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+  }
 
-  <main class="wrap">
-    <section class="card">
-      <h1>Create your account</h1>
-      <p class="muted">Enter your details to continue.</p>
+  .pw-wrap{
+    position:relative;
+  }
 
-      <!-- Status banners -->
-      <div id="signup-success" style="display:none; color:#155724; background:#d4edda; padding:8px; border-radius:6px; margin:8px 0;">
-        Account successfully created. Please check your email to verify. Redirecting to Login…
+  .eye-btn{
+    position:absolute;
+    right:12px;
+    top:50%;
+    transform:translateY(-50%);
+    background:none;
+    border:none;
+    cursor:pointer;
+    padding:0;
+  }
+
+  .eye-icon{
+    width:20px;
+    height:20px;
+    stroke:currentColor;
+    stroke-width:2;
+    fill:none;
+  }
+
+  .strength{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-top:6px;
+  }
+
+  .bar{
+    flex:1;
+    height:8px;
+    background:#e5e7eb;
+    border-radius:999px;
+    overflow:hidden;
+  }
+
+  .bar span{
+    display:block;
+    height:100%;
+    width:0;
+    background:#b91c1c;
+    transition:width .2s;
+  }
+
+  .hint{
+    font-size:.85rem;
+    color:var(--muted);
+  }
+
+  .error-text{
+    font-size:.85rem;
+    color:#b91c1c;
+    margin-top:4px;
+  }
+
+  .btn{
+    width:100%;
+    margin-top:22px;
+    padding:13px;
+    background:var(--green);
+    color:white;
+    font-weight:700;
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+    font-size:1rem;
+  }
+
+  .btn:hover{
+    background:var(--green-600);
+  }
+
+  .btn[disabled]{
+    opacity:0.6;
+    cursor:not-allowed;
+    box-shadow:none;
+  }
+
+  .alt{
+    margin-top:18px;
+    text-align:center;
+    font-size:.95rem;
+  }
+
+  .alt a{
+    text-decoration:none;
+    color:var(--green-600);
+  }
+
+  .banner{
+    display:none;
+    padding:10px 12px;
+    border-radius:8px;
+    margin-bottom:16px;
+    font-size:.92rem;
+  }
+
+  #signup-success{
+    background:#d4edda;
+    color:#155724;
+  }
+
+  #signup-error{
+    background:#f8d7da;
+    color:#721c24;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-shell">
+
+  <div class="brand">
+    Expense <span>Splitter</span>
+  </div>
+
+  <div class="auth-wrapper">
+    <h2>Sign up</h2>
+    <p class="sub">Provide the information below to set up your account.</p>
+
+    <div id="signup-success" class="banner">
+      Account created. Check your email to verify.
+    </div>
+
+    <div id="signup-error" class="banner"></div>
+
+    <form id="signup-form">
+
+      <div class="row">
+        <div>
+          <label class="req" for="first_name">First Name</label>
+          <input id="first_name" name="first_name" required>
+        </div>
+
+        <div>
+          <label class="req" for="last_name">Last Name</label>
+          <input id="last_name" name="last_name" required>
+        </div>
       </div>
-      <div id="signup-error" style="display:none; color:#721c24; background:#f8d7da; padding:8px; border-radius:6px; margin:8px 0;"></div>
 
-      <form id="signup-form">
-        <div class="row">
-          <div>
-            <label class="req" for="first_name">First Name</label>
-            <input id="first_name" name="first_name" type="text" required/>
-          </div>
-          <div>
-            <label class="req" for="last_name">Last Name</label>
-            <input id="last_name" name="last_name" type="text" required/>
-          </div>
-        </div>
+      <input type="hidden" id="full_name" name="name">
 
-        <!-- Hidden combined name for backend compatibility -->
-        <input type="hidden" id="full_name" name="name"/>
+      <label class="req" for="email">Email</label>
+      <input id="email" name="email" type="email" required>
 
-        <label class="req" for="email">Email</label>
-        <input id="email" name="email" type="email" required/>
+      <div class="row">
+        <div class="pw-wrap">
+          <label class="req" for="password">Password</label>
+          <input id="password" name="password" type="password" minlength="8" required>
+          <button type="button" class="eye-btn" onclick="togglePw('password', this)">
+            <svg class="eye-icon show" viewBox="0 0 24 24">
+              <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            <svg class="eye-icon hide" viewBox="0 0 24 24" style="display:none">
+              <path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a21.8 21.8 0 0 1 5.06-5.94"/>
+              <line x1="1" y1="1" x2="23" y2="23"/>
+            </svg>
+          </button>
 
-        <div class="row">
-          <div class="pw-wrap">
-            <label class="req" for="password">Password</label>
-            <input id="password" name="password" type="password" minlength="8" required/>
-            <button class="eye-btn" type="button" onclick="togglePw('password', this)">
-              <svg class="eye-icon show" viewBox="0 0 24 24">
-                <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/>
-                <circle cx="12" cy="12" r="3"/>
-              </svg>
-              <svg class="eye-icon hide" viewBox="0 0 24 24" style="display:none">
-                <path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a21.8 21.8 0 0 1 5.06-5.94"/>
-                <line x1="1" y1="1" x2="23" y2="23"/>
-              </svg>
-            </button>
-
-            <div class="strength">
-              <div class="bar"><span id="pwBar"></span></div>
-              <span id="pwLabel" class="hint">weak</span>
-            </div>
-          </div>
-
-          <div class="pw-wrap">
-            <label class="req" for="confirm_password">Confirm Password</label>
-            <input id="confirm_password" type="password" minlength="8" required/>
-            <button class="eye-btn" type="button" onclick="togglePw('confirm_password', this)">
-              <svg class="eye-icon show" viewBox="0 0 24 24">
-                <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/>
-                <circle cx="12" cy="12" r="3"/>
-              </svg>
-              <svg class="eye-icon hide" viewBox="0 0 24 24" style="display:none">
-                <path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a21.8 21.8 0 0 1 5.06-5.94"/>
-                <line x1="1" y1="1" x2="23" y2="23"/>
-              </svg>
-            </button>
+          <div class="strength">
+            <div class="bar"><span id="pwBar"></span></div>
+            <span id="pwLabel" class="hint">weak</span>
           </div>
         </div>
 
-        <label class="req" for="dob">Date of Birth</label>
-        <input id="dob" name="dob" type="date" required/>
+        <div class="pw-wrap">
+          <label class="req" for="confirm_password">Confirm Password</label>
+          <input id="confirm_password" type="password" minlength="8" required>
+          <button type="button" class="eye-btn" onclick="togglePw('confirm_password', this)">
+            <svg class="eye-icon show" viewBox="0 0 24 24">
+              <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            <svg class="eye-icon hide" viewBox="0 0 24 24" style="display:none">
+              <path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a21.8 21.8 0 0 1 5.06-5.94"/>
+              <line x1="1" y1="1" x2="23" y2="23"/>
+            </svg>
+          </button>
+        </div>
+      </div>
 
-        <p class="muted" style="margin-top:10px;font-size:.9rem;">
-          By creating an account, you confirm you are at least 18 years old.
-        </p>
+      <p id="pw-mismatch" class="error-text" style="display:none;">
+        Password and confirmation do not match.
+      </p>
 
-        <button class="btn" type="submit">Sign Up</button>
-      </form>
+      <label class="req" for="dob">Date of Birth</label>
+      <input id="dob" name="dob" type="date" required>
 
-      <div class="alt">Already have an account? <a href="/login">Login here</a></div>
-    </section>
-  </main>
+      <p class="sub" style="margin-top:14px; font-size:.9rem;">
+        By signing up you confirm that you are at least 18 years old.
+      </p>
 
-  <!-- Modules: Supabase client and signup logic -->
-  <script type="module" src="/static/js/supabaseClient.js"></script>
-  <script type="module" src="/static/js/signup.js"></script>
+      <button type="submit" id="signup-btn" class="btn" disabled>Sign Up</button>
+    </form>
 
-  <!-- Small page helpers: names, DOB max, visibility, strength meter -->
-  <script>
-    // CSS vars to JS
-    const css = getComputedStyle(document.documentElement);
-    const COLOR_RED = css.getPropertyValue('--red').trim() || '#b91c1c';
-    const COLOR_AMBER = '#f59e0b';
-    const COLOR_GREEN = css.getPropertyValue('--green-600').trim() || '#15803d';
+    <div class="alt">
+      Already have an account? <a href="/login">Login here</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
 
-    // combine names automatically
-    document.getElementById('signup-form').addEventListener('input', () => {
-      document.getElementById('full_name').value =
-        document.getElementById('first_name').value.trim() + " " +
-        document.getElementById('last_name').value.trim();
-    });
+{% block scripts %}
+<script type="module" src="/static/js/supabaseClient.js"></script>
+<script type="module" src="/static/js/signup.js"></script>
 
-    // enforce age ≥ 18
-    const dob = document.getElementById('dob');
-    const today = new Date();
-    dob.max = `${today.getFullYear()-18}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+<script>
+  // Cache references to DOM elements needed for validation
+  const form = document.getElementById("signup-form");
+  const firstName = document.getElementById("first_name");
+  const lastName = document.getElementById("last_name");
+  const fullName = document.getElementById("full_name");
+  const email = document.getElementById("email");
+  const pw = document.getElementById("password");
+  const confirmPw = document.getElementById("confirm_password");
+  const dob = document.getElementById("dob");
+  const signupBtn = document.getElementById("signup-btn");
+  const mismatchMsg = document.getElementById("pw-mismatch");
+  const bar = document.getElementById("pwBar");
+  const lbl = document.getElementById("pwLabel");
 
-    // toggle password visibility
-    function togglePw(id, btn){
-      const input = document.getElementById(id);
-      const show = btn.querySelector('.show');
-      const hide = btn.querySelector('.hide');
-      const on = input.type === 'password';
-      input.type = on ? 'text' : 'password';
-      show.style.display = on ? 'none' : 'block';
-      hide.style.display = on ? 'block' : 'none';
+  // Password strength score used to gate signup
+  let pwScore = 0;
+
+  // Update full name and revalidate on any input
+  form.addEventListener("input", () => {
+    fullName.value = firstName.value.trim() + " " + lastName.value.trim();
+    validateForm();
+  });
+
+  // Enforce minimum age requirement of 18 years and set max attribute
+  const today = new Date();
+  dob.max = `${today.getFullYear()-18}-${String(today.getMonth()+1).padStart(2,"0")}-${String(today.getDate()).padStart(2,"0")}`;
+
+  // Clamp typed DOB to max allowed date
+  dob.addEventListener("input", () => {
+    if (!dob.value) {
+      validateForm();
+      return;
     }
+    const maxDate = new Date(dob.max);
+    const typed = new Date(dob.value);
+    if (typed > maxDate || Number.isNaN(typed.getTime())) {
+      dob.value = dob.max;
+    }
+    validateForm();
+  });
 
-    // password strength
-    const pw = document.getElementById('password');
-    const bar = document.getElementById('pwBar');
-    const lbl = document.getElementById('pwLabel');
-    pw.addEventListener('input', () => {
-      let s = 0, v = pw.value;
-      if(v.length>=8) s++; if(/[A-Z]/.test(v)) s++; if(/[a-z]/.test(v)) s++;
-      if(/\d/.test(v)) s++; if(/[^A-Za-z0-9]/.test(v)) s++;
-      const pct = [0,20,40,60,80,100][s];
-      bar.style.width = pct + "%";
-      bar.style.background = s < 3 ? COLOR_RED : s < 4 ? COLOR_AMBER : COLOR_GREEN;
-      lbl.textContent = s < 3 ? "weak" : s < 4 ? "medium" : "strong";
-    });
-  </script>
-</body>
-</html>
+  // Toggle password visibility for a specific field
+  function togglePw(id, btn){
+    const input = document.getElementById(id);
+    const show = btn.querySelector(".show");
+    const hide = btn.querySelector(".hide");
+    const isHidden = input.type === "password";
+    input.type = isHidden ? "text" : "password";
+    show.style.display = isHidden ? "none" : "block";
+    hide.style.display = isHidden ? "block" : "none";
+  }
+
+  // Update password strength bar and label on each keystroke
+  pw.addEventListener("input", () => {
+    let s = 0;
+    const v = pw.value;
+
+    if (v.length >= 8) s++;
+    if (/[A-Z]/.test(v)) s++;
+    if (/[a-z]/.test(v)) s++;
+    if (/\d/.test(v)) s++;
+    if (/[^A-Za-z0-9]/.test(v)) s++;
+
+    pwScore = s;
+
+    const pct = [0,20,40,60,80,100][s];
+    bar.style.width = pct + "%";
+    bar.style.background = s < 3 ? "#b91c1c" : s < 4 ? "#f59e0b" : "#15803d";
+    lbl.textContent = s < 3 ? "weak" : s < 4 ? "medium" : "strong";
+
+    validateForm();
+  });
+
+  // Revalidate whenever confirmation field changes
+  confirmPw.addEventListener("input", validateForm);
+
+  // Validate all required fields, password strength, and match
+  function validateForm(){
+    const firstOk = firstName.value.trim() !== "";
+    const lastOk = lastName.value.trim() !== "";
+    const emailOk = email.value.trim() !== "" && email.checkValidity();
+    const dobOk = dob.value !== "";
+    const pwVal = pw.value;
+    const confirmVal = confirmPw.value;
+
+    // Password must be at least medium strength
+    const strongEnough = pwVal.length >= 8 && pwScore >= 3;
+
+    // Password and confirmation must match
+    const passwordsMatch = pwVal !== "" && pwVal === confirmVal;
+
+    // Show mismatch error only when user has typed something in confirm field
+    mismatchMsg.style.display = confirmVal && !passwordsMatch ? "block" : "none";
+
+    const allFieldsFilled =
+      firstOk && lastOk && emailOk && dobOk && pwVal !== "" && confirmVal !== "";
+
+    const formValid = allFieldsFilled && strongEnough && passwordsMatch;
+
+    signupBtn.disabled = !formValid;
+  }
+
+  // Prevent form submission when the form is not valid
+  form.addEventListener("submit", (e) => {
+    validateForm();
+    if (signupBtn.disabled) {
+      e.preventDefault();
+    }
+  });
+</script>
+{% endblock %}

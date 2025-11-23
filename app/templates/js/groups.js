@@ -1,35 +1,46 @@
+// FILE: groups.js
 import { supabase } from './supabaseClient.js';
 
-const groupsList = document.getElementById('groups-list');
-const createForm = document.getElementById('create-group-form');
+const createForm = document.getElementById("create-group-form");
+const groupsList = document.getElementById("groups-list");
+
+async function getUser() {
+  const { data } = await supabase.auth.getUser();
+  return data.user;
+}
 
 async function fetchGroups() {
-  const user = supabase.auth.user();
-  const { data: groups, error } = await supabase
-    .from('groups')
-    .select('*')
-    .contains('members', [user.id])
-    .order('created_at', { ascending: false });
+  const user = await getUser();
+  if (!user) {
+    groupsList.innerHTML = '<div class="muted">You must log in.</div>';
+    return;
+  }
+
+  const { data, error } = await supabase
+    .from("groups")
+    .select("*")
+    .contains("members", [user.id])
+    .order("created_at", { ascending: false });
 
   if (error) {
-    groupsList.innerHTML = 'Error loading groups';
+    groupsList.innerHTML = "Error loading groups";
     console.error(error);
     return;
   }
 
-  if (!groups || groups.length === 0) {
+  if (!data.length) {
     groupsList.innerHTML = '<div class="muted">You are not part of any groups.</div>';
     return;
   }
 
-  groupsList.innerHTML = '';
-  groups.forEach(group => {
-    const div = document.createElement('div');
-    div.classList.add('tx');
+  groupsList.innerHTML = "";
+  data.forEach(group => {
+    const div = document.createElement("div");
+    div.classList.add("tx");
     div.innerHTML = `
       <div class="left">
-        <a href="group.html?id=${group.id}" class="name">${group.name}</a>
-        <div class="meta">${group.description || ''}</div>
+        <a href="/group.html?group_id=${group.id}" class="name">${group.name}</a>
+        <div class="meta">${group.description || ""}</div>
         <div class="meta">Created: ${new Date(group.created_at).toLocaleDateString()}</div>
       </div>
       <button class="btn add-member" data-id="${group.id}">Add Member</button>
@@ -37,73 +48,43 @@ async function fetchGroups() {
     groupsList.appendChild(div);
   });
 
+  // Attach Add Member handlers
   document.querySelectorAll('.add-member').forEach(btn => {
     btn.addEventListener('click', async () => {
-      const memberEmail = prompt('Enter member email to add:');
-      if (!memberEmail) return;
+      const email = prompt("Enter email of member to add:");
+      if (!email) return;
+      const { data: user } = await supabase.from('users').select('id').eq('email', email).single();
+      if (!user) return alert("User not found");
 
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('id')
-        .eq('email', memberEmail)
-        .single();
-
-      if (!userData || userError) {
-        alert('User not found');
-        return;
-      }
-
-      const groupId = btn.dataset.id;
-      const { data: group } = await supabase
-        .from('groups')
-        .select('members')
-        .eq('id', groupId)
-        .single();
-
-      const updatedMembers = [...group.members, userData.id];
-
-      const { error: updateError } = await supabase
-        .from('groups')
-        .update({ members: updatedMembers })
-        .eq('id', groupId);
-
-      if (updateError) {
-        alert('Failed to add member');
-      } else {
-        alert('Member added!');
-      }
+      const { data: group } = await supabase.from('groups').select('members').eq('id', btn.dataset.id).single();
+      const updated = [...new Set([...group.members, user.id])];
+      await supabase.from('groups').update({ members: updated }).eq('id', btn.dataset.id);
+      alert("Member added!");
     });
   });
 }
 
-createForm.addEventListener('submit', async e => {
+createForm.addEventListener("submit", async e => {
   e.preventDefault();
-  const name = document.getElementById('group-name').value;
-  const desc = document.getElementById('group-desc').value;
-  const membersInput = document.getElementById('group-members').value;
-  const memberEmails = membersInput.split(',').map(e => e.trim()).filter(Boolean);
+  const name = document.getElementById("group-name").value.trim();
+  const desc = document.getElementById("group-desc").value.trim();
+  const emails = document.getElementById("group-members").value.split(',').map(e => e.trim()).filter(Boolean);
 
-  // Fetch user IDs for members
-  const memberIds = [];
-  for (const email of memberEmails) {
-    const { data: user } = await supabase.from('users').select('id').eq('email', email).single();
-    if (user) memberIds.push(user.id);
+  const user = await getUser();
+  const members = [user.id];
+
+  for (const email of emails) {
+    const { data } = await supabase.from('users').select('id').eq('email', email).single();
+    if (data) members.push(data.id);
   }
 
-  const currentUser = supabase.auth.user();
-  memberIds.push(currentUser.id); // include creator
-
-  const { error } = await supabase.from('groups').insert([{
-    name, description: desc, members: memberIds, created_at: new Date().toISOString()
-  }]);
-
-  if (error) {
-    alert('Error creating group');
-    console.error(error);
-  } else {
-    createForm.reset();
-    fetchGroups();
-  }
+  const { error } = await supabase.from('groups').insert([{ name, description: desc, members, created_at: new Date().toISOString() }]);
+  if (error) return alert("Error creating group");
+  createForm.reset();
+  fetchGroups();
 });
 
+// ----------------------------
+// Initial load
+// ----------------------------
 fetchGroups();

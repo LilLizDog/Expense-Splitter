@@ -1,95 +1,88 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <title>Friends | Expense Splitter</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    body { font-family: system-ui, Arial, sans-serif; margin: 24px; }
-    nav a { margin-right: 12px; }
-    h1 { display:flex; align-items:center; gap:8px; }
-    .pill { padding: 2px 8px; border-radius: 999px; background:#eee; font-size: 12px; }
+{% extends "base.html" %}
 
-    header {
-      display:flex;
-      flex-wrap:wrap;
-      gap:8px;
-      align-items:center;
-      margin: 16px 0;
-    }
+{% block title %}Friends - Expense Splitter{% endblock %}
 
-    input, select, button {
-      padding: 8px;
-      font-size: 14px;
-    }
+{% block styles %}
+<style>
+  /* base.html already handles most layout, so this is just Friends-specific styling */
+  h1 { display:flex; align-items:center; gap:8px; }
 
-    #search {
-      flex: 1 1 220px;
-      min-width: 200px;
-    }
+  header {
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    align-items:center;
+    margin: 12px 0;
+  }
 
-    form#addFriendForm {
-      display:flex;
-      flex-wrap:wrap;
-      gap:8px;
-      margin-top: 8px;
-      margin-bottom: 12px;
-    }
+  input, select, button {
+    padding: 8px;
+    font-size: 14px;
+  }
 
-    ul#friendsList {
-      padding-left: 18px;
-      margin-top: 8px;
-    }
+  .pill {
+    padding: 2px 8px;
+    border-radius: 999px;
+    background:#eee;
+    font-size: 12px;
+  }
 
-    .muted {
-      color:#666;
-      font-size: 14px;
-      margin-top: 4px;
-    }
-  </style>
-</head>
-<body>
-  <!-- Simple navigation bar -->
-  <nav>
-    <a href="/welcome">Welcome</a>
-    <a href="/groups">Groups</a>
-    <a href="/friends"><strong>Friends</strong></a>
-    <a href="/balances">Balances</a>
-    <a href="/login">Login</a>
-    <a href="/signup">Signup</a>
-  </nav>
+  form#addFriendForm {
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top: 8px;
+    margin-bottom: 12px;
+  }
 
-  <!-- Page title + total count -->
-  <h1>Friends <span id="count" class="pill"></span></h1>
+  ul#list {
+    padding-left: 18px;
+    margin-top: 8px;
+  }
 
-  <!-- Top row: search + group filter + buttons -->
-  <header>
-    <input id="q" placeholder="Search by name, email, or group…" />
-    <select id="group">
-      <option value="">All groups</option>
-    </select>
-    <button id="btnSearch" type="button">Search</button>
-    <button id="btnClear" type="button">Clear</button>
-  </header>
+  .muted {
+    color:#666;
+    font-size: 14px;
+    margin-top: 4px;
+  }
+</style>
+{% endblock %}
 
-  <!-- Second row: add-friend form -->
-  <form id="addFriendForm">
-    <input id="friendName" placeholder="Name (optional)" />
-    <input id="friendEmail" placeholder="Email (optional)" />
-    <input id="friendGroup" placeholder="Group (e.g., Roommates) (optional)" />
-    <button type="submit">Add Friend</button>
-  </form>
+{% block content %}
 
+<h1>Friends <span id="count" class="pill"></span></h1>
 
-  <p id="friendsEmpty" class="muted" style="display:none;">
-    No friends added yet.
-  </p>
+<header>
+  <input id="q" placeholder="Search by name, email, or group…" />
+  <select id="group">
+    <option value="">All groups</option>
+  </select>
+  <button id="btnSearch" type="button">Search</button>
+  <button id="btnClear" type="button">Clear</button>
+</header>
 
-  <!-- Friends list -->
-  <ul id="list"></ul>
+<form id="addFriendForm">
+  <input id="friendName" placeholder="Name (optional)" />
+  <input id="friendEmail" placeholder="Email (optional)" />
+  <input id="friendGroup" placeholder="Group (e.g., Roommates) (optional)" />
+  <button type="submit">Add Friend</button>
+</form>
 
+<p id="friendsEmpty" class="muted" style="display:none;">
+  No friends added yet.
+</p>
+
+<ul id="list"></ul>
+
+{% endblock %}
+
+{% block scripts %}
 <script>
-  // Grab references to elements on the page so I can update them
+  // Highlight sidebar link if nav exists in base.html
+  const link = document.querySelector('.nav a[href="/friends"]');
+  if (link) link.classList.add("active");
+
+  // Grab references to elements on the page
   const listEl   = document.getElementById("list");
   const countEl  = document.getElementById("count");
   const emptyEl  = document.getElementById("friendsEmpty");
@@ -97,12 +90,12 @@
   const searchEl = document.getElementById("q");
   const groupEl  = document.getElementById("group");
 
-  const addForm   = document.getElementById("addFriendForm");
-  const nameInput = document.getElementById("friendName");
+  const addForm    = document.getElementById("addFriendForm");
+  const nameInput  = document.getElementById("friendName");
   const emailInput = document.getElementById("friendEmail");
   const groupInput = document.getElementById("friendGroup");
 
-  // Load the list of groups from the backend for the dropdown
+  // Load groups from backend for dropdown
   async function loadGroups() {
     const resp = await fetch("/api/friends/groups");
     if (!resp.ok) {
@@ -120,13 +113,12 @@
     }
   }
 
-  // Load friends from the backend, with optional search + group filters
+  // Load friends with optional search + group filter
   async function loadFriends() {
     const params = new URLSearchParams();
     const qv = searchEl.value.trim();
     const gv = groupEl.value.trim();
 
-    // q = generic search term the backend can match on name/email/group
     if (qv) params.append("q", qv);
     if (gv) params.append("group", gv);
 
@@ -140,7 +132,7 @@
     renderFriends(data.friends || []);
   }
 
-  // Render the list of friends in the UI
+  // Render friends list
   function renderFriends(items) {
     listEl.innerHTML = "";
     countEl.textContent = items.length + " total";
@@ -162,17 +154,17 @@
     }
   }
 
-  // When the user clicks "Search", reload the list with current filters
+  // Search button
   document.getElementById("btnSearch").addEventListener("click", loadFriends);
 
-  // When the user clicks "Clear", reset filters and reload everything
+  // Clear button
   document.getElementById("btnClear").addEventListener("click", () => {
     searchEl.value = "";
     groupEl.value = "";
     loadFriends();
   });
 
-  // Handle the Add Friend form submit and send a POST to the backend
+  // Add Friend form submit
   addForm.addEventListener("submit", async (e) => {
     e.preventDefault();
 
@@ -190,13 +182,12 @@
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         name: name || null,
-        email: email || null, 
-        group,
+        email: email || null,
+        group: group || null
       }),
     });
 
     if (resp.ok) {
-      // Clear the form and refresh the lists so the new friend shows up
       nameInput.value = "";
       emailInput.value = "";
       groupInput.value = "";
@@ -207,8 +198,7 @@
     }
   });
 
-  // Initial load when the page opens
+  // Initial load
   loadGroups().then(loadFriends);
 </script>
-</body>
-</html>
+{% endblock %}

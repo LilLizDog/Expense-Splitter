@@ -1,93 +1,31 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>Home</title>
+{% extends "base.html" %}
 
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background-color: #f7f7f7;
-    }
+{% block title %}Home | Expense Splitter{% endblock %}
 
-    .navbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background-color: #0066cc;
-      padding: 12px 20px;
-      color: white;
-    }
+{% block content %}
+  <h2 id="welcome">Welcome!</h2>
+  <p>You are logged in.</p>
+{% endblock %}
 
-    .nav-left, .nav-right {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
+{% block scripts %}
+<script type="module">
+  import { supabase } from '/static/js/supabaseClient.js'
 
-    .nav-item {
-      color: white;
-      text-decoration: none;
-      font-weight: bold;
-    }
+  // Display user's name if available
+  const { data: { user } } = await supabase.auth.getUser()
+  if (user && user.user_metadata && user.user_metadata.name) {
+    document.getElementById('welcome').textContent = `Welcome, ${user.user_metadata.name}!`
+  }
 
-    .nav-item:hover {
-      text-decoration: underline;
-    }
-
-    .content {
-      padding: 40px;
-      text-align: center;
-    }
-  </style>
-</head>
-<body>
-
-  <div class="navbar">
-    <div class="nav-left">
-      <a class="nav-item" href="home.html">Home</a>
-      <a class="nav-item" href="groups.html">Groups</a>
-      <a class="nav-item" href="profile.html">Profile</a>
-    </div>
-
-    <div class="nav-right">
-      <button id="logout" style="background:none;border:none;color:white;font-weight:bold;cursor:pointer;">Logout</button>
-    </div>
-  </div>
-
-  <div class="content">
-    <h2 id="welcome">Welcome!</h2>
-    <p>You are logged in.</p>
-  </div>
-
-  <script type="module">
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
-
-    const supabaseUrl = 'https://ntivhddzzdldypdlcoqy.supabase.co'
-    const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50aXZoZGR6emRsZHlwZGxjb3F5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk2MTA4MTgsImV4cCI6MjA3NTE4NjgxOH0.2uyS6DAhbKJi2iXotnKjWygGvO6XQ1YqGWDRsjgErcw'
-    const supabase = createClient(supabaseUrl, supabaseAnonKey)
-
-    // Check if user is authenticated
-    const { data: { user }, error } = await supabase.auth.getUser()
-    
-    if (error || !user) {
-      localStorage.removeItem('session')
-      window.location.href = 'login.html'
-    } else {
-      // Display user's name if available
-      if (user.user_metadata && user.user_metadata.name) {
-        document.getElementById('welcome').textContent = `Welcome, ${user.user_metadata.name}!`
-      }
-    }
-
-    // Logout functionality
-    document.getElementById('logout').addEventListener('click', async () => {
-      await supabase.auth.signOut()
-      localStorage.removeItem('session')
-      window.location.href = 'login.html'
-    })
-  </script>
-
-</body>
-</html>
+  // Logout functionality (if not already handled globally)
+  const logoutBtn = document.createElement('button')
+  logoutBtn.textContent = 'Logout'
+  logoutBtn.style.cssText = 'background:none;border:none;color:var(--green);font-weight:bold;cursor:pointer;margin-left:16px;'
+  logoutBtn.addEventListener('click', async () => {
+    await supabase.auth.signOut()
+    localStorage.removeItem('session')
+    window.location.href = 'login.html'
+  })
+  document.querySelector('.topbar').appendChild(logoutBtn)
+</script>
+{% endblock %}
