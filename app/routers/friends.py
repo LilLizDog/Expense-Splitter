@@ -9,12 +9,13 @@ from ..core.supabase_client import supabase  # Import shared client with Supabas
 # Sets up the router for friends-related routes with prefix /api/friends
 router = APIRouter(prefix="/api/friends", tags=["Friends"])
 
-# This model defines the expected input shape when adding a friend.
-# Name is optional, but email + group are required on the frontend.
+# This model outlines what the input should look like when adding a friend
+# You need to provide at least a name or email
+# The group is optional based on how the frontend works
 class FriendIn(BaseModel):
     name: Optional[str] = None
     email: Optional[str] = None
-    group: str  # This maps to group_name in Supabase
+    group: Optional[str]  # This maps to group_name in Supabase
 
 # TODO: replace with real logged-in user once auth is wired in
 def get_current_user_id() -> str:
@@ -91,7 +92,7 @@ def add_friend(friend: FriendIn):
                 "user_id": user_id,
                 "name": friend.name,
                 "email": friend.email,
-                "group_name": friend.group,
+                "group_name": friend.group or None,
             }
         )
         .execute()

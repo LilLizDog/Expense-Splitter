@@ -73,12 +73,13 @@
   </header>
 
   <!-- Second row: add-friend form -->
-  <form id="addForm" onsubmit="event.preventDefault(); addFriend();">
-    <input id="nameInput" placeholder="Name (optional)" />
-    <input id="emailInput" placeholder="Email (optional)" />
-    <input id="groupInput" placeholder="Group (e.g., Roommates) (optional)" />
+  <form id="addFriendForm">
+    <input id="friendName" placeholder="Name (optional)" />
+    <input id="friendEmail" placeholder="Email (optional)" />
+    <input id="friendGroup" placeholder="Group (e.g., Roommates) (optional)" />
     <button type="submit">Add Friend</button>
   </form>
+
 
   <p id="friendsEmpty" class="muted" style="display:none;">
     No friends added yet.

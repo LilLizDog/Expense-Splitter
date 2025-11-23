@@ -60,6 +60,8 @@ def get_settings():
     }
 
 # POST Updates or creates the current user's settings
+# We assume each user has only one settings row (should be enforced by a UNIQUE user_id in Supabase)
+# If there are multiple rows, Supabase might return any one of them
 @router.post("/")
 def update_settings(settings: SettingsIn):
     user_id = get_current_user_id()

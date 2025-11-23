@@ -1,6 +1,9 @@
 # Tests for the Friends API 
 # Checks for adding, listing, and searching friends.
 
+import os
+os.environ["ENV"] = "test"  # Ensure we're in test mode before importing app
+
 import pytest
 from fastapi.testclient import TestClient
 from app.main import app
@@ -9,16 +12,29 @@ from app.core.supabase_client import supabase
 client = TestClient(app)
 
 def clear_friends():
-    # Works in CI (FakeSupabase) and locally (real Supabase)
+    """
+    Clears friends between tests.
+    If we're using real Supabase, only allow this in test mode so we don't wipe prod data.
+    FakeSupabase (CI) is safe to clear anytime.
+    """
+    import os
+
+    using_fake = hasattr(supabase, "_data")
+
+    # If it's the real client, require ENV=test
+    if not using_fake and os.getenv("ENV") != "test":
+        raise RuntimeError(
+            "clear_friends() blocked because ENV != 'test'. "
+            "This prevents deleting real Supabase data."
+        )
+
     try:
-        # Try real delete first
+        # Real Supabase path
         supabase.table("friends").delete().neq("id", 0).execute()
     except Exception:
-        # CI fallback
-        if hasattr(supabase, "_data"):
+        # FakeSupabase path
+        if using_fake:
             supabase._data["friends"] = []
-
-
 
 # Helper to make creating a test friend easier. 
 def create_friend(name=None, email=None, group="TestGroup"):
