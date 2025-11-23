@@ -37,7 +37,7 @@ app.include_router(friends.router)
 app.include_router(history.router)
 app.include_router(settings.router)
 app.include_router(inbox.router)
-app.include_router(payments.router, prefix="/api/payments")
+app.include_router(payments.router)
 
 # ------------------------
 # HEALTH + BASIC CHECKS
