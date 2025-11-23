@@ -29,7 +29,6 @@ def get_settings():
         .table("settings")
         .select("*")
         .eq("user_id", user_id)
-        .limit(1)
         .execute()
     )
 
@@ -49,7 +48,7 @@ def get_settings():
             })
             .execute()
         )
-        row = create_resp.data[0]
+        row = (create_resp.data or [{}])[0]
     else:
         row = rows[0]
 
@@ -61,40 +60,55 @@ def get_settings():
     }
 
 # POST Updates or creates the current user's settings
+# We assume each user has only one settings row (should be enforced by a UNIQUE user_id in Supabase)
+# If there are multiple rows, Supabase might return any one of them
 @router.post("/")
 def update_settings(settings: SettingsIn):
     user_id = get_current_user_id()
 
-    # Try updating existing settings
-    resp = (
+    # First check if a settings row already exists for this user
+    latest_resp = (
         supabase
         .table("settings")
-        .update({
-            "notifications_enabled": settings.notifications_enabled,
-            "theme": settings.theme,
-            "font_size": settings.font_size,
-        })
+        .select("id")
         .eq("user_id", user_id)
         .execute()
     )
 
-    # If no existing settings were updated, create new settings row
-    if not resp.data:
+    latest_rows = latest_resp.data or []
+
+    # If a row exists, update it
+    if latest_rows:
+        settings_id = latest_rows[0]["id"]
         resp = (
             supabase
             .table("settings")
-            .insert({
-                "user_id": user_id,
-                "notifications_enabled": settings.notifications_enabled,
-                "theme": settings.theme,
-                "font_size": settings.font_size,
+            .update(
+                {
+                    "notifications_enabled": settings.notifications_enabled,
+                    "theme": settings.theme,
+                    "font_size": settings.font_size,
+            })
+            .eq("id", settings_id)
+            .execute()
+        )
+    else:
+        # Otherwise, create the first settings row for this user
+        resp = (
+            supabase
+            .table("settings")
+            .insert(
+                {
+                    "user_id": user_id,
+                    "notifications_enabled": settings.notifications_enabled,
+                    "theme": settings.theme,
+                    "font_size": settings.font_size,
             })
             .execute()
         )
 
-    # If Supabase still didn't return data, something went wrong    
+    # If Supabase didn't return data, something went wrong
     if not resp.data:
         raise HTTPException(status_code=500, detail="Could not save settings")
 
-    # Return a success message with the updated settings
     return {"message": "settings updated", "settings": resp.data[0]}

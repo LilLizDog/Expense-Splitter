@@ -18,7 +18,7 @@
 {% block content %}
 <main>
   <h1>Settings</h1>
-  <p>Update your app preferences. Right now these are stored in mock data.</p>
+  <p>Update your app preferences. These are saved to your account and applied automatically.</p>
 
   <!-- Notification section -->
   <div class="section">
@@ -49,7 +49,7 @@
     </div>
   </div>
 
-  <!-- Status message -->
+  <!-- Status shown when settings have been saved -->
   <p class="status" id="status"></p>
 </main>
 {% endblock %}
@@ -62,9 +62,13 @@
   const fontEl = document.getElementById("fontSelect");
   const statusEl = document.getElementById("status");
 
-  // Load existing settings (mock)
+  // Load existing settings from the backend (Supabase)
   async function loadSettings() {
     const r = await fetch("/api/settings/");
+    if (!r.ok) {
+      console.error("Error loading settings");
+      return;
+    }
     const data = await r.json();
     notifyEl.checked = data.notifications_enabled;
     themeEl.value = data.theme;
@@ -73,6 +77,7 @@
     applyFont(data.font_size);
   }
 
+  // Apply the chosen theme to the page
   function applyTheme(theme) {
     if (theme === "dark") {
       document.body.style.background = "#222";
@@ -83,35 +88,48 @@
     }
   }
 
+  // Apply the chosen font size to the page
   function applyFont(size) {
     if (size === "normal") document.body.style.fontSize = "16px";
     if (size === "large") document.body.style.fontSize = "18px";
     if (size === "xlarge") document.body.style.fontSize = "20px";
   }
 
+  // Save settings to the backend (Supabase)
   async function saveSettings() {
     const payload = {
       notifications_enabled: notifyEl.checked,
       theme: themeEl.value,
       font_size: fontEl.value
     };
+
     const r = await fetch("/api/settings/", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify(payload)
     });
+
+    // Display status message based on success or failure
     if (r.ok) {
-      statusEl.textContent = "Settings saved (mock).";
+      statusEl.textContent = "Settings saved.";
       setTimeout(() => statusEl.textContent = "", 2000);
     } else {
       statusEl.textContent = "Error saving settings.";
     }
   }
 
+  // Event listeners for when settings are changed by the user
   notifyEl.addEventListener("change", saveSettings);
-  themeEl.addEventListener("change", () => { applyTheme(themeEl.value); saveSettings(); });
-  fontEl.addEventListener("change", () => { applyFont(fontEl.value); saveSettings(); });
+  themeEl.addEventListener("change", () => {
+    applyTheme(themeEl.value);
+    saveSettings();
+  });
+  fontEl.addEventListener("change", () => {
+    applyFont(fontEl.value);
+    saveSettings();
+  });
 
+  // Initial load
   loadSettings();
 </script>
 {% endblock %}

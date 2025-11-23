@@ -1,32 +1,37 @@
-# This file handles friends-related API endpoints using Supabase
-# It connects to our FastAPI app and uses the shared Supabase client
+# This file handles friends-related API endpoints using Supabase.
+# It connects to our FastAPI app and uses the shared Supabase client.
 
 from fastapi import APIRouter, Query, HTTPException
 from pydantic import BaseModel
 from typing import Optional
-from ..core.supabase_client import supabase # Import shared client with Supabase
+from ..core.supabase_client import supabase  # Import shared client with Supabase
 
 # Sets up the router for friends-related routes with prefix /api/friends
 router = APIRouter(prefix="/api/friends", tags=["Friends"])
 
-# This model defines the expected input shape when adding a friend
+# This model outlines what the input should look like when adding a friend
+# You need to provide at least a name or email
+# The group is optional based on how the frontend works
 class FriendIn(BaseModel):
-    name: str
-    group: str  # This maps to group_name in Supabase
+    name: Optional[str] = None
+    email: Optional[str] = None
+    group: Optional[str]  # This maps to group_name in Supabase
 
-# TODO: replace with real logged-in user
+# TODO: replace with real logged-in user once auth is wired in
 def get_current_user_id() -> str:
+    # For now I'm just using a hard-coded user id so I can test the page.
     return "demo-user-1"
 
-# GET list of friends, with optional filters
+# GET /api/friends/ → list of friends, with optional search + group filters
 @router.get("/")
 def list_friends(
-    q: Optional[str] = Query(None), # Optional search filter
-    group: Optional[str] = Query(None), #Optional filter by group
+    q: Optional[str] = Query(None),      # Optional search filter (name or email)
+    group: Optional[str] = Query(None),  # Optional filter by group
 ):
     user_id = get_current_user_id()
 
-    # Pull all this user's friends from Supabase that belong to the user
+    # Pull all this user's friends from Supabase.
+    # (Filtering by user_id happens in Supabase.)
     resp = (
         supabase
         .table("friends")
@@ -35,32 +40,50 @@ def list_friends(
         .execute()
     )
 
-    rows = resp.data or []  # Stores the response data in a safe way
+    rows = resp.data or []
 
-    # Apply local filters for the search query and group filter
+    # Apply local filters for the search query and group filter.
+    # q should match either name OR email.
     if q:
-        rows = [r for r in rows if q.lower() in (r.get("name") or "").lower()]
-    if group:
-        rows = [r for r in rows if group.lower() in (r.get("group_name") or "").lower()]
+        q_lower = q.lower()
+        rows = [
+            r for r in rows
+            if q_lower in (r.get("name") or "").lower()
+            or q_lower in (r.get("email") or "").lower()
+        ]
 
-    # Returns the list of friends in the expected format
+    if group:
+        rows = [
+            r for r in rows
+            if group.lower() in (r.get("group_name") or "").lower()
+        ]
+
+    # Return the list of friends in the format the frontend expects.
     return {
         "friends": [
             {
                 "id": r["id"],
-                "name": r["name"],
+                "name": r.get("name") or "",
+                "email": r.get("email") or "",
                 "group": r.get("group_name") or "",
             }
             for r in rows
         ]
     }
 
-# POST adds a new friend
+# POST /api/friends/ → add a new friend for the current user
 @router.post("/")
 def add_friend(friend: FriendIn):
     user_id = get_current_user_id()
 
-    # Insert the new friend into Supabase
+    if not friend.name and not friend.email:
+        raise HTTPException(
+            status_code=400,
+            detail="Name or email must be provided"
+        )
+
+    # Insert the new friend into Supabase. This assumes the "friends" table
+    # has columns: user_id, name, email, group_name.
     resp = (
         supabase
         .table("friends")
@@ -68,16 +91,18 @@ def add_friend(friend: FriendIn):
             {
                 "user_id": user_id,
                 "name": friend.name,
-                "group_name": friend.group,
+                "email": friend.email,
+                "group_name": friend.group or None,
             }
         )
         .execute()
     )
 
-    # Make sure the insert succeeded and return the new row of friend data
-    rows = resp.data
+    
+    rows = resp.data or []
+
     if not rows:
-        # we didn't get anything back, so tell the frontend
+        # We didn't get anything back, so tell the frontend.
         raise HTTPException(status_code=500, detail="Insert failed (no data returned)")
 
     # Return the newly created friend back to the frontend
@@ -86,12 +111,13 @@ def add_friend(friend: FriendIn):
         "message": "Friend added",
         "friend": {
             "id": row["id"],
-            "name": row["name"],
+            "name": row.get("name") or "",
+            "email": row.get("email") or "",
             "group": row.get("group_name") or "",
         },
     }
 
-# GET list of unique groups from this user's friends
+# GET /api/friends/groups → list of unique groups from this user's friends
 @router.get("/groups")
 def list_groups():
     user_id = get_current_user_id()
@@ -104,6 +130,7 @@ def list_groups():
         .eq("user_id", user_id)
         .execute()
     )
+
 
     rows = resp.data or []
 
