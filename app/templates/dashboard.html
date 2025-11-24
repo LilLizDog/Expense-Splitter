@@ -225,7 +225,6 @@
 <script type="module">
   import { initDashboard } from "/static/js/dashboard.js";
 
-  document.addEventListener("DOMContentLoaded", () => {
     initDashboard({
       mockMode: window.MOCK_MODE === "true",
       dashboardUrl: "/api/dashboard",
@@ -240,6 +239,8 @@
         groupsEmpty: document.getElementById("groups-empty")
       }
     });
-  });
 </script>
 {% endblock %}
+
+
+

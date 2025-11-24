@@ -4,31 +4,46 @@
 
 {% block styles %}
 <style>
-  body { margin: 0; } /* base.html already handles most styling */
+  /* base.html already handles most layout, so this is just Friends-specific styling */
+  h1 { display:flex; align-items:center; gap:8px; }
 
-  header { 
-    display:flex; 
-    gap:8px; 
-    align-items:center; 
-    flex-wrap:wrap; 
-    margin: 12px 0; 
+  header {
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    align-items:center;
+    margin: 12px 0;
   }
 
-  input, select, button { padding: 8px; }
-  .pill { 
-    padding: 2px 8px; 
-    border-radius: 999px; 
-    background:#eee; 
-    font-size: 12px; 
-    margin-left: 8px; 
+  input, select, button {
+    padding: 8px;
+    font-size: 14px;
   }
 
-  ul { padding-left: 18px; }
-  form { 
-    display:flex; 
-    gap:8px; 
-    flex-wrap:wrap; 
-    margin-top: 8px; 
+  .pill {
+    padding: 2px 8px;
+    border-radius: 999px;
+    background:#eee;
+    font-size: 12px;
+  }
+
+  form#addFriendForm {
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top: 8px;
+    margin-bottom: 12px;
+  }
+
+  ul#list {
+    padding-left: 18px;
+    margin-top: 8px;
+  }
+
+  .muted {
+    color:#666;
+    font-size: 14px;
+    margin-top: 4px;
   }
 </style>
 {% endblock %}
@@ -38,17 +53,24 @@
 <h1>Friends <span id="count" class="pill"></span></h1>
 
 <header>
-  <input id="q" placeholder="Search name…" />
-  <select id="group"><option value="">All groups</option></select>
-  <button id="btnSearch">Search</button>
+  <input id="q" placeholder="Search by name, email, or group…" />
+  <select id="group">
+    <option value="">All groups</option>
+  </select>
+  <button id="btnSearch" type="button">Search</button>
   <button id="btnClear" type="button">Clear</button>
 </header>
 
 <form id="addForm">
-  <input id="name" placeholder="New friend name" required />
-  <input id="newGroup" placeholder="Group (e.g., Roommates)" required />
+  <input id="friendName" placeholder="Name (optional)" />
+  <input id="friendEmail" placeholder="Email (optional)" />
+  <input id="friendGroup" placeholder="Group (e.g., Roommates) (optional)" />
   <button type="submit">Add Friend</button>
 </form>
+
+<p id="friendsEmpty" class="muted" style="display:none;">
+  No friends added yet.
+</p>
 
 <ul id="list"></ul>
 
@@ -56,88 +78,127 @@
 
 {% block scripts %}
 <script>
-// Highlight sidebar if /friends is added later
-const link = document.querySelector('.nav a[href="/friends"]');
-if (link) link.classList.add("active");
+  // Highlight sidebar link if nav exists in base.html
+  const link = document.querySelector('.nav a[href="/friends"]');
+  if (link) link.classList.add("active");
 
-const listEl = document.getElementById("list");
-const qEl = document.getElementById("q");
-const groupEl = document.getElementById("group");
-const countEl = document.getElementById("count");
+  // Grab references to elements on the page
+  const listEl   = document.getElementById("list");
+  const countEl  = document.getElementById("count");
+  const emptyEl  = document.getElementById("friendsEmpty");
 
-// Load groups from backend
-async function loadGroups() {
-  const r = await fetch("/api/friends/groups");
-  const data = await r.json();
+  const searchEl = document.getElementById("q");
+  const groupEl  = document.getElementById("group");
 
-  groupEl.innerHTML = '<option value="">All groups</option>';
-  for (const g of data.groups) {
-    const opt = document.createElement("option");
-    opt.value = g;
-    opt.textContent = g;
-    groupEl.appendChild(opt);
+  const addForm    = document.getElementById("addForm");
+  const nameInput  = document.getElementById("friendName");
+  const emailInput = document.getElementById("friendEmail");
+  const groupInput = document.getElementById("friendGroup");
+
+  // Load groups from backend for dropdown
+  async function loadGroups() {
+    const resp = await fetch("/api/friends/groups");
+    if (!resp.ok) {
+      console.error("Failed to load groups");
+      return;
+    }
+    const data = await resp.json();
+
+    groupEl.innerHTML = '<option value="">All groups</option>';
+    for (const g of data.groups || []) {
+      const opt = document.createElement("option");
+      opt.value = g;
+      opt.textContent = g;
+      groupEl.appendChild(opt);
+    }
   }
-}
 
-// Load & filter friends list
-async function loadFriends() {
-  const params = new URLSearchParams();
-  const qv = qEl.value.trim();
-  const gv = groupEl.value.trim();
+  // Load friends with optional search + group filter
+  async function loadFriends() {
+    const params = new URLSearchParams();
+    const qv = searchEl.value.trim();
+    const gv = groupEl.value.trim();
 
-  if (qv) params.append("q", qv);
-  if (gv) params.append("group", gv);
+    if (qv) params.append("q", qv);
+    if (gv) params.append("group", gv);
 
-  const r = await fetch("/api/friends/?" + params.toString());
-  const data = await r.json();
-  render(data.friends);
-}
+    const resp = await fetch("/api/friends/?" + params.toString());
+    if (!resp.ok) {
+      console.error("Failed to load friends");
+      return;
+    }
 
-function render(items) {
-  listEl.innerHTML = "";
-  countEl.textContent = items.length + " total";
-
-  for (const f of items) {
-    const li = document.createElement("li");
-    li.textContent = `${f.name} — ${f.group}`;
-    listEl.appendChild(li);
+    const data = await resp.json();
+    renderFriends(data.friends || []);
   }
-}
 
-// Button handlers
-document.getElementById("btnSearch").addEventListener("click", loadFriends);
+  // Render friends list
+  function renderFriends(items) {
+    listEl.innerHTML = "";
+    countEl.textContent = items.length + " total";
 
-document.getElementById("btnClear").addEventListener("click", () => {
-  qEl.value = "";
-  groupEl.value = "";
-  loadFriends();
-});
+    if (items.length === 0) {
+      emptyEl.style.display = "block";
+      return;
+    } else {
+      emptyEl.style.display = "none";
+    }
 
-// Add friend form
-document.getElementById("addForm").addEventListener("submit", async (e) => {
-  e.preventDefault();
+    for (const f of items) {
+      const li = document.createElement("li");
+      const name  = f.name  || "(No name)";
+      const email = f.email || "(No email)";
+      const group = f.group || "No group";
+      li.textContent = `${name} — ${email} — ${group}`;
+      listEl.appendChild(li);
+    }
+  }
 
-  const name = document.getElementById("name").value.trim();
-  const group = document.getElementById("newGroup").value.trim();
-  if (!name || !group) return;
+  // Search button
+  document.getElementById("btnSearch").addEventListener("click", loadFriends);
 
-  const r = await fetch("/api/friends/", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({ name, group })
+  // Clear button
+  document.getElementById("btnClear").addEventListener("click", () => {
+    searchEl.value = "";
+    groupEl.value = "";
+    loadFriends();
   });
 
-  if (r.ok) {
-    document.getElementById("name").value = "";
-    document.getElementById("newGroup").value = "";
-    await loadGroups();
-    await loadFriends();
-  } else {
-    alert("Failed to add friend");
-  }
-});
+  // Add Friend form submit
+  addForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
 
-// Initial load
-loadGroups().then(loadFriends);
+    const name  = nameInput.value.trim();
+    const email = emailInput.value.trim();
+    const group = groupInput.value.trim();
+
+    if (!name && !email) {
+      alert("Please provide at least a name or an email for the friend.");
+      return;
+    }
+
+    const resp = await fetch("/api/friends/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: name || null,
+        email: email || null,
+        group: group || null
+      }),
+    });
+
+    if (resp.ok) {
+      nameInput.value = "";
+      emailInput.value = "";
+      groupInput.value = "";
+      await loadGroups();
+      await loadFriends();
+    } else {
+      alert("Failed to add friend.");
+    }
+  });
+
+  // Initial load
+  loadGroups().then(loadFriends);
 </script>
 {% endblock %}

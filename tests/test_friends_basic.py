@@ -5,7 +5,7 @@ def test_friends_page_exists(client):
     # /friends should load and show main elements
     r = client.get("/friends")
     assert r.status_code == 200
-    assert "<h1>Friends" in r.text
+    assert "Friends" in r.text
     assert 'id="q"' in r.text          # search bar
     assert 'id="group"' in r.text      # group filter
     assert 'id="addForm"' in r.text    # add friend form

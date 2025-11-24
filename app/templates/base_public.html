@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{% block title %}Expense Splitter{% endblock %}</title>
+
+  <style>
+    :root{
+      --green: #16a34a;
+      --green-600: #15803d;
+      --black: #111111;
+      --bg: #f6f7f8;
+      --card: #ffffff;
+      --muted: #6b7280;
+      --shadow: 0 8px 20px rgba(0,0,0,0.06);
+      --content-max: 1120px;
+    }
+
+    * { box-sizing: border-box; }
+    body{
+      margin:0;
+      background: var(--bg);
+      color:var(--black);
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 15px;
+      line-height: 1.35;
+    }
+
+    .main{
+      min-height: 100vh;
+      display:flex;
+      justify-content:center;
+      padding:40px 16px;
+    }
+  </style>
+
+  {% block styles %}{% endblock %}
+</head>
+<body>
+  <main class="main">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Shared Supabase client for all pages -->
+  <script type="module" src="/static/js/supabaseClient.js"></script>
+
+  <!-- On public pages, if already logged in, go to dashboard -->
+  <script type="module" src="/static/js/guard_public.js"></script>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

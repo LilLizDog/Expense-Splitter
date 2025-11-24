@@ -1,24 +1,66 @@
-// Login: email+password → session in sessionStorage → go to /dashboard
+// Login: email+password → Supabase session → redirect to /dashboard
 
+// Helper to get elements by id
 const $ = (id) => document.getElementById(id);
-const show = (el, msg=null) => { if (msg!==null) el.textContent = msg; el.style.display = "block"; };
-const hide = (el) => el.style.display = "none";
 
-async function handleLogin(e){
+// Show an error message in a given element
+const show = (el, msg = null) => {
+  if (!el) return;
+  if (msg !== null) el.textContent = msg;
+  el.style.display = "block";
+};
+
+// Hide a given element
+const hide = (el) => {
+  if (!el) return;
+  el.style.display = "none";
+};
+
+// Handle login form submit
+async function handleLogin(e) {
   e.preventDefault();
-  hide($("login-error"));
 
-  const email = $("email")?.value?.trim() || "";
-  const password = $("password")?.value || "";
-  if (!email || !password) return show($("login-error"), "Enter email and password.");
+  const errorBox = $("login-error");
+  hide(errorBox);
 
-  const { error } = await window.sb.auth.signInWithPassword({ email, password });
-  if (error) return show($("login-error"), error.message || "Login failed. Try again.");
+  const emailField = $("email");
+  const passwordField = $("password");
 
-  // success → dashboard
-  window.location.href = "/dashboard";
+  const email = emailField?.value?.trim() || "";
+  const password = passwordField?.value || "";
+
+  if (!email || !password) {
+    show(errorBox, "Enter email and password.");
+    return;
+  }
+
+  // Make sure Supabase client is available
+  if (!window.sb || !window.sb.auth) {
+    show(errorBox, "Auth client is not initialized. Please refresh the page.");
+    return;
+  }
+
+  try {
+    const { error } = await window.sb.auth.signInWithPassword({ email, password });
+    if (error) {
+      show(errorBox, error.message || "Login failed. Try again.");
+      return;
+    }
+
+    // Successful login
+    window.location.href = "/dashboard";
+  } catch (err) {
+    console.error("Login error:", err);
+    show(errorBox, "Unexpected error. Please try again.");
+  }
 }
 
-// Attach to form
-const form = document.querySelector("form#login-form") || document.querySelector("form");
-if (form) form.addEventListener("submit", handleLogin);
+// Attach handler when DOM is ready
+document.addEventListener("DOMContentLoaded", () => {
+  const form = document.querySelector("form#login-form");
+  if (!form) {
+    console.warn("Login form not found");
+    return;
+  }
+  form.addEventListener("submit", handleLogin);
+});
