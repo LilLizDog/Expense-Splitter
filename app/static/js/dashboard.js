@@ -1,4 +1,5 @@
 // /static/js/dashboard.js
+import { supabase } from "/static/js/supabaseClient.js";
 
 const mockPayload = {
   user_name: "Preet (mock)",

@@ -34,16 +34,16 @@ from .routers import friends, history, settings, payments, dashboard
 from .routers.auth import get_current_user
 from app.routers import inbox
 
+app.include_router(auth.router, prefix= "/auth")
 app.include_router(groups.router)
 app.include_router(expenses.router)
 app.include_router(balances.router)
-app.include_router(auth.router, prefix= "/auth")
 app.include_router(friends.router)
 app.include_router(history.router)
 app.include_router(settings.router)
 app.include_router(inbox.router)
-app.include_router(payments.router, prefix="/api/payments")
-app.include_router(dashboard.router, prefix="/api/dashboard")
+app.include_router(payments.router)
+app.include_router(dashboard.router)
 
 # ------------------------
 # HEALTH + BASIC CHECKS
