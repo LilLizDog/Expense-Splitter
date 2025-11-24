@@ -16,8 +16,6 @@ As of the end of Sprint 1, the following things have been completed for Expense-
      Making code documentation clear and easy to understand
 
 
-All Sprint 1 user stories were completed successfully. The backend structure and Supabase integration were fully functional, and documentation was finalized. Pending tasks like authentication and real-time data connection will continue in Sprint 2.
-
 The goal of Sprint 2 was to build upon the foundations from Sprint 1 by connecting Supabase to the frontend and developing core functionality such as login/signup, group creation, and expense management while improving navigation and interface structure.
 We aimed to:
 Enable data flow between the frontend and Supabase for users, groups, and expenses.
@@ -25,3 +23,8 @@ Implement login/signup persistence and build dashboard, account, payments, histo
 Add expense creation and dynamic group management.
 Establish consistent navigation and placeholder pages for future features.
 Write unit test cases for all new functional components
+
+Goal of Sprint 3:
+Deliver a fully functional core version of the Expense Splitter application where users can authenticate, access a real dashboard, manage groups, add expenses with custom splits, and interact with real data across Payments, Friends, History, Settings, and Inbox pages. Complete key CI/CD and testing foundations to ensure stability for Sprint 4’s AI features.
+
+
