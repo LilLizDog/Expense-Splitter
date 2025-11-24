@@ -4,34 +4,153 @@
 
 {% block styles %}
 <style>
-  .wallet { text-align:right; font-weight:700; }
-  .wallet .amount { font-size:1.35rem; line-height:1; }
-  .wallet.positive .amount { color:var(--green-600); }
-  .wallet.negative .amount { color:var(--red); }
-
-  .tx-list{ display:flex; flex-direction:column; gap:10px; }
-  .tx{ display:flex; justify-content:space-between; align-items:center;
-       background:#fff; border:1px solid #eef2f7; border-radius:12px; padding:10px 12px; }
-  .tx .left{ display:flex; flex-direction:column; }
-  .tx .name{ font-weight:600; font-size:14.5px; }
-  .tx .meta{ font-size:.9rem; color:var(--muted); }
-  .tx .amt{ font-weight:700; font-size:14.5px; }
-  .tx .amt.positive{ color:var(--green-600); }
-  .tx .amt.negative{ color:var(--red); }
-
-  .actions{ display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
-  .btn{
-    border:1px solid #e5e7eb; background:#fff; border-radius:12px;
-    padding:9px 12px; text-decoration:none; color:var(--black);
-    font-weight:600; box-shadow:var(--shadow); font-size:14px;
+  .wallet {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
   }
-  .btn:hover{ border-color:#d1d5db; }
+
+  .wallet-section {
+    border-radius: 12px;
+    border: 1px solid #eef2f7;
+    padding: 10px 12px;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .wallet-label {
+    font-size: 0.95rem;
+    color: var(--muted);
+  }
+
+  .wallet-amount {
+    font-size: 1.35rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .wallet-owed .wallet-amount {
+    color: var(--green-600);
+  }
+
+  .wallet-owing .wallet-amount {
+    color: var(--red);
+  }
+
+  .wallet-empty {
+    font-size: 0.95rem;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  .tx-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .tx {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #fff;
+    border: 1px solid #eef2f7;
+    border-radius: 12px;
+    padding: 10px 12px;
+  }
+
+  .tx .left {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .tx .name {
+    font-weight: 600;
+    font-size: 14.5px;
+  }
+
+  .tx .meta {
+    font-size: 0.9rem;
+    color: var(--muted);
+  }
+
+  .tx .amt {
+    font-weight: 700;
+    font-size: 14.5px;
+  }
+
+  .tx .amt.positive {
+    color: var(--green-600);
+  }
+
+  .tx .amt.negative {
+    color: var(--red);
+  }
+
+  .tx-empty {
+    font-size: 0.95rem;
+    color: var(--muted);
+  }
+
+  .actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+  }
+
+  .btn {
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    border-radius: 12px;
+    padding: 9px 12px;
+    text-decoration: none;
+    color: var(--black);
+    font-weight: 600;
+    box-shadow: var(--shadow);
+    font-size: 14px;
+    display: inline-block;
+  }
+
+  .btn:hover {
+    border-color: #d1d5db;
+  }
+
+  .group-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .group-list li {
+    background: #fff;
+    border: 1px solid #eef2f7;
+    border-radius: 12px;
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+
+  .group-list a {
+    text-decoration: none;
+    color: var(--black);
+    font-weight: 600;
+  }
+
+  .groups-empty {
+    font-size: 0.95rem;
+    color: var(--muted);
+  }
 </style>
 {% endblock %}
 
 {% block content %}
 
-<h1>Welcome Preet!</h1>
+<h1 id="welcome-heading">Welcome!</h1>
 <p class="muted">Quick overview of your account.</p>
 
 <div class="panel-row grid-2">
@@ -39,59 +158,88 @@
   <!-- Wallet -->
   <section class="panel">
     <h2>Wallet Balance</h2>
-    <div class="wallet positive">
-      <div class="amount">$25.50</div>
-      <div class="muted">You are owed money</div>
+
+    <div class="wallet" id="wallet-container">
+      <!-- You are owed -->
+      <div class="wallet-section wallet-owed">
+        <div class="wallet-label">You are owed</div>
+        <div class="wallet-amount" id="wallet-owed-amount">$0.00</div>
+        <a class="btn" href="/add-expense" id="wallet-add-expense-btn">+ Add Expense</a>
+      </div>
+
+      <!-- You owe others -->
+      <div class="wallet-section wallet-owing">
+        <div class="wallet-label">You owe others</div>
+        <div class="wallet-amount" id="wallet-owing-amount">$0.00</div>
+        <a class="btn" href="/payments" id="wallet-make-payment-btn">- Make a Payment</a>
+      </div>
     </div>
+
+    <p class="wallet-empty" id="wallet-empty-state" style="display:none;">
+      No balances yet. Create a group and add your first expense to get started.
+    </p>
   </section>
 
   <!-- Recent Transactions -->
   <section class="panel">
     <h2>Recent Transactions</h2>
-    <div class="tx-list">
-      <div class="tx">
-        <div class="left">
-          <div class="name">Pizza Night</div>
-          <div class="meta">2025-10-29 • Roommates</div>
-        </div>
-        <div class="amt negative">-$18.25</div>
-      </div>
-
-      <div class="tx">
-        <div class="left">
-          <div class="name">Uber to AWM</div>
-          <div class="meta">2025-10-28 • AWM</div>
-        </div>
-        <div class="amt negative">-$9.60</div>
-      </div>
+    <div class="tx-list" id="recent-tx-container">
+      <!-- Filled by JS from real or mock data -->
     </div>
+    <p class="tx-empty" id="recent-tx-empty">
+      No recent transactions. Add an expense or make a payment to see it here.
+    </p>
   </section>
 
 </div>
 
-<!-- Quick Actions -->
+<!-- Your Groups -->
 <section class="panel">
-  <h2>Quick Actions</h2>
+  <h2>Your Groups</h2>
+  <ul class="group-list" id="groups-container">
+    <!-- Filled by JS -->
+  </ul>
+  <p class="groups-empty" id="groups-empty">
+    You’re not in any groups yet. Use the button below to create one and start splitting.
+  </p>
+
   <div class="actions">
-    <a class="btn" href="/add-expense">+ Add Expense</a>
-    <a class="btn" href="/settle">Settle Up</a>
-    <a class="btn" href="/groups">Create Group</a>
+    <a class="btn" href="/groups" id="create-group-btn">Create Group</a>
   </div>
 </section>
 
-<!-- Notifications -->
+<!-- Notifications (optional – can stay mock for now or wire up later) -->
 <section class="panel">
   <h2>Notifications</h2>
-  <ul>
-    <li>Grace added an expense in Roommates</li>
-    <li>Liz requested settlement ($12.40)</li>
-    <li>Invite: Join Group 'CS3300 Team'</li>
+  <ul id="notifications-list">
+    <!-- you can leave this mock or also fill it from /api/dashboard later -->
+    <li>No notifications yet.</li>
   </ul>
 </section>
 
 {% endblock %}
 
 {% block scripts %}
+<script type="module" src="/static/js/guard_protected.js"></script>
+
+<script type="module">
+  import { initDashboard } from "/static/js/dashboard.js";
+
+    initDashboard({
+      mockMode: window.MOCK_MODE === "true",
+      dashboardUrl: "/api/dashboard",
+      elements: {
+        welcomeHeading: document.getElementById("welcome-heading"),
+        walletOwed: document.getElementById("wallet-owed-amount"),
+        walletOwing: document.getElementById("wallet-owing-amount"),
+        walletEmpty: document.getElementById("wallet-empty-state"),
+        recentContainer: document.getElementById("recent-tx-container"),
+        recentEmpty: document.getElementById("recent-tx-empty"),
+        groupsContainer: document.getElementById("groups-container"),
+        groupsEmpty: document.getElementById("groups-empty")
+      }
+    });
+</script>
 {% endblock %}
 
 
