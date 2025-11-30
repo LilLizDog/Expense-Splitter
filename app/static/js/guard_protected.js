@@ -1,8 +1,6 @@
-// Simple Supabase based guard for protected pages.
-// Redirects to /login if there is no active Supabase session.
+// Guard for pages that require a Supabase session.
 
 document.addEventListener("DOMContentLoaded", async () => {
-  // If Supabase client is missing, do not lock the user out accidentally.
   if (!window.sb || !window.sb.auth) {
     console.warn("Supabase client not available on protected page");
     return;
@@ -12,7 +10,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     const { data, error } = await window.sb.auth.getSession();
     const session = data?.session;
 
-    console.log("Protected page session check:", session ? "OK" : "NO SESSION", error || "");
+    console.debug(
+      "guard_protected session:",
+      session ? "OK" : "NO SESSION",
+      error || ""
+    );
 
     if (!session) {
       window.location.href = "/login";

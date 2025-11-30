@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+
+{% block title %}Add Group | Expense Splitter{% endblock %}
+
+{% block styles %}
+<style>
+  .add-group-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    color: var(--green-600);
+    font-size: 1.05rem;
+    font-weight: 600;
+    text-decoration: none;
+    margin-bottom: 8px;
+  }
+
+  .back-link:hover {
+    background: #e8f8ee;
+  }
+
+  .back-icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  .field-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .required-star {
+    color: var(--red);
+    margin-left: 2px;
+  }
+
+  .field-input,
+  .field-textarea {
+    width: 100%;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    padding: 8px 10px;
+    font-size: 0.9rem;
+  }
+
+  .field-textarea {
+    min-height: 80px;
+    resize: vertical;
+  }
+
+  .btn-primary {
+    background: var(--green);
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    padding: 8px 14px;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+
+  .btn-primary:disabled {
+    background: #9ca3af;
+  }
+
+  .btn-outline {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 999px;
+    padding: 8px 14px;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+
+  .btn-outline:hover {
+    background: #f3f4f6;
+  }
+
+  .group-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  /* Dropdown */
+  .dd-btn {
+    width: 100%;
+    padding: 8px 10px;
+    font-size: 0.9rem;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .dd-panel {
+    margin-top: 6px;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    padding: 10px;
+    background: #fff;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+  }
+
+  .dd-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .dd-search {
+    flex: 1;
+    padding: 6px 8px;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+  }
+
+  .dd-list {
+    max-height: 180px;
+    overflow-y: auto;
+    padding: 4px 0;
+    border: 1px solid #f3f4f6;
+    border-radius: 8px;
+    margin-bottom: 8px;
+  }
+
+  .dd-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    cursor: pointer;
+  }
+
+  .dd-item:hover {
+    background: #f9fafb;
+  }
+
+  .dd-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .dd-primary {
+    background: var(--green);
+    border-radius: 999px;
+    border: none;
+    color: #fff;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 0.85rem;
+  }
+
+  .dd-link {
+    background: none;
+    border: none;
+    color: #4b5563;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+
+  .hidden {
+    display: none;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="panel">
+
+  <!-- Back button -->
+  <a class="back-link" href="/groups">
+    <svg class="back-icon" viewBox="0 0 24 24">
+      <path
+        d="M15 6l-6 6 6 6"
+        stroke="currentColor"
+        stroke-width="2"
+        fill="none"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </svg>
+    <span>Groups</span>
+  </a>
+
+  <div class="add-group-layout">
+    <div>
+      <h1 style="margin:6px 0 6px; font-size:1.3rem;">Create group</h1>
+      <p class="muted">Give your group a name, add friends, and save.</p>
+    </div>
+
+    <form id="addGroupForm" onsubmit="return false;">
+
+      <div>
+        <div class="field-label">
+          Group name <span class="required-star">*</span>
+        </div>
+        <input id="groupName" type="text" class="field-input" autocomplete="off" required />
+      </div>
+
+      <div>
+        <div class="field-label">Date created</div>
+        <input id="groupDate" type="date" class="field-input" disabled />
+      </div>
+
+      <div style="margin-top:10px;">
+        <div class="field-label">Members</div>
+        <button id="memberBtn" type="button" class="dd-btn" disabled>Loading friends...</button>
+
+        <div id="memberPanel" class="dd-panel hidden">
+          <div class="dd-head">
+            <label>
+              <input type="checkbox" id="memberSelectAll" />
+              <span>Select all</span>
+            </label>
+            <input id="memberSearch" class="dd-search" type="text" placeholder="Search friends..." />
+          </div>
+
+          <div id="memberList" class="dd-list"></div>
+
+          <div class="dd-actions">
+            <button type="button" id="memberDone" class="dd-primary">Done</button>
+            <button type="button" id="memberClear" class="dd-link">Clear</button>
+          </div>
+        </div>
+
+        <div id="memberHiddenInputs" class="hidden"></div>
+      </div>
+
+      <div>
+        <div class="field-label">Description (optional)</div>
+        <textarea id="groupDesc" class="field-textarea" placeholder="Short note about this group"></textarea>
+      </div>
+
+      <div class="group-actions">
+        <button id="saveGroupBtn" type="submit" class="btn-primary" disabled>Save group</button>
+        <button type="button" class="btn-outline" onclick="window.location.href='/groups';">Cancel</button>
+      </div>
+
+    </form>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+  <script type="module" src="/static/js/guard_protected.js"></script>
+  <script type="module" src="/static/js/add_group.js"></script>
+{% endblock %}

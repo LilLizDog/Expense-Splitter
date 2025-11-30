@@ -7,6 +7,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
+import os
 
 from .core.supabase_client import supabase
 
@@ -26,11 +27,11 @@ templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 # ROUTERS
 # ------------------------
 from .routers import groups, expenses, balances, auth
-from .routers import friends, history, settings, payments, dashboard
+from .routers import friends, history, settings, payments, dashboard, users
 from .routers.auth import get_current_user
 from app.routers import inbox
 
-app.include_router(auth.router, prefix= "/auth")
+app.include_router(auth.router, prefix="/auth")
 app.include_router(groups.router)
 app.include_router(expenses.router)
 app.include_router(balances.router)
@@ -40,6 +41,7 @@ app.include_router(settings.router)
 app.include_router(inbox.router)
 app.include_router(payments.router)
 app.include_router(dashboard.router)
+app.include_router(users.router)
 
 # ------------------------
 # HEALTH + BASIC CHECKS
@@ -62,6 +64,23 @@ def test_supabase_connection():
     except Exception as e:
         return {"connected": False, "error": str(e)}
 
+
+# Development debug endpoint: echo headers and cookies the server receives.
+# Useful to confirm whether the browser is sending the sb-access-token cookie
+# or an Authorization header. This endpoint is intentionally simple and
+# should only be used in development.
+@app.get("/debug/echo-auth")
+def debug_echo_auth(request: Request):
+    # Only expose in non-production environments to avoid leaking headers.
+    if os.getenv("DEV_DEBUG", "1") != "1":
+        return {"error": "Debug endpoint disabled"}
+
+    headers = {k: v for k, v in request.headers.items()}
+    # request.cookies is a MutableMapping
+    cookies = {k: v for k, v in request.cookies.items()}
+    return {"headers": headers, "cookies": cookies}
+
+
 # ------------------------
 # FRONTEND HTML ROUTES
 # ------------------------
@@ -69,7 +88,7 @@ def test_supabase_connection():
 @app.get("/welcome", response_class=HTMLResponse)
 @app.get("/welcome.html", response_class=HTMLResponse)
 async def get_welcome(request: Request):
-    return templates.TemplateResponse(
+    return templates.TemplateResponse(request,
         "welcome.html",
         {"request": request},
     )
@@ -78,7 +97,7 @@ async def get_welcome(request: Request):
 @app.get("/login", response_class=HTMLResponse)
 @app.get("/login.html", response_class=HTMLResponse)
 async def get_login(request: Request):
-    return templates.TemplateResponse(
+    return templates.TemplateResponse(request,
         "login.html",
         {"request": request},
     )
@@ -87,7 +106,7 @@ async def get_login(request: Request):
 @app.get("/signup", response_class=HTMLResponse)
 @app.get("/signup.html", response_class=HTMLResponse)
 async def get_signup(request: Request):
-    return templates.TemplateResponse(
+    return templates.TemplateResponse(request,
         "signup.html",
         {"request": request},
     )
@@ -104,7 +123,7 @@ async def get_account(request: Request):
         "phone": "314-555-1234",
         "display_currency": "USD",
     }
-    return templates.TemplateResponse(
+    return templates.TemplateResponse(request,
         "account.html",
         {
             "request": request,
@@ -122,9 +141,27 @@ async def get_dashboard(request: Request):
         "wallet_balance": 25.50,
         "balance_class": "positive",
         "recent_tx": [
-            {"name": "Pizza Night", "amount": 18.25, "sign": "-", "date": "2025-10-29", "group": "Roommates"},
-            {"name": "Uber to AWM", "amount": 9.60, "sign": "-", "date": "2025-10-28", "group": "AWM"},
-            {"name": "Reimbursement from Liz", "amount": 12.40, "sign": "+", "date": "2025-10-27", "group": "CS3300"},
+            {
+                "name": "Pizza Night",
+                "amount": 18.25,
+                "sign": "-",
+                "date": "2025-10-29",
+                "group": "Roommates",
+            },
+            {
+                "name": "Uber to AWM",
+                "amount": 9.60,
+                "sign": "-",
+                "date": "2025-10-28",
+                "group": "AWM",
+            },
+            {
+                "name": "Reimbursement from Liz",
+                "amount": 12.40,
+                "sign": "+",
+                "date": "2025-10-27",
+                "group": "CS3300",
+            },
         ],
         "notifications": [
             "Grace added an expense in Roommates",
@@ -132,7 +169,7 @@ async def get_dashboard(request: Request):
             "Invite: Join Group 'CS3300 Team'",
         ],
     }
-    return templates.TemplateResponse(
+    return templates.TemplateResponse(request,
         "dashboard.html",
         mock_data,
     )
@@ -140,7 +177,7 @@ async def get_dashboard(request: Request):
 
 @app.get("/add-expense", response_class=HTMLResponse)
 async def get_add_expense(request: Request):
-    return templates.TemplateResponse(
+    return templates.TemplateResponse(request,
         "add_expense.html",
         {"request": request},
     )
@@ -149,8 +186,16 @@ async def get_add_expense(request: Request):
 @app.get("/friends", response_class=HTMLResponse)
 @app.get("/friends.html", response_class=HTMLResponse)
 async def get_friends(request: Request):
-    return templates.TemplateResponse(
+    return templates.TemplateResponse(request,
         "friends.html",
+        {"request": request},
+    )
+
+
+@app.get("/friends/add", response_class=HTMLResponse)
+async def get_add_friend(request: Request):
+    return templates.TemplateResponse(request,
+        "add_friend.html",
         {"request": request},
     )
 
@@ -158,7 +203,7 @@ async def get_friends(request: Request):
 @app.get("/history", response_class=HTMLResponse)
 @app.get("/history.html", response_class=HTMLResponse)
 async def get_history(request: Request):
-    return templates.TemplateResponse(
+    return templates.TemplateResponse(request,
         "history.html",
         {"request": request},
     )
@@ -167,7 +212,7 @@ async def get_history(request: Request):
 @app.get("/settings", response_class=HTMLResponse)
 @app.get("/settings.html", response_class=HTMLResponse)
 async def get_settings(request: Request):
-    return templates.TemplateResponse(
+    return templates.TemplateResponse(request,
         "settings.html",
         {"request": request},
     )
@@ -176,18 +221,31 @@ async def get_settings(request: Request):
 @app.get("/payments", response_class=HTMLResponse)
 @app.get("/payments.html", response_class=HTMLResponse)
 async def get_payments(request: Request):
-    return templates.TemplateResponse(
+    return templates.TemplateResponse(request,
         "payments.html",
         {"request": request},
     )
 
+
 @app.get("/groups", response_class=HTMLResponse)
 @app.get("/groups.html", response_class=HTMLResponse)
 async def get_groups(request: Request):
-    return templates.TemplateResponse("groups.html", {"request": request})
+    return templates.TemplateResponse(request,
+        "groups.html",
+        {"request": request},
+    )
 
 
 @app.get("/group", response_class=HTMLResponse)
 @app.get("/group.html", response_class=HTMLResponse)
 async def get_group(request: Request):
-    return templates.TemplateResponse("group.html", {"request": request})
+  return templates.TemplateResponse(request,
+      "group.html",
+      {"request": request},
+  )
+@app.get("/groups/add", response_class=HTMLResponse)
+async def get_add_group(request: Request):
+    return templates.TemplateResponse(request,
+        "add_group.html",
+        {"request": request},
+    )

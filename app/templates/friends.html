@@ -1,204 +1,271 @@
 {% extends "base.html" %}
 
-{% block title %}Friends - Expense Splitter{% endblock %}
+{% block title %}Friends | Expense Splitter{% endblock %}
 
 {% block styles %}
 <style>
-  /* base.html already handles most layout, so this is just Friends-specific styling */
-  h1 { display:flex; align-items:center; gap:8px; }
-
-  header {
-    display:flex;
-    flex-wrap:wrap;
-    gap:8px;
-    align-items:center;
-    margin: 12px 0;
+  .friends-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
   }
 
-  input, select, button {
-    padding: 8px;
-    font-size: 14px;
+  .friends-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
   }
 
-  .pill {
-    padding: 2px 8px;
+  .friends-title-block {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .friends-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+  }
+
+  .friends-subtitle {
+    font-size: 0.9rem;
+    color: #6b7280;
+  }
+
+  .friends-actions-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    font-size: 0.8rem;
+    color: #6b7280;
+  }
+
+  .btn-primary {
+    background: var(--green);
+    color: #fff;
+    border: none;
     border-radius: 999px;
-    background:#eee;
-    font-size: 12px;
+    padding: 7px 16px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
   }
 
-  form#addFriendForm {
-    display:flex;
-    flex-wrap:wrap;
-    gap:8px;
-    margin-top: 8px;
-    margin-bottom: 12px;
+  .btn-primary-icon {
+    width: 18px;
+    height: 18px;
   }
 
-  ul#list {
-    padding-left: 18px;
-    margin-top: 8px;
+  .friends-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+    border-radius: 16px;
+    background: #f9fafb;
   }
 
-  .muted {
-    color:#666;
-    font-size: 14px;
-    margin-top: 4px;
+  .friends-filters-left {
+    display: flex;
+    flex: 1;
+    gap: 8px;
+    min-width: 220px;
+  }
+
+  .friends-filters-right {
+    display: flex;
+    gap: 8px;
+  }
+
+  .friends-input,
+  .friends-select {
+    border-radius: 999px;
+    border: 1px solid #e5e7eb;
+    padding: 7px 10px;
+    font-size: 0.9rem;
+    width: 100%;
+  }
+
+  .friends-select {
+    min-width: 140px;
+  }
+
+  .btn-outline {
+    background: white;
+    color: #111827;
+    border-radius: 999px;
+    border: 1px solid #d1d5db;
+    padding: 7px 14px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn-outline:hover {
+    background: #f3f4f6;
+  }
+
+  .friends-summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+    color: #6b7280;
+  }
+
+  .friends-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .friend-row {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: white;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  }
+
+  .friend-row-main {
+    display: flex;
+    gap: 6px;
+    align-items: baseline;
+  }
+
+  .friend-name {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #111827;
+  }
+
+  .friend-username {
+    font-size: 0.85rem;
+    color: #6b7280;
+  }
+
+  .friend-email {
+    font-size: 0.8rem;
+    color: #6b7280;
+  }
+
+  .friends-empty {
+    padding: 14px 12px;
+    border-radius: 12px;
+    background: #f9fafb;
+    font-size: 0.9rem;
+    color: #6b7280;
+  }
+
+  @media (max-width: 640px) {
+    .friends-header-row {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .friends-actions-right {
+      align-items: flex-start;
+    }
+
+    .friends-filters-left {
+      flex-direction: column;
+    }
+
+    .friends-filters-right {
+      width: 100%;
+      justify-content: flex-start;
+    }
   }
 </style>
 {% endblock %}
 
 {% block content %}
+<section class="panel">
+  <div class="friends-layout">
+    <div class="friends-header-row">
+      <div class="friends-title-block">
+        <div class="friends-title">Friends</div>
+        <div class="friends-subtitle">
+          Keep track of the people you split expenses with most often.
+        </div>
+      </div>
+      <div class="friends-actions-right">
+        <button id="friends-add-btn" class="btn-primary" type="button">
+          <svg class="btn-primary-icon" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M12 4V20M4 12H20"
+              stroke="white"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+          Add friend
+        </button>
+        <span id="friends-total">0 total</span>
+      </div>
+    </div>
 
-<h1>Friends <span id="count" class="pill"></span></h1>
+    <div class="friends-filters">
+      <div class="friends-filters-left">
+        <input
+          id="friends-search"
+          type="text"
+          class="friends-input"
+          placeholder="Search by name, username, or email"
+          autocomplete="off"
+        />
+        <select
+          id="friends-group-filter"
+          class="friends-select"
+        >
+          <option value="">All groups</option>
+          <!-- Options added by friends.js -->
+        </select>
+      </div>
 
-<header>
-  <input id="q" placeholder="Search by name, email, or group…" />
-  <select id="group">
-    <option value="">All groups</option>
-  </select>
-  <button id="btnSearch" type="button">Search</button>
-  <button id="btnClear" type="button">Clear</button>
-</header>
+      <div class="friends-filters-right">
+        <button
+          id="friends-search-btn"
+          class="btn-outline"
+          type="button"
+        >
+          Search
+        </button>
+        <button
+          id="friends-clear-btn"
+          class="btn-outline"
+          type="button"
+        >
+          Clear
+        </button>
+      </div>
+    </div>
 
-<form id="addForm">
-  <input id="friendName" placeholder="Name (optional)" />
-  <input id="friendEmail" placeholder="Email (optional)" />
-  <input id="friendGroup" placeholder="Group (e.g., Roommates) (optional)" />
-  <button type="submit">Add Friend</button>
-</form>
+    <div class="friends-list" id="friends-list">
+      <!-- Friends rendered by friends.js -->
+    </div>
 
-<p id="friendsEmpty" class="muted" style="display:none;">
-  No friends added yet.
-</p>
-
-<ul id="list"></ul>
-
+    <div class="friends-summary-row">
+      <span></span>
+      <span id="friends-total-bottom"></span>
+    </div>
+  </div>
+</section>
 {% endblock %}
 
 {% block scripts %}
-<script>
-  // Highlight sidebar link if nav exists in base.html
-  const link = document.querySelector('.nav a[href="/friends"]');
-  if (link) link.classList.add("active");
-
-  // Grab references to elements on the page
-  const listEl   = document.getElementById("list");
-  const countEl  = document.getElementById("count");
-  const emptyEl  = document.getElementById("friendsEmpty");
-
-  const searchEl = document.getElementById("q");
-  const groupEl  = document.getElementById("group");
-
-  const addForm    = document.getElementById("addForm");
-  const nameInput  = document.getElementById("friendName");
-  const emailInput = document.getElementById("friendEmail");
-  const groupInput = document.getElementById("friendGroup");
-
-  // Load groups from backend for dropdown
-  async function loadGroups() {
-    const resp = await fetch("/api/friends/groups");
-    if (!resp.ok) {
-      console.error("Failed to load groups");
-      return;
-    }
-    const data = await resp.json();
-
-    groupEl.innerHTML = '<option value="">All groups</option>';
-    for (const g of data.groups || []) {
-      const opt = document.createElement("option");
-      opt.value = g;
-      opt.textContent = g;
-      groupEl.appendChild(opt);
-    }
-  }
-
-  // Load friends with optional search + group filter
-  async function loadFriends() {
-    const params = new URLSearchParams();
-    const qv = searchEl.value.trim();
-    const gv = groupEl.value.trim();
-
-    if (qv) params.append("q", qv);
-    if (gv) params.append("group", gv);
-
-    const resp = await fetch("/api/friends/?" + params.toString());
-    if (!resp.ok) {
-      console.error("Failed to load friends");
-      return;
-    }
-
-    const data = await resp.json();
-    renderFriends(data.friends || []);
-  }
-
-  // Render friends list
-  function renderFriends(items) {
-    listEl.innerHTML = "";
-    countEl.textContent = items.length + " total";
-
-    if (items.length === 0) {
-      emptyEl.style.display = "block";
-      return;
-    } else {
-      emptyEl.style.display = "none";
-    }
-
-    for (const f of items) {
-      const li = document.createElement("li");
-      const name  = f.name  || "(No name)";
-      const email = f.email || "(No email)";
-      const group = f.group || "No group";
-      li.textContent = `${name} — ${email} — ${group}`;
-      listEl.appendChild(li);
-    }
-  }
-
-  // Search button
-  document.getElementById("btnSearch").addEventListener("click", loadFriends);
-
-  // Clear button
-  document.getElementById("btnClear").addEventListener("click", () => {
-    searchEl.value = "";
-    groupEl.value = "";
-    loadFriends();
-  });
-
-  // Add Friend form submit
-  addForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-
-    const name  = nameInput.value.trim();
-    const email = emailInput.value.trim();
-    const group = groupInput.value.trim();
-
-    if (!name && !email) {
-      alert("Please provide at least a name or an email for the friend.");
-      return;
-    }
-
-    const resp = await fetch("/api/friends/", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: name || null,
-        email: email || null,
-        group: group || null
-      }),
-    });
-
-    if (resp.ok) {
-      nameInput.value = "";
-      emailInput.value = "";
-      groupInput.value = "";
-      await loadGroups();
-      await loadFriends();
-    } else {
-      alert("Failed to add friend.");
-    }
-  });
-
-  // Initial load
-  loadGroups().then(loadFriends);
-</script>
+  <script type="module" src="/static/js/supabaseClient.js"></script>
+  <script src="/static/js/friends.js"></script>
 {% endblock %}

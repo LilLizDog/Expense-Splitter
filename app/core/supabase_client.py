@@ -2,14 +2,19 @@ import os
 import logging
 from dotenv import load_dotenv
 from supabase import create_client, Client
-from typing import Optional
+from typing import Optional, Any, Dict, List
+import uuid
 
 # Load .env from the project root
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "../../.env"))
 
 # Get environment variables
 SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+
+# Prefer service role key, fall back to SUPABASE_KEY if needed
+SERVICE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+SUPABASE_KEY = SERVICE_KEY or os.getenv("SUPABASE_KEY")
+
 TESTING = os.getenv("TESTING") == "1"
 
 # Create Supabase client if possible; if not, or if TESTING, use an in memory fake client
@@ -21,12 +26,6 @@ else:
         "Missing SUPABASE_URL or SUPABASE_KEY in .env or TESTING=1; "
         "using in memory fake supabase client."
     )
-
-    # Lightweight in memory fake Supabase client used for tests or when real credentials
-    # are not available. It implements the subset of the API used by the app routers:
-    # supabase.table(...).select(...).eq(...).insert(...).update(...).limit(...).execute()
-    from typing import Any, Dict, List
-    import uuid
 
     class ExecResult:
         def __init__(self, data: Any):
@@ -121,6 +120,7 @@ else:
 
     # Expose fake client as module level supabase object
     supabase = FakeSupabase()
+
 
 def get_supabase():
     """

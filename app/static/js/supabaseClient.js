@@ -8,7 +8,10 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 // Singleton supabase client on window
 window.sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
-    storage: window.sessionStorage,
+    // Use localStorage so sessions persist across tabs (helps dev UX).
+    // Note: localStorage persists across browser restarts; evaluate
+    // security requirements before using in production.
+    storage: window.localStorage,
     persistSession: true,
     autoRefreshToken: true,
     storageKey: "sb-es-auth"
