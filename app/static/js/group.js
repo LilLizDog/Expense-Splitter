@@ -1,55 +1,76 @@
-import { supabase } from './supabaseClient.js';
+// FILE: static/js/group.js
+// Read only group detail page.
 
-const params = new URLSearchParams(window.location.search);
-const groupId = params.get('group_id');
-if (!groupId) window.location.href = '/groups.html';
-
-const nameEl = document.getElementById('group-name');
-const descEl = document.getElementById('group-desc');
-const dateEl = document.getElementById('group-date');
-const txList = document.getElementById('tx-list');
-const addMemberBtn = document.getElementById('add-member-btn');
-const addExpenseBtn = document.getElementById('add-expense-btn');
-
-async function loadGroup() {
-  const { data, error } = await supabase.from('groups').select('*').eq('id', groupId).single();
-  if (error) return alert('Group not found');
-  nameEl.textContent = data.name;
-  descEl.textContent = data.description || '';
-  dateEl.textContent = new Date(data.created_at).toLocaleDateString();
-}
-
-async function loadTransactions() {
-  const { data, error } = await supabase.from('transactions').select('*').eq('group_id', groupId).order('created_at', { ascending: false }).limit(10);
-  txList.innerHTML = '';
-  if (error || !data.length) txList.innerHTML = '<div class="muted">No transactions yet.</div>';
-  data?.forEach(t => {
-    const sign = t.amount >= 0 ? 'positive' : 'negative';
-    txList.innerHTML += `
-      <div class="tx">
-        <div class="left">
-          <div class="name">${t.name}</div>
-          <div class="meta">${new Date(t.created_at).toLocaleDateString()}</div>
-        </div>
-        <div class="amt ${sign}">${sign === 'positive' ? '+' : '-'}$${Math.abs(t.amount).toFixed(2)}</div>
-      </div>`;
+async function fetchJson(url, options = {}) {
+  const res = await fetch(url, {
+    credentials: "include",
+    headers: { Accept: "application/json", ...(options.headers || {}) },
+    ...options,
   });
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status} for ${url}`);
+  }
+  return res.json();
 }
 
-addMemberBtn.addEventListener('click', async () => {
-  const email = prompt('Enter member email to add:');
-  if (!email) return;
-  const { data: user } = await supabase.from('users').select('id').eq('email', email).single();
-  if (!user) return alert('User not found');
-  const { data: group } = await supabase.from('groups').select('members').eq('id', groupId).single();
-  const updated = [...new Set([...group.members, user.id])];
-  await supabase.from('groups').update({ members: updated }).eq('id', groupId);
-  alert('Member added!');
-});
+function pickMemberName(u) {
+  return (
+    u.name ??
+    u.full_name ??
+    u.username ??
+    u.email ??
+    "Member"
+  );
+}
 
-addExpenseBtn.addEventListener('click', () => {
-  window.location.href = `/add_expense.html?group_id=${groupId}`;
-});
+async function initGroupPage() {
+  const params = new URLSearchParams(window.location.search);
+  const groupId = params.get("group_id");
 
-loadGroup();
-loadTransactions();
+  if (!groupId) {
+    window.location.href = "/groups";
+    return;
+  }
+
+  const nameEl = document.getElementById("group-name");
+  const descEl = document.getElementById("group-desc");
+  const dateEl = document.getElementById("group-date");
+  const membersEl = document.getElementById("group-members");
+
+  try {
+    const group = await fetchJson(`/api/groups/${encodeURIComponent(groupId)}`);
+    if (nameEl) nameEl.textContent = group.name ?? "Group";
+    if (descEl) descEl.textContent = group.description || "";
+    if (dateEl && group.created_at) {
+      dateEl.textContent = new Date(group.created_at).toLocaleDateString();
+    }
+  } catch (err) {
+    console.error("Failed to load group:", err);
+    alert("Group not found.");
+    window.location.href = "/groups";
+    return;
+  }
+
+  if (!membersEl) return;
+
+  try {
+    const data = await fetchJson(`/api/groups/${encodeURIComponent(groupId)}/members`);
+    const members = Array.isArray(data?.members) ? data.members : (data.data || []);
+    if (!members.length) {
+      membersEl.innerHTML = '<li class="muted">No members found for this group.</li>';
+      return;
+    }
+
+    membersEl.innerHTML = "";
+    members.forEach(u => {
+      const li = document.createElement("li");
+      li.textContent = pickMemberName(u);
+      membersEl.appendChild(li);
+    });
+  } catch (err) {
+    console.error("Failed to load members:", err);
+    membersEl.innerHTML = '<li class="muted">Error loading members.</li>';
+  }
+}
+
+document.addEventListener("DOMContentLoaded", initGroupPage);

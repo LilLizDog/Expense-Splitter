@@ -158,7 +158,6 @@
 
       <div id="login-error"></div>
 
-      <!-- JS handles this form, no action attribute -->
       <form id="login-form" method="post">
         <div class="form-field">
           <label class="form-label">Email <span>*</span></label>
@@ -204,12 +203,15 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
-  // Toggle password visibility without changing layout
-  function togglePassword(){
-    const input = document.getElementById("password");
-    input.type = input.type === "password" ? "text" : "password";
-  }
-</script>
-<script src="/static/js/login.js"></script>
+  <!-- Supabase client, must load before login.js -->
+  <script type="module" src="/static/js/supabaseClient.js"></script>
+
+  <script>
+    function togglePassword(){
+      const input = document.getElementById("password");
+      input.type = input.type === "password" ? "text" : "password";
+    }
+  </script>
+
+  <script src="/static/js/login.js"></script>
 {% endblock %}

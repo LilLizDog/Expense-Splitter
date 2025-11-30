@@ -3,22 +3,23 @@
 {% block title %}Group | Expense Splitter{% endblock %}
 
 {% block content %}
-<section class="panel">
-  <h1 id="group-name"></h1>
-  <p id="group-desc"></p>
-  <p>Created on: <span id="group-date"></span></p>
-  <div class="actions">
-    <button class="btn" id="add-member-btn">+ Add Member</button>
-    <button class="btn" id="add-expense-btn">+ Add Expense</button>
-  </div>
-</section>
+<section class="panel" style="max-width: 720px; margin-inline:auto;">
+  <a href="/groups" class="btn" style="margin-bottom:10px;">← Back to groups</a>
 
-<section class="panel">
-  <h2>Recent Transactions</h2>
-  <div id="tx-list" class="tx-list">Loading...</div>
+  <h1 id="group-name" style="margin:6px 0 4px;"></h1>
+  <p id="group-desc" class="muted" style="margin:0 0 8px;"></p>
+  <p class="muted" style="margin:0 0 16px;">
+    Created on: <span id="group-date"></span>
+  </p>
+
+  <h3 style="margin-top:0;">Members</h3>
+  <ul id="group-members" style="padding-left:18px; margin-top:4px;">
+    <li class="muted">Loading members…</li>
+  </ul>
 </section>
 {% endblock %}
 
 {% block scripts %}
+<script type="module" src="/static/js/guard_protected.js"></script>
 <script type="module" src="/static/js/group.js"></script>
 {% endblock %}

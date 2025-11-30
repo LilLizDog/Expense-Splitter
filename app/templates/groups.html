@@ -2,32 +2,258 @@
 
 {% block title %}Groups | Expense Splitter{% endblock %}
 
+{% block styles %}
+<style>
+  .groups-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .groups-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .groups-title-block {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .groups-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+  }
+
+  .groups-subtitle {
+    font-size: 0.9rem;
+    color: #6b7280;
+  }
+
+  .groups-actions-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    font-size: 0.8rem;
+    color: #6b7280;
+  }
+
+  .btn-primary {
+    background: var(--green);
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    padding: 7px 16px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn-primary-icon {
+    width: 18px;
+    height: 18px;
+  }
+
+  .groups-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+    border-radius: 16px;
+    background: #f9fafb;
+  }
+
+  .groups-filters-left {
+    display: flex;
+    flex: 1;
+    gap: 8px;
+    min-width: 220px;
+  }
+
+  .groups-filters-right {
+    display: flex;
+    gap: 8px;
+  }
+
+  .groups-input,
+  .groups-select {
+    border-radius: 999px;
+    border: 1px solid #e5e7eb;
+    padding: 7px 10px;
+    font-size: 0.9rem;
+    width: 100%;
+  }
+
+  .groups-select {
+    min-width: 140px;
+  }
+
+  .btn-outline {
+    background: white;
+    color: #111827;
+    border-radius: 999px;
+    border: 1px solid #d1d5db;
+    padding: 7px 14px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn-outline:hover {
+    background: #f3f4f6;
+  }
+
+  .groups-summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+    color: #6b7280;
+  }
+
+  .groups-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .group-row {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: white;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  }
+
+  .group-row-main {
+    display: flex;
+    gap: 6px;
+    align-items: baseline;
+  }
+
+  .group-name {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #111827;
+  }
+
+  .group-meta {
+    font-size: 0.8rem;
+    color: #6b7280;
+  }
+
+  .groups-empty {
+    padding: 14px 12px;
+    border-radius: 12px;
+    background: #f9fafb;
+    font-size: 0.9rem;
+    color: #6b7280;
+  }
+
+  @media (max-width: 640px) {
+    .groups-header-row {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .groups-actions-right {
+      align-items: flex-start;
+    }
+
+    .groups-filters-left {
+      flex-direction: column;
+    }
+
+    .groups-filters-right {
+      width: 100%;
+      justify-content: flex-start;
+    }
+  }
+</style>
+{% endblock %}
+
 {% block content %}
 <section class="panel">
-  <h2>Create New Group</h2>
-  <form id="create-group-form">
-    <input type="text" id="group-name" placeholder="Group Name" required /><br/><br/>
-    <textarea id="group-desc" placeholder="Description" rows="2"></textarea><br/><br/>
-    <input type="text" id="group-members" placeholder="Member Emails (comma separated)" /><br/><br/>
-    <button type="submit" class="btn">Create Group</button>
-  </form>
-</section>
+  <div class="groups-layout">
+    <div class="groups-header-row">
+      <div class="groups-title-block">
+        <div class="groups-title">Groups</div>
+        <div class="groups-subtitle">
+          View and search all groups you belong to.
+        </div>
+      </div>
+      <div class="groups-actions-right">
+        <button
+          id="groups-add-btn"
+          class="btn-primary"
+          type="button"
+          onclick="window.location.href='/groups/add'"
+        >
+          <svg class="btn-primary-icon" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M12 4V20M4 12H20"
+              stroke="white"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+          Create group
+        </button>
+        <span id="groups-total">0 total</span>
+      </div>
+    </div>
 
-<section class="panel">
-  <h2>Your Groups</h2>
-  <div id="groups-list" class="tx-list">
-    Loading groups...
+    <div class="groups-filters">
+      <div class="groups-filters-left">
+        <input
+          id="groups-search"
+          type="text"
+          class="groups-input"
+          placeholder="Search by group name or description"
+          autocomplete="off"
+        />
+        <select id="groups-filter" class="groups-select">
+          <option value="">All groups</option>
+        </select>
+      </div>
+
+      <div class="groups-filters-right">
+        <button id="groups-search-btn" class="btn-outline" type="button">
+          Search
+        </button>
+        <button id="groups-clear-btn" class="btn-outline" type="button">
+          Clear
+        </button>
+      </div>
+    </div>
+
+    <div class="groups-list" id="groups-list"></div>
+
+    <div class="groups-summary-row">
+      <span></span>
+      <span id="groups-total-bottom"></span>
+    </div>
   </div>
 </section>
 {% endblock %}
 
 {% block scripts %}
-<script type="module" src="/static/js/groups.js"></script>
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-  document.querySelectorAll(".nav a").forEach(a => {
-    if (a.textContent.trim() === "Groups") a.classList.add("active");
-  });
-});
-</script>
+  <script type="module" src="/static/js/supabaseClient.js"></script>
+  <script type="module" src="/static/js/guard_protected.js"></script>
+  <!-- cache-bust with ?v=4 so the browser pulls the new JS -->
+  <script src="/static/js/groups.js?v=4" defer></script>
 {% endblock %}
