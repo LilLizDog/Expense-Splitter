@@ -461,7 +461,7 @@
         sel.appendChild(o);
       };
       try{
-        const data = normalizeRows(await fetchJson('/groups'));
+        const data = normalizeRows(await fetchJson('/api/groups'));
         if (!data.length){
           addOpt('', 'No groups found', true);
           sel.value=''; sel.disabled=true;
@@ -789,7 +789,7 @@
         list.innerHTML = `<div class="muted" style="padding:8px;">Loading members…</div>`;
         selectAll.checked = false;
         try{
-          const rows = normalizeRows(await fetchJson(`/groups/${groupId}/members`));
+          const rows = normalizeRows(await fetchJson(`/api/groups/${groupId}/members`));
           renderMembers(rows);
         }catch(err){
           console.error('Failed to load members:', err);
