@@ -16,6 +16,7 @@ def get_current_user_id() -> str:
 def get_history(
     group: Optional[str] = Query(None), # Optional group filter
     person: Optional[str] = Query(None), #Optional person filter
+    entry_type: Optional[str] = Query(None, alias="type"), # Optional type filter
 ):
     user_id = get_current_user_id()
 
@@ -68,6 +69,11 @@ def get_history(
             x for x in paid_rows 
             if p in (x.get("to_name") or "").lower()
         ]
+    # Filter by type
+    if entry_type == "received":
+        paid_rows = []
+    elif entry_type == "paid":
+        received_rows = []
 
     # Format and return the response in the expected shape
     return {
@@ -77,6 +83,8 @@ def get_history(
                 "from": r.get("from_name") or "",
                 "amount": r.get("amount") or 0,
                 "group": r.get("group_name") or "",
+                "date": r.get("created_at") or r.get("date") or "",
+                "role": r.get("role") or "receiver",
             }
             for r in received_rows
         ],
@@ -86,6 +94,8 @@ def get_history(
                 "to": p.get("to_name") or "",
                 "amount": p.get("amount") or 0,
                 "group": p.get("group_name") or "",
+                "date": p.get("created_at") or p.get("date") or "",
+                "role": p.get("role") or "payer",
             }
             for p in paid_rows
         ],
