@@ -12,6 +12,13 @@
     <option value="">All groups</option>
   </select>
   <input id="personFilter" placeholder="Filter by person…" />
+
+  <select id="typeFilter">
+    <option value="">All types</option>
+    <option value="received">Received Payments</option>
+    <option value="paid">Paid Expenses</option>
+  </select>
+
   <button id="btnApply" type="button">Apply filters</button>
   <button id="btnClear" type="button">Clear</button>
 </header>
@@ -37,6 +44,7 @@
   // References to HTML elements
   const groupEl = document.getElementById("groupFilter");
   const personEl = document.getElementById("personFilter");
+  const typeEl = document.getElementById("typeFilter");
   const receivedList = document.getElementById("receivedList");
   const paidList = document.getElementById("paidList");
   const globalEmptyEl = document.getElementById("globalEmpty");
@@ -61,8 +69,11 @@
     const params = new URLSearchParams();
     const g = groupEl.value.trim();
     const p = personEl.value.trim();
+    const t = typeEl.value.trim();
+
     if (g) params.append("group", g);
     if (p) params.append("person", p);
+    if (t) params.append("type", t);
 
     const r = await fetch("/api/history/?" + params.toString());
 
@@ -78,34 +89,42 @@
     renderLists(data.received || [], data.paid || []);
   }
 
-  // Render the received + paid lists
+  // Render the received and paid lists
   function renderLists(received, paid) {
+    const filterType = typeEl.value.trim();
     // Received payments section
     receivedList.innerHTML = "";
-    if (!received.length) {
-      receivedList.innerHTML = "<li class='empty'>No received payments.</li>";
+    if (!received.length || (filterType && filterType !== "received")) {
+      if (!received.length && (!filterType || filterType === "received")) {
+        receivedList.innerHTML = "<li class='empty'>No received payments.</li>";
+      }
     } else {
       for (const item of received) {
         const li = document.createElement("li");
-        li.textContent = `${item.from} → you • $${item.amount} • ${item.group}`;
+        li.textContent = `${item.from} → you • $${item.amount} • ${item.group} • ${item.date} • ${item.role || "receiver"}`;
         receivedList.appendChild(li);
       }
     }
 
     // Paid expenses section
     paidList.innerHTML = "";
-    if (!paid.length) {
-      paidList.innerHTML = "<li class='empty'>No paid expenses.</li>";
+    if (!paid.length || (filterType && filterType !== "paid")) {
+      if (!paid.length && (!filterType || filterType === "paid")) {
+        paidList.innerHTML = "<li class='empty'>No paid expenses.</li>";
+      }
     } else {
       for (const item of paid) {
         const li = document.createElement("li");
-        li.textContent = `You paid ${item.to} • $${item.amount} • ${item.group}`;
+        li.textContent = `You paid ${item.to} • $${item.amount} • ${item.group} • ${item.date} • ${item.role || "payer"}`;
         paidList.appendChild(li);
       }
     }
 
     // Global empty-state if BOTH lists are empty
-    if (!received.length && !paid.length) {
+    const hasReceived = (!filterType || filterType === "received") && received.length > 0;
+    const hasPaid = (!filterType || filterType === "paid") && paid.length > 0;
+
+    if (!hasReceived && !hasPaid) {
       globalEmptyEl.textContent =
         "No history yet. Your past expenses and payments will appear here.";
     } else {
@@ -118,6 +137,7 @@
   document.getElementById("btnClear").addEventListener("click", () => {
     groupEl.value = "";
     personEl.value = "";
+    typeEl.value = "";
     loadHistory();
   });
 
