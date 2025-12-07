@@ -28,6 +28,17 @@ async def get_dashboard(current_user = Depends(get_current_user)):
     total_owed = sum([float(r["amount"]) for r in (recv_resp.data or [])])
     total_owing = sum([float(r["amount"]) for r in (paid_resp.data or [])])
 
+    # compute's the overall net balance
+    net_balance = total_owed - total_owing
+
+    # determines the balance class for UI purposes
+    if net_balance > 0:
+        balance_class = "positive"
+    elif net_balance < 0:
+        balance_class = "negative"
+    else:
+        balance_class = "zero"
+
     # recent transactions – tweak this to your schema
     tx_resp = supabase.table("history_paid") \
         .select("amount, created_at, group_name") \
@@ -48,7 +59,12 @@ async def get_dashboard(current_user = Depends(get_current_user)):
 
     return {
         "user_name": current_user.user_metadata.get("full_name") or "Friend",
-        "wallet": {"owed": total_owed, "owing": total_owing},
+        "wallet": {
+            "owed": total_owed, 
+            "owing": total_owing
+        },
+        "wallet_balance": net_balance,
+        "balance_class": balance_class,
         "groups": groups,
         "recent_transactions": recent_tx,
     }
