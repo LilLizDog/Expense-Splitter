@@ -30,6 +30,7 @@ from .routers import groups, expenses, balances, auth
 from .routers import friends, history, settings, payments, dashboard, users
 from .routers.auth import get_current_user
 from app.routers import inbox
+from .routers import trip_summary
 
 app.include_router(auth.router, prefix="/auth")
 app.include_router(groups.router)
@@ -42,6 +43,8 @@ app.include_router(inbox.router)
 app.include_router(payments.router)
 app.include_router(dashboard.router)
 app.include_router(users.router)
+app.include_router(trip_summary.router)
+
 
 # ------------------------
 # HEALTH + BASIC CHECKS
