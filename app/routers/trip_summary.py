@@ -5,7 +5,12 @@ import os
 
 router = APIRouter(prefix="/trip-summary", tags=["trip-summary"])
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+def get_openai_client():
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise RuntimeError("OPENAI_API_KEY is missing.")
+    return OpenAI(api_key=api_key)
+
 
 @router.post("/")
 async def generate_trip_summary(description: str | None):
@@ -13,6 +18,8 @@ async def generate_trip_summary(description: str | None):
         raise HTTPException(status_code=400, detail="Trip description is missing.")
 
     try:
+        client = get_openai_client()
+
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
@@ -25,5 +32,9 @@ async def generate_trip_summary(description: str | None):
         summary = response.choices[0].message.content
         return {"summary": summary}
 
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"GenAI error: {str(e)}")
+
