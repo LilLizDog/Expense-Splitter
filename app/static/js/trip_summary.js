@@ -10,13 +10,21 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        box.innerHTML = "Generating summary…";
+        if (desc.length > 1000) {
+            box.innerHTML = "<p style='color:red;'>Description too long (max 1000 characters).</p>";
+            return;
+        }
+
+        // Disable button while generating
+        btn.disabled = true;
+        btn.textContent = "Generating…";
+        box.innerHTML = "";
 
         try {
             const response = await fetch("/trip-summary/", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(desc),
+                body: JSON.stringify({ description: desc }),
             });
 
             if (!response.ok) {
@@ -30,6 +38,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
         } catch (err) {
             box.innerHTML = `<p style="color:red;">Error: ${err}</p>`;
+        } finally {
+            btn.disabled = false;
+            btn.textContent = "Generate Summary";
         }
     });
 });
