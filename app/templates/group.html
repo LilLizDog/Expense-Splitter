@@ -11,6 +11,25 @@
   <p class="muted" style="margin:0 0 16px;">
     Created on: <span id="group-date"></span>
   </p>
+    <!-- Trip Summary Feature -->
+  <hr style="margin: 24px 0;">
+
+  <h3>Trip Summary</h3>
+
+  <textarea
+      id="trip-description"
+      placeholder="Enter or edit the trip description…"
+      style="width:100%; min-height: 100px; margin-top:8px;"
+  ></textarea>
+
+  <button id="generate-summary-btn" class="btn" style="margin-top:10px;">
+      Generate Trip Summary
+  </button>
+
+  <div id="trip-summary-output" class="panel" style="margin-top:16px; display:none;">
+      <h4>Summary</h4>
+      <p id="trip-summary-text"></p>
+  </div>
 
   <h3 style="margin-top:0;">Members</h3>
   <ul id="group-members" style="padding-left:18px; margin-top:4px;">
@@ -22,4 +41,5 @@
 {% block scripts %}
 <script type="module" src="/static/js/guard_protected.js"></script>
 <script type="module" src="/static/js/group.js"></script>
+<script type=""module" src=""/static/js/trip_summary.js""></script>
 {% endblock %}

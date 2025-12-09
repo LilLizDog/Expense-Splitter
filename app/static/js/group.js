@@ -41,6 +41,9 @@ async function initGroupPage() {
     const group = await fetchJson(`/api/groups/${encodeURIComponent(groupId)}`);
     if (nameEl) nameEl.textContent = group.name ?? "Group";
     if (descEl) descEl.textContent = group.description || "";
+    const descInput = document.getElementById("trip-description");
+    if (descInput) descInput.value = group.description || "";
+
     if (dateEl && group.created_at) {
       dateEl.textContent = new Date(group.created_at).toLocaleDateString();
     }
