@@ -319,11 +319,8 @@ def mark_payment_as_paid(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail=f"Error updating payment: {update_resp.error.message}",
         )
-<<<<<<< HEAD
 
     updated = update_resp.data
-=======
->>>>>>> 74ab3c988b6b3b1fb1f5cbbab4002d27fc3d3606
     payment = Payment(
         id=str(updated["id"]),
         group_id=str(updated["group_id"]) if updated.get("group_id") is not None else None,
