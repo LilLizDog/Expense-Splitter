@@ -449,8 +449,12 @@
       return res.json();
     }
     function normalizeRows(payload){
-      return Array.isArray(payload) ? payload : (Array.isArray(payload?.data) ? payload.data : []);
+    if (Array.isArray(payload)) return payload;
+    if (Array.isArray(payload?.data)) return payload.data;
+    if (Array.isArray(payload?.members)) return payload.members;
+    return [];
     }
+
 
     (async function loadGroups(){
       const sel = document.getElementById('group');
@@ -1053,6 +1057,39 @@
         }
       });
     });
+    // Load friends for non-group expenses
+async function loadFriends() {
+  const sel = document.getElementById("friendSelect");
+  if (!sel) return;
+
+  try {
+    const res = await fetch("/api/friends", {
+      headers: { Accept: "application/json" }
+    });
+
+    const json = await res.json();
+    const friends = json.friends || [];
+
+    sel.innerHTML = `<option value="" disabled selected>Select a friend...</option>`;
+
+    friends.forEach(f => {
+      const opt = document.createElement("option");
+      opt.value = f.id;                  // link id is fine
+      opt.textContent = f.name || f.username;
+      sel.appendChild(opt);
+    });
+
+    if (friends.length === 0) {
+      sel.innerHTML = `<option disabled>No friends found</option>`;
+    }
+  } catch (err) {
+    console.error("Failed to load friends", err);
+    sel.innerHTML = `<option disabled>Error loading friends</option>`;
+  }
+}
+
+document.addEventListener("DOMContentLoaded", loadFriends);
+
   </script>
 </body>
 </html>

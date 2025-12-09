@@ -66,6 +66,11 @@ else:
             self._payload = payload
             return self
 
+        def delete(self):
+            # Mark this operation as a delete
+            self._action = "delete"
+            return self
+
         def limit(self, n: int):
             # Apply a limit to the result set
             self._limit = n
@@ -105,6 +110,22 @@ else:
                         r.update(self._payload)
                         updated.append(r)
                 return ExecResult(updated)
+
+            if self._action == "delete":
+                remaining = []
+                deleted = []
+                for r in table:
+                    match = True
+                    for col, val in self._filters:
+                        if r.get(col) != val:
+                            match = False
+                            break
+                    if match:
+                        deleted.append(r)
+                    else:
+                        remaining.append(r)
+                self._db[self._name] = remaining
+                return ExecResult(deleted)
 
             # Default case returns empty result
             return ExecResult([])
