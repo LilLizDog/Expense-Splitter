@@ -1,3 +1,4 @@
+// FILE: static/js/friends.js
 // Handles loading and rendering the Friends page.
 // Talks to /api/friends and /api/friends/groups.
 
@@ -66,6 +67,42 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  // Call backend to delete a friend link and update the UI.
+  async function deleteFriend(linkId, rowEl) {
+    const ok = window.confirm("Remove this friend from your list?");
+    if (!ok) return;
+
+    try {
+      const resp = await fetch(`/api/friends/${encodeURIComponent(linkId)}`, {
+        method: "DELETE",
+        headers: { "Accept": "application/json" },
+        credentials: "include",
+      });
+
+      if (!resp.ok) {
+        console.error("Delete friend failed with", resp.status);
+        alert("Could not remove this friend.");
+        return;
+      }
+
+      if (rowEl && rowEl.parentElement) {
+        rowEl.parentElement.removeChild(rowEl);
+        const remaining = listEl.querySelectorAll(".friend-row").length;
+        totalEl.textContent = `${remaining} total`;
+        if (remaining === 0) {
+          const empty = document.createElement("div");
+          empty.className = "friends-empty";
+          empty.textContent =
+            "No friends match your filters. Try adjusting your search.";
+          listEl.appendChild(empty);
+        }
+      }
+    } catch (err) {
+      console.error("Error deleting friend:", err);
+      alert("Could not remove this friend.");
+    }
+  }
+
   // Render friends into the main list container.
   function renderFriends(friends) {
     listEl.innerHTML = "";
@@ -76,45 +113,67 @@ document.addEventListener("DOMContentLoaded", () => {
       empty.textContent =
         "No friends match your filters. Try adjusting your search.";
       listEl.appendChild(empty);
-    } else {
-      friends.forEach((f) => {
-        const row = document.createElement("div");
-        row.className = "friend-row";
-
-        const main = document.createElement("div");
-        main.className = "friend-row-main";
-
-        const name = document.createElement("span");
-        name.className = "friend-name";
-        name.textContent = f.name || "(No name)";
-
-        const username = document.createElement("span");
-        username.className = "friend-username";
-
-        // Backend does not return username yet, so group is shown as a tag for now.
-        if (f.group) {
-          username.textContent = `· ${f.group}`;
-        } else {
-          username.textContent = "";
-        }
-
-        main.appendChild(name);
-        if (username.textContent) {
-          main.appendChild(username);
-        }
-
-        const email = document.createElement("div");
-        email.className = "friend-email";
-        email.textContent = f.email || "";
-
-        row.appendChild(main);
-        if (email.textContent) {
-          row.appendChild(email);
-        }
-
-        listEl.appendChild(row);
-      });
+      totalEl.textContent = "0 total";
+      return;
     }
+
+    friends.forEach((f) => {
+      const row = document.createElement("div");
+      row.className = "friend-row";
+
+      const main = document.createElement("div");
+      main.className = "friend-row-main";
+
+      const name = document.createElement("span");
+      name.className = "friend-name";
+      name.textContent = f.name || "(No name)";
+
+      const username = document.createElement("span");
+      username.className = "friend-username";
+
+      // Backend does not return username yet, so group is shown as a tag for now.
+      if (f.group) {
+        username.textContent = `· ${f.group}`;
+      } else {
+        username.textContent = "";
+      }
+
+      main.appendChild(name);
+      if (username.textContent) {
+        main.appendChild(username);
+      }
+
+      const email = document.createElement("div");
+      email.className = "friend-email";
+      email.textContent = f.email || "";
+
+      // Actions area with delete button.
+      const actions = document.createElement("div");
+      actions.style.marginTop = "4px";
+      actions.style.display = "flex";
+      actions.style.justifyContent = "flex-end";
+
+      const deleteBtn = document.createElement("button");
+      deleteBtn.type = "button";
+      deleteBtn.className = "btn-outline";
+      deleteBtn.style.fontSize = "0.8rem";
+      deleteBtn.textContent = "Delete";
+
+      deleteBtn.addEventListener("click", (evt) => {
+        evt.stopPropagation();
+        deleteFriend(f.id, row);
+      });
+
+      actions.appendChild(deleteBtn);
+
+      row.appendChild(main);
+      if (email.textContent) {
+        row.appendChild(email);
+      }
+      row.appendChild(actions);
+
+      listEl.appendChild(row);
+    });
 
     totalEl.textContent = `${friends.length} total`;
   }

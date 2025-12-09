@@ -143,9 +143,6 @@ def list_friends(
 def add_friend(request: Request, payload: FriendCreate):
   """
   Add a new friend link for the current user.
-  Input:
-    - username (of the friend)
-    - note (optional)
   Steps:
     1. Get current user from auth.
     2. Look up the friend by username in public.users.
@@ -240,3 +237,28 @@ def list_groups(request: Request):
   # Ensure the user is authenticated even though we do not use the id here.
   get_current_user(request)
   return {"groups": []}
+
+
+@router.delete("/{link_id}")
+def delete_friend(link_id: int, request: Request):
+  """
+  Delete a friend link that belongs to the current user.
+  Uses friend_links as the source of truth.
+  """
+  user = get_current_user(request)
+  owner_id = user["id"]
+
+  resp = (
+    supabase
+    .table("friend_links")
+    .delete()
+    .eq("id", link_id)
+    .eq("owner_id", owner_id)
+    .execute()
+  )
+  deleted = getattr(resp, "data", None) or []
+
+  if not deleted:
+    raise HTTPException(status_code=404, detail="Friend link not found")
+
+  return {"ok": True}

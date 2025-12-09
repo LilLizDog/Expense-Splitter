@@ -18,6 +18,41 @@ function renderEmpty(message) {
   setTotals(0);
 }
 
+// Call backend to delete a group and update the UI.
+async function deleteGroup(groupId, rowEl) {
+  if (!groupId) return;
+  const confirmDelete = window.confirm("Delete this group? This cannot be undone.");
+  if (!confirmDelete) return;
+
+  try {
+    const resp = await fetch(`/api/groups/${encodeURIComponent(groupId)}`, {
+      method: "DELETE",
+      headers: { "Accept": "application/json" },
+      credentials: "include"
+    });
+
+    if (!resp.ok) {
+      console.error("Delete group failed with status", resp.status);
+      alert("Could not delete this group.");
+      return;
+    }
+
+    if (rowEl && rowEl.parentElement) {
+      rowEl.parentElement.removeChild(rowEl);
+      const list = document.getElementById("groups-list");
+      const remaining = list ? list.querySelectorAll(".group-row").length : 0;
+      if (remaining === 0) {
+        renderEmpty("You are not part of any groups yet.");
+      } else {
+        setTotals(remaining);
+      }
+    }
+  } catch (err) {
+    console.error("Error deleting group", err);
+    alert("Could not delete this group.");
+  }
+}
+
 // Render an array of group objects into the list container.
 function renderGroups(groups) {
   const list = document.getElementById("groups-list");
@@ -33,6 +68,12 @@ function renderGroups(groups) {
   groups.forEach((g) => {
     const row = document.createElement("div");
     row.className = "group-row";
+
+    // Make whole row navigate to the group detail page.
+    row.addEventListener("click", () => {
+      if (!g.id) return;
+      window.location.href = `/group?group_id=${encodeURIComponent(g.id)}`;
+    });
 
     const main = document.createElement("div");
     main.className = "group-row-main";
@@ -63,12 +104,31 @@ function renderGroups(groups) {
     main.appendChild(metaEl);
     row.appendChild(main);
 
-    // if (g.description) {
-    //   const desc = document.createElement("div");
-    //   desc.className = "group-meta";
-    //   desc.textContent = g.description;
-    //   row.appendChild(desc);
-    // }
+    if (g.description) {
+      const desc = document.createElement("div");
+      desc.className = "group-meta";
+      desc.textContent = g.description;
+      row.appendChild(desc);
+    }
+
+    const actions = document.createElement("div");
+    actions.style.marginTop = "6px";
+    actions.style.display = "flex";
+    actions.style.justifyContent = "flex-end";
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.type = "button";
+    deleteBtn.textContent = "Delete";
+    deleteBtn.className = "btn-outline";
+    deleteBtn.style.fontSize = "0.8rem";
+
+    deleteBtn.addEventListener("click", (evt) => {
+      evt.stopPropagation();
+      deleteGroup(g.id, row);
+    });
+
+    actions.appendChild(deleteBtn);
+    row.appendChild(actions);
 
     list.appendChild(row);
   });
@@ -79,28 +139,27 @@ function renderGroups(groups) {
 // Fetch groups from the backend and render them.
 async function loadGroups() {
   try {
-    console.log("groups.js: fetching /api/groups");
-    const resp = await fetch("/api/groups");
+    const resp = await fetch("/api/groups", {
+      method: "GET",
+      credentials: "include"
+    });
 
     if (!resp.ok) {
-      console.error("groups.js: /api/groups failed with", resp.status);
       renderEmpty("Could not load groups. Please try again.");
       return;
     }
 
     const data = await resp.json();
-    console.log("groups.js: data =", data);
     const groups = Array.isArray(data) ? data : [];
 
     renderGroups(groups);
     wireSearch(groups);
   } catch (err) {
-    console.error("groups.js: error loading groups", err);
     renderEmpty("Could not load groups. Please try again.");
   }
 }
 
-// Simple search on the already loaded list (client side only).
+// Simple search.
 function wireSearch(groups) {
   const searchInput = document.getElementById("groups-search");
   const searchBtn = document.getElementById("groups-search-btn");
@@ -128,19 +187,10 @@ function wireSearch(groups) {
     searchInput.value = "";
     renderGroups(groups);
   });
-
-  searchInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      applyFilter();
-    }
-  });
 }
 
 // Entry point.
-// Script is loaded with `defer` so DOM is ready when this runs.
 (function initGroupsPage() {
-  console.log("groups.js: init");
   const list = document.getElementById("groups-list");
   if (list) {
     list.innerHTML = `<div class="groups-empty">Loading groups...</div>`;
