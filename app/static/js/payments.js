@@ -1,4 +1,4 @@
-// payments.js
+// /static/js/payments.js
 
 const requestedList = document.getElementById("requested-list");
 const pastList = document.getElementById("past-list");
@@ -6,23 +6,8 @@ const requestedEmpty = document.getElementById("requested-empty");
 const pastEmpty = document.getElementById("past-empty");
 const searchEl = document.getElementById("search");
 
-let CURRENT_USER_ID = null;
-let allPayments = [];
-
-async function getCurrentUserId() {
-  try {
-    const resp = await fetch("/api/payments");
-    const data = await resp.json();
-    if (data.length) {
-      CURRENT_USER_ID = data[0].to_user_id; // fallback if mock
-    } else {
-      CURRENT_USER_ID = "user_mock_1";
-    }
-  } catch {
-    CURRENT_USER_ID = "user_mock_1";
-  }
-  return CURRENT_USER_ID;
-}
+let outstandingPayments = [];
+let pastPayments = [];
 
 function formatMoney(n) {
   return `$${Number(n || 0).toFixed(2)}`;
@@ -34,38 +19,49 @@ function fmtDate(s) {
 }
 
 async function loadPayments() {
-  const resp = await fetch("/api/payments");
-  const data = await resp.json();
-  allPayments = data;
-  render();
+  try {
+    const [outResp, pastResp] = await Promise.all([
+      fetch("/api/payments/outstanding"),
+      fetch("/api/payments/past"),
+    ]);
+
+    if (!outResp.ok || !pastResp.ok) {
+      console.error("Failed to load payments", outResp.status, pastResp.status);
+      return;
+    }
+
+    outstandingPayments = await outResp.json();
+    pastPayments = await pastResp.json();
+    render();
+  } catch (err) {
+    console.error("Error loading payments", err);
+  }
 }
 
 function render() {
   const q = (searchEl.value || "").toLowerCase();
 
-  const requested = allPayments.filter(p =>
-    p.status === "requested" &&
-    p.to_user_id === CURRENT_USER_ID &&
+  const requested = outstandingPayments.filter(p =>
     (`${p.expense_name || ""}`.toLowerCase().includes(q))
   );
 
-  const past = allPayments.filter(p =>
-    p.status === "paid" &&
-    (p.from_user_id === CURRENT_USER_ID || p.to_user_id === CURRENT_USER_ID) &&
+  const past = pastPayments.filter(p =>
     (`${p.expense_name || ""}`.toLowerCase().includes(q))
   );
 
   requestedList.innerHTML = "";
   pastList.innerHTML = "";
 
-  if (requested.length === 0) requestedEmpty.style.display = "block";
-  else {
+  if (requested.length === 0) {
+    requestedEmpty.style.display = "block";
+  } else {
     requestedEmpty.style.display = "none";
     requested.forEach(p => requestedList.appendChild(renderPaymentRow(p, true)));
   }
 
-  if (past.length === 0) pastEmpty.style.display = "block";
-  else {
+  if (past.length === 0) {
+    pastEmpty.style.display = "block";
+  } else {
     pastEmpty.style.display = "none";
     past.forEach(p => pastList.appendChild(renderPaymentRow(p, false)));
   }
@@ -76,8 +72,13 @@ function renderPaymentRow(p, allowPay) {
   li.className = "payment";
 
   const title = document.createElement("div");
-  title.innerHTML = `<div class="who">${p.expense_name || "Expense"}</div>
-                     <div class="meta">Requested on ${fmtDate(p.created_at)}${p.paid_at ? ` · Paid on ${fmtDate(p.paid_at)}` : ""}</div>`;
+  title.innerHTML = `
+    <div class="who">${p.expense_name || "Expense"}</div>
+    <div class="meta">
+      Requested on ${fmtDate(p.created_at)}${
+        p.paid_at ? ` · Paid on ${fmtDate(p.paid_at)}` : ""
+      }
+    </div>`;
 
   const right = document.createElement("div");
   right.style.display = "flex";
@@ -105,14 +106,28 @@ function renderPaymentRow(p, allowPay) {
 }
 
 async function markPaid(paymentId) {
-  const resp = await fetch(`/api/payments/${paymentId}/pay`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ paid_via: "Cash" }),
-  });
-  if (resp.ok) {
-    await loadPayments();
-  } else {
+  try {
+    const resp = await fetch(`/api/payments/${paymentId}/pay`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ paid_via: "Cash" }),
+    });
+
+    if (resp.ok) {
+      await loadPayments();
+    } else {
+      // Try to surface a useful error if it's forbidden / bad request
+      let msg = "Failed to mark payment as paid";
+      try {
+        const data = await resp.json();
+        if (data.detail) msg = data.detail;
+      } catch {
+        // ignore JSON parse errors
+      }
+      alert(msg);
+    }
+  } catch (err) {
+    console.error("Error marking payment as paid", err);
     alert("Failed to mark payment as paid");
   }
 }
@@ -120,6 +135,5 @@ async function markPaid(paymentId) {
 searchEl.addEventListener("input", render);
 
 (async () => {
-  await getCurrentUserId();
   await loadPayments();
 })();
