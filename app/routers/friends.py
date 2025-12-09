@@ -21,7 +21,8 @@ class FriendCreate(BaseModel):
 
 class FriendRecord(BaseModel):
   """Output model for a single friend on the Friends page."""
-  id: int
+  id: int                          # friend_links.id (internal link id)
+  friend_user_id: str              # public.users.id (uuid used in expenses)
   name: str
   username: str
   email: Optional[str] = None
@@ -91,6 +92,7 @@ def list_friends(
 
     record = FriendRecord(
       id=link["id"],
+      friend_user_id=str(friend_id),
       name=profile.get("name") or "",
       username=profile.get("username") or "",
       email=profile.get("email") or "",
@@ -128,6 +130,7 @@ def list_friends(
     "friends": [
       {
         "id": r.id,
+        "friend_user_id": r.friend_user_id,
         "name": r.name,
         "username": r.username,
         "email": r.email or "",
@@ -214,6 +217,7 @@ def add_friend(request: Request, payload: FriendCreate):
   # Build response in the same shape used by list_friends.
   friend_record = {
     "id": link_row["id"],
+    "friend_user_id": str(friend_id),
     "name": friend.get("name") or "",
     "username": friend.get("username") or "",
     "email": friend.get("email") or "",
