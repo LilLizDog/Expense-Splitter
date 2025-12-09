@@ -1042,13 +1042,11 @@
             throw new Error(msg);
           }
 
-          alert('Expense created!');
           form.reset();
           if (memberHidden) memberHidden.innerHTML = '';
           if (memberBtn) memberBtn.textContent = 'Select members';
-
           window.location.href = '/dashboard';
-        } catch (err) {
+          } catch (err) {
           console.error(err);
           alert(err.message || 'Save failed. Please try again.');
         } finally {
