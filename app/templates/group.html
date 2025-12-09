@@ -53,18 +53,6 @@
     margin-inline: auto;
   }
 
-  .group-header {
-    margin-bottom: 16px;
-  }
-
-  .group-header h1 {
-    margin: 0 0 4px;
-  }
-
-  .group-header p {
-    margin: 0;
-  }
-
   .group-back {
     display: inline-flex;
     align-items: center;
@@ -148,7 +136,6 @@
     font-size: 0.95rem;
   }
 
-  /* Disabled options for users already in the group */
   #group-add-member-select option.option-disabled {
     color: var(--muted);
   }
@@ -158,36 +145,38 @@
 {% block content %}
 <section class="panel group-shell">
 
-  <!-- Back to groups -->
   <a href="/groups" class="btn group-back">
     <span>←</span>
     <span>Back to groups</span>
   </a>
 
-  <h1 id="group-name" style="margin:6px 0 4px;"></h1>
-  <p id="group-desc" class="muted" style="margin:0 0 8px;"></p>
-  <p class="muted" style="margin:0 0 16px;">
-    Created on: <span id="group-date"></span>
-  </p>
-    <!-- Trip Summary Feature -->
-  <hr style="margin: 24px 0;">
+  <div class="group-layout">
+    <!-- Left column: header and trip summary -->
+    <div>
+      <h1 id="group-name" style="margin:6px 0 4px;"></h1>
+      <p id="group-desc" class="muted" style="margin:0 0 8px;"></p>
+      <p class="muted" style="margin:0 0 16px;">
+        Created on: <span id="group-date"></span>
+      </p>
 
-  <h3>Trip Summary</h3>
+      <hr style="margin: 24px 0;">
 
-  <textarea
-      id="trip-description"
-      placeholder="Enter or edit the trip description…"
-      style="width:100%; min-height: 100px; margin-top:8px;"
-  ></textarea>
+      <h3>Trip Summary</h3>
 
-  <button id="generate-summary-btn" class="btn" style="margin-top:10px;">
-      Generate Trip Summary
-  </button>
+      <textarea
+        id="trip-description"
+        placeholder="Enter or edit the trip description…"
+        style="width:100%; min-height: 100px; margin-top:8px;"
+      ></textarea>
 
-  <div id="trip-summary-output" class="panel" style="margin-top:16px; display:none;">
-      <h4>Summary</h4>
-      <p id="trip-summary-text"></p>
-  </div>
+      <button id="generate-summary-btn" class="btn" style="margin-top:10px;">
+        Generate Trip Summary
+      </button>
+
+      <div id="trip-summary-output" class="panel" style="margin-top:16px; display:none;">
+        <h4>Summary</h4>
+        <p id="trip-summary-text"></p>
+      </div>
 
       <div class="actions" style="margin-top: 12px;">
         <button id="group-save-btn" class="btn primary" type="button">
@@ -196,10 +185,8 @@
       </div>
     </div>
 
-    <!-- Right: members and add member -->
+    <!-- Right column: members and add member -->
     <div>
-
-      <!-- Members -->
       <div class="member-section">
         <h2>Members</h2>
         <ul id="group-members" class="member-list">
@@ -213,7 +200,6 @@
         </button>
       </div>
 
-      <!-- Add member -->
       <div class="add-member-section">
         <h2>Add member</h2>
 
@@ -229,11 +215,8 @@
             Add to group
           </button>
         </div>
-
       </div>
-
     </div>
-
   </div>
 
 </section>
@@ -241,5 +224,5 @@
 
 {% block scripts %}
 <script type="module" src="/static/js/group.js"></script>
-<script type=""module" src=""/static/js/trip_summary.js""></script>
+<script type="module" src="/static/js/trip_summary.js"></script>
 {% endblock %}

@@ -17,33 +17,56 @@ async def get_dashboard(current_user=Depends(get_current_user)):
         user_meta = getattr(current_user, "user_metadata", {}) or {}
         email = getattr(current_user, "email", "") or ""
 
-    # Resolve friendly first name for welcome message
-    full_name = (user_meta.get("full_name") or "").strip()
-    if full_name:
-        first_name = full_name.split(" ")[0]
-    else:
-        first_name = email.split("@")[0] if email else "Friend"
-
-    # Get all group_ids from the join table for this user
-    member_resp = (
-        supabase.table("group_members")
-        .select("group_id")
-        .eq("user_id", user_id)
-        .execute()
-    )
-
-    group_ids = [row["group_id"] for row in (member_resp.data or [])]
-    groups = []
-
-    # If user is in any groups, load their id and name from groups table
-    if group_ids:
-        groups_resp = (
-            supabase.table("groups")
-            .select("id,name")
-            .in_("id", group_ids)
+    # Try to resolve display name from users table
+    user_full_name = ""
+    try:
+        user_resp = (
+            supabase.table("users")
+            .select("name")
+            .eq("id", user_id)
+            .single()
             .execute()
         )
-        groups = groups_resp.data or []
+        if getattr(user_resp, "data", None):
+            user_full_name = (user_resp.data.get("name") or "").strip()
+    except Exception:
+        user_full_name = ""
+
+    # Resolve friendly first name for welcome message
+    if user_full_name:
+        base = user_full_name.split(" ")[0].strip()
+        first_name = base if base else "Friend"
+    else:
+        raw_name = (
+            user_meta.get("name")
+            or user_meta.get("full_name")
+            or user_meta.get("username")
+            or ""
+        )
+        raw_name = (raw_name or "").strip()
+
+        if raw_name:
+            # Handle usernames like "preet.2022.inder" by using the part before the first dot
+            if "." in raw_name and " " not in raw_name:
+                base = raw_name.split(".")[0]
+            else:
+                # For real names like "Preetinder Kaur" take the first word
+                base = raw_name.split(" ")[0]
+            base = base.strip()
+            first_name = base.capitalize() if base else "Friend"
+        else:
+            # Fallback to email local part
+            local_part = email.split("@")[0] if email else ""
+            first_name = local_part.capitalize() if local_part else "Friend"
+
+    # Load groups where this user is in the members array
+    groups_resp = (
+        supabase.table("groups")
+        .select("id,name")
+        .contains("members", [user_id])
+        .execute()
+    )
+    groups = groups_resp.data or []
 
     # Wallet numbers from history tables
     recv_resp = (

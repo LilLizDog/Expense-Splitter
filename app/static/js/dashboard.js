@@ -1,5 +1,5 @@
 // /static/js/dashboard.js
-import { supabase } from "/static/js/supabaseClient.js";
+// import { supabase } from "/static/js/supabaseClient.js";
 
 const mockPayload = {
   user_name: "Preet (mock)",
@@ -54,15 +54,16 @@ export async function initDashboard(config) {
     const res = await fetch(dashboardUrl, { credentials: "include" });
     if (!res.ok) {
       console.error("Failed to load dashboard data", res.status);
-      data = mockPayload; // fallback so the page isn’t dead
+      data = mockPayload;
     } else {
       data = await res.json();
     }
   }
 
   // Welcome
-  if (welcomeHeading && data.user_name) {
-    welcomeHeading.textContent = `Welcome ${data.user_name}!`;
+  if (welcomeHeading) {
+    const name = data && data.user_name ? data.user_name : "Friend";
+    welcomeHeading.textContent = `Welcome ${name}!`;
   }
 
   // Wallet
@@ -125,8 +126,11 @@ export async function initDashboard(config) {
     groups.forEach((g) => {
       const li = document.createElement("li");
       const link = document.createElement("a");
-      link.href = `/groups/${g.id}`;
+
+      // Go to group page using query param
+      link.href = `/group?group_id=${encodeURIComponent(g.id)}`;
       link.textContent = g.name;
+
       li.appendChild(link);
       groupsContainer.appendChild(li);
     });
