@@ -10,6 +10,7 @@ from fastapi.staticfiles import StaticFiles
 import os
 
 from .core.supabase_client import supabase
+from .core.config import settings
 
 # ------------------------
 # APP + PATHS
