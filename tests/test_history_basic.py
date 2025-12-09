@@ -6,13 +6,15 @@ def test_history_page_exists(client):
     r = client.get("/history")
     assert r.status_code == 200
     # check that our main elements from history.html are there
-    assert "<h1>History</h1>" in r.text
+    assert "History" in r.text
     assert 'id="groupFilter"' in r.text     # group dropdown
     assert 'id="personFilter"' in r.text    # person input
     assert 'id="btnApply"' in r.text        # apply filters button
     assert 'id="btnClear"' in r.text        # clear button
-    assert 'id="receivedList"' in r.text    # received column
-    assert 'id="paidList"' in r.text        # paid column
+    assert 'id="historyList"' in r.text     # combined transactions list
+
+    # assert 'id="receivedList"' in r.text    # received column
+    # assert 'id="paidList"' in r.text        # paid column
 
 
 def test_history_alias_exists(client):

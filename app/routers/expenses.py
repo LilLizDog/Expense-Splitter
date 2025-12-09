@@ -10,7 +10,7 @@ router = APIRouter(prefix="/expenses", tags=["expenses"])
 
 
 # -----------------------------
-# Health check
+# Health check endpoint
 # -----------------------------
 @router.get("/ping-db")
 def expenses_ping_db():
@@ -22,32 +22,46 @@ def expenses_ping_db():
 
 
 # -----------------------------
-# Models
+# Pydantic models
 # -----------------------------
 class ExpenseCreate(BaseModel):
+    # Group id is optional for now
     group_id: Optional[str]
 
+    # We still accept an expense type from the UI, but we do not store it yet
     expense_type: Literal[
-        "food", "groceries", "rent", "utilities", "transportation",
-        "entertainment", "shopping", "health", "travel",
-        "household", "other"
+        "food",
+        "groceries",
+        "rent",
+        "utilities",
+        "transportation",
+        "entertainment",
+        "shopping",
+        "health",
+        "travel",
+        "household",
+        "other",
     ]
 
+    # Amount must be strictly positive
     amount: float = Field(..., gt=0)
     description: Optional[str]
     expense_date: date = Field(default_factory=date.today)
 
+    # At least one member must be included
     member_ids: List[str] = Field(..., min_length=1)
 
+    # Split configuration
     split_type: Optional[str] = "equal"
     custom_amounts: Optional[List[float]] = None
     custom_percentages: Optional[List[float]] = None
 
 
 # -----------------------------
-# DB helpers
+# DB helper functions
 # -----------------------------
 def _db_insert_expense(expense_row: dict) -> dict:
+    """Insert a single expense row into the expenses table."""
     res = supabase.table("expenses").insert(expense_row).execute()
     err = getattr(res, "error", None)
     if err:
@@ -58,6 +72,7 @@ def _db_insert_expense(expense_row: dict) -> dict:
 
 
 def _db_insert_participants(rows: List[dict]) -> List[dict]:
+    """Insert participant rows into the expense_participants table."""
     res = supabase.table("expense_participants").insert(rows).execute()
     err = getattr(res, "error", None)
     if err:
@@ -70,6 +85,7 @@ def _db_insert_participants(rows: List[dict]) -> List[dict]:
 # -----------------------------
 @router.get("/")
 def list_expenses(limit: int = 50):
+    """Return a list of recent expenses."""
     res = (
         supabase.table("expenses")
         .select("*")
@@ -87,6 +103,7 @@ def list_expenses(limit: int = 50):
 
 @router.get("/recent")
 def list_recent(limit: int = 5):
+    """Return a short list of the most recent expenses."""
     res = (
         supabase.table("expenses")
         .select("*")
@@ -104,6 +121,7 @@ def list_recent(limit: int = 5):
 
 @router.get("/{expense_id}")
 def get_expense(expense_id: str):
+    """Return a single expense and its participants."""
     exp = (
         supabase.table("expenses")
         .select("*")
@@ -133,17 +151,19 @@ def get_expense(expense_id: str):
 
 
 # -----------------------------
-# Create Expense
+# Create expense endpoint
 # -----------------------------
 @router.post("/", status_code=201)
 def create_expense(
     payload: ExpenseCreate,
     user=Depends(get_current_user),
 ):
+    """Create a new expense and its participant shares."""
     if user is None:
+        # Fallback user for testing without auth
         user = {"id": "test-user"}
 
-    # Future date validation
+    # Block future dates
     if payload.expense_date > date.today():
         raise HTTPException(status_code=400, detail="Invalid date.")
 
@@ -154,10 +174,10 @@ def create_expense(
 
     n = len(payload.member_ids)
     total = round(payload.amount, 2)
-    splits = []
+    splits: List[dict] = []
 
     # -----------------------------
-    # EQUAL SPLIT
+    # Equal split
     # -----------------------------
     if split_type == "equal":
         base = round(total / n, 2)
@@ -168,11 +188,12 @@ def create_expense(
                 share = base
                 running += share
             else:
+                # Last share so we absorb rounding drift
                 share = round(total - running, 2)
             splits.append({"member_id": mid, "share": share})
 
     # -----------------------------
-    # CUSTOM AMOUNT SPLIT
+    # Custom amount split
     # -----------------------------
     elif split_type == "amount":
         if not payload.custom_amounts or len(payload.custom_amounts) != n:
@@ -186,7 +207,7 @@ def create_expense(
             splits.append({"member_id": mid, "share": share})
 
     # -----------------------------
-    # CUSTOM PERCENT SPLIT
+    # Custom percentage split
     # -----------------------------
     else:
         if not payload.custom_percentages or len(payload.custom_percentages) != n:
@@ -202,26 +223,27 @@ def create_expense(
                 share = round(total * pct / 100, 2)
                 running += share
             else:
+                # Last share so we absorb rounding drift
                 share = round(total - running, 2)
 
             splits.append({"member_id": mid, "share": share})
 
     # -----------------------------
-    # Insert expense
+    # Insert expense row
     # -----------------------------
     expense_row = {
-        "payer_id": user["id"],
+        "user_id": user["id"],               # matches expenses.user_id
         "group_id": payload.group_id,
-        "expense_type": payload.expense_type,
         "amount": total,
         "description": payload.description,
         "expense_date": str(payload.expense_date),
         "split_type": split_type,
+        # We are not inserting expense_type until the column exists
     }
-    # ------------ TEST MODE: skip DB completely -------------
+
+    # In test mode, skip actual DB access
     if os.getenv("TESTING") == "1":
         return {"id": "mock-id", "message": "ok", "data": expense_row}
-    # ---------------------------------------------------------
 
     inserted = _db_insert_expense(expense_row)
     expense_id = inserted["id"]
@@ -246,6 +268,6 @@ def create_expense(
         "data": {
             "expense": inserted,
             "participants": participants,
-            "payer_id": user["id"],
+            "user_id": user["id"],
         },
     }

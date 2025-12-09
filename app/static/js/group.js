@@ -9,9 +9,11 @@ async function fetchJson(url, options = {}) {
     headers: { Accept: "application/json", ...(options.headers || {}) },
     ...options,
   });
+
   if (!res.ok) {
     throw new Error(`HTTP ${res.status} for ${url}`);
   }
+
   return res.json();
 }
 
@@ -32,7 +34,8 @@ function pickMemberName(u) {
 function renderMembers(container, members) {
   if (!container) return;
   if (!members || !members.length) {
-    container.innerHTML = '<li class="muted">No members found for this group.</li>';
+    container.innerHTML =
+      '<li class="muted">No members found for this group.</li>';
     return;
   }
   container.innerHTML = "";
@@ -79,8 +82,17 @@ async function loadFriendsForDropdown(selectEl) {
 
 
 async function initGroupPage() {
+  // Get group id from query string.
   const params = new URLSearchParams(window.location.search);
-  const groupId = params.get("group_id");
+  let groupId = params.get("group_id");
+
+  // Fallback to /group/<id> pattern if needed.
+  if (!groupId) {
+    const match = window.location.pathname.match(/\/group\/([^/]+)/);
+    if (match) {
+      groupId = match[1];
+    }
+  }
 
 
   if (!groupId) {
@@ -97,6 +109,7 @@ async function initGroupPage() {
   const addSelect = document.getElementById("group-add-member-select");
   const addBtn = document.getElementById("group-add-member-btn");
   const leaveBtn = document.getElementById("leave-group-btn");
+  const tripInput = document.getElementById("trip-description");
 
 
   // Load group info.
@@ -132,13 +145,18 @@ if (tripDescInput) tripDescInput.value = group.description || "";
   // Load members.
   async function refreshMembers() {
     try {
-      const data = await fetchJson(`/api/groups/${encodeURIComponent(groupId)}/members`);
-      const members = Array.isArray(data?.members) ? data.members : (data.data || []);
+      const data = await fetchJson(
+        `/api/groups/${encodeURIComponent(groupId)}/members`
+      );
+      const members = Array.isArray(data?.members)
+        ? data.members
+        : data.data || [];
       renderMembers(membersEl, members);
     } catch (err) {
       console.error("Failed to load members:", err);
       if (membersEl) {
-        membersEl.innerHTML = '<li class="muted">Error loading members.</li>';
+        membersEl.innerHTML =
+          '<li class="muted">Error loading members.</li>';
       }
     }
   }
@@ -152,8 +170,8 @@ if (tripDescInput) tripDescInput.value = group.description || "";
   // Save group (name + description).
   if (saveBtn) {
     saveBtn.addEventListener("click", async () => {
-      const newName = nameInput ? nameInput.value.trim() : "";
-      const newDesc = descInput ? descInput.value : null;
+      const newName = nameEl ? nameEl.textContent.trim() : "";
+      const newDesc = tripInput ? tripInput.value : null;
 
 
       if (!newName) {
@@ -164,15 +182,18 @@ if (tripDescInput) tripDescInput.value = group.description || "";
 
       try {
         const body = { name: newName, description: newDesc };
-        const res = await fetch(`/api/groups/${encodeURIComponent(groupId)}`, {
-          method: "PATCH",
-          credentials: "include",
-          headers: {
-            "Accept": "application/json",
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(body),
-        });
+        const res = await fetch(
+          `/api/groups/${encodeURIComponent(groupId)}`,
+          {
+            method: "PATCH",
+            credentials: "include",
+            headers: {
+              Accept: "application/json",
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(body),
+          }
+        );
 
 
         if (!res.ok) {
@@ -209,15 +230,18 @@ if (tripDescInput) tripDescInput.value = group.description || "";
 
 
       try {
-        const res = await fetch(`/api/groups/${encodeURIComponent(groupId)}/members`, {
-          method: "POST",
-          credentials: "include",
-          headers: {
-            "Accept": "application/json",
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ friend_link_id: friendLinkId }),
-        });
+        const res = await fetch(
+          `/api/groups/${encodeURIComponent(groupId)}/members`,
+          {
+            method: "POST",
+            credentials: "include",
+            headers: {
+              Accept: "application/json",
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ friend_link_id: friendLinkId }),
+          }
+        );
 
 
         if (!res.ok) {
@@ -242,11 +266,14 @@ if (tripDescInput) tripDescInput.value = group.description || "";
 
 
       try {
-        const res = await fetch(`/api/groups/${encodeURIComponent(groupId)}/leave`, {
-          method: "POST",
-          credentials: "include",
-          headers: { "Accept": "application/json" }
-        });
+        const res = await fetch(
+          `/api/groups/${encodeURIComponent(groupId)}/leave`,
+          {
+            method: "POST",
+            credentials: "include",
+            headers: { Accept: "application/json" },
+          }
+        );
 
 
         if (!res.ok) {
