@@ -164,29 +164,30 @@
     <span>Back to groups</span>
   </a>
 
-  <!-- Heading -->
-  <div class="group-header">
-    <h1>Group details</h1>
-    <p class="muted">View and manage this group.</p>
+  <h1 id="group-name" style="margin:6px 0 4px;"></h1>
+  <p id="group-desc" class="muted" style="margin:0 0 8px;"></p>
+  <p class="muted" style="margin:0 0 16px;">
+    Created on: <span id="group-date"></span>
+  </p>
+    <!-- Trip Summary Feature -->
+  <hr style="margin: 24px 0;">
+
+  <h3>Trip Summary</h3>
+
+  <textarea
+      id="trip-description"
+      placeholder="Enter or edit the trip description…"
+      style="width:100%; min-height: 100px; margin-top:8px;"
+  ></textarea>
+
+  <button id="generate-summary-btn" class="btn" style="margin-top:10px;">
+      Generate Trip Summary
+  </button>
+
+  <div id="trip-summary-output" class="panel" style="margin-top:16px; display:none;">
+      <h4>Summary</h4>
+      <p id="trip-summary-text"></p>
   </div>
-
-  <div class="group-layout">
-
-    <!-- Left: name, description, meta -->
-    <div>
-      <div class="field">
-        <label for="group-name-input">Name</label>
-        <input id="group-name-input" type="text" />
-      </div>
-
-      <div class="field">
-        <label for="group-desc-input">Description</label>
-        <textarea id="group-desc-input" rows="3"></textarea>
-      </div>
-
-      <p class="group-meta">
-        Created on: <span id="group-date"></span>
-      </p>
 
       <div class="actions" style="margin-top: 12px;">
         <button id="group-save-btn" class="btn primary" type="button">
@@ -240,4 +241,5 @@
 
 {% block scripts %}
 <script type="module" src="/static/js/group.js"></script>
+<script type=""module" src=""/static/js/trip_summary.js""></script>
 {% endblock %}
