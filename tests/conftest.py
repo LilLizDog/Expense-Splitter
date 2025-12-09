@@ -4,15 +4,15 @@ import warnings
 import pytest
 from fastapi.testclient import TestClient
 
-# Ensure tests run in a testing environment
+# Ensure all tests run in testing mode (enables fake Supabase client)
 os.environ.setdefault("TESTING", "1")
 
-# Ensure project root is importable
+# Make the project root importable
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-# Suppress noisy deprecation warnings
+# Suppress noisy deprecation warnings from requests/httpx
 warnings.filterwarnings(
     "ignore",
     category=DeprecationWarning,
@@ -30,13 +30,12 @@ from app.routers.auth import get_current_user
 
 def override_get_current_user():
     """
-    Return a fake user that works with both dict and attribute access.
+    Provide a fake authenticated user.
+    Works for both dict access (user["id"]) and attribute access (user.id).
     """
     class TestUser(dict):
         def __init__(self, user_id: str, email: str):
-            # Store values in dict so user["id"] works
             super().__init__(id=user_id, email=email)
-            # Also expose attributes so user.id works
             self.id = user_id
             self.email = email
 
@@ -46,7 +45,7 @@ def override_get_current_user():
 @pytest.fixture
 def client():
     """
-    Basic client with a test user override applied.
+    Basic client with user override applied.
     """
     app.dependency_overrides[get_current_user] = override_get_current_user
     return TestClient(app)
@@ -55,7 +54,7 @@ def client():
 @pytest.fixture
 def auth_client():
     """
-    Authenticated client that signs up, verifies, and logs in a test user.
+    Authenticated client fixture that signs up, verifies, and logs in a test user.
     """
     app.dependency_overrides[get_current_user] = override_get_current_user
     c = TestClient(app)
@@ -63,10 +62,12 @@ def auth_client():
     email = "authtest@example.com"
     password = "Password123!"
 
-    # Sign up and verify test user
+    # Sign up and verify
     c.post("/auth/signup", data={"email": email, "password": password})
     c.get("/auth/verify", params={"email": email})
-    resp = c.post("/auth/login", data={"email": email, "password": password})
 
+    # Login
+    resp = c.post("/auth/login", data={"email": email, "password": password})
     assert resp.status_code == 200
+
     return c
