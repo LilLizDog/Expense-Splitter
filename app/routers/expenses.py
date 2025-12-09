@@ -14,6 +14,7 @@ router = APIRouter(prefix="/expenses", tags=["expenses"])
 # -----------------------------
 @router.get("/ping-db")
 def expenses_ping_db():
+    """Simple check that the Supabase client is reachable."""
     try:
         _ = supabase.postgrest
         return {"ok": True}
@@ -25,7 +26,7 @@ def expenses_ping_db():
 # Pydantic models
 # -----------------------------
 class ExpenseCreate(BaseModel):
-    # Group id is optional for now
+    # Group id is optional so we can handle friend only expenses
     group_id: Optional[str]
 
     # We still accept an expense type from the UI, but we do not store it yet
@@ -188,7 +189,7 @@ def create_expense(
                 share = base
                 running += share
             else:
-                # Last share so we absorb rounding drift
+                # Last share absorbs any rounding drift
                 share = round(total - running, 2)
             splits.append({"member_id": mid, "share": share})
 
@@ -200,8 +201,16 @@ def create_expense(
             raise HTTPException(status_code=400, detail="Invalid custom amounts.")
 
         rounded = [round(a, 2) for a in payload.custom_amounts]
-        if round(sum(rounded), 2) != total:
-            raise HTTPException(status_code=400, detail="Amounts must sum to total.")
+
+        # For normal group expenses we still require that shares sum to the total
+        # For non group friend expenses (group_id is None and a single member)
+        # we allow the single share to be any positive amount up to the total
+        if payload.group_id is not None or n > 1:
+            if round(sum(rounded), 2) != total:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Amounts must sum to total.",
+                )
 
         for mid, share in zip(payload.member_ids, rounded):
             splits.append({"member_id": mid, "share": share})
@@ -215,7 +224,9 @@ def create_expense(
 
         rounded = [round(p, 4) for p in payload.custom_percentages]
         if abs(sum(rounded) - 100) > 0.01:
-            raise HTTPException(status_code=400, detail="Percentages must sum to 100.")
+            raise HTTPException(
+                status_code=400, detail="Percentages must sum to 100."
+            )
 
         running = 0
         for i, (mid, pct) in enumerate(zip(payload.member_ids, rounded), start=1):
@@ -223,7 +234,7 @@ def create_expense(
                 share = round(total * pct / 100, 2)
                 running += share
             else:
-                # Last share so we absorb rounding drift
+                # Last share absorbs rounding drift
                 share = round(total - running, 2)
 
             splits.append({"member_id": mid, "share": share})
@@ -232,7 +243,7 @@ def create_expense(
     # Insert expense row
     # -----------------------------
     expense_row = {
-        "user_id": user["id"],               # matches expenses.user_id
+        "user_id": user["id"],  # matches expenses.user_id
         "group_id": payload.group_id,
         "amount": total,
         "description": payload.description,
