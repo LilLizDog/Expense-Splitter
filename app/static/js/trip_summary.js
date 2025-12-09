@@ -1,24 +1,29 @@
 document.addEventListener("DOMContentLoaded", () => {
-    const btn = document.getElementById("generateSummaryBtn");
-    const box = document.getElementById("tripSummaryBox");
+    const btn = document.getElementById("generate-summary-btn");
+    const box = document.getElementById("trip-summary-output");
+    const output = document.getElementById("trip-summary-text");
 
     btn.addEventListener("click", async () => {
-        const desc = document.getElementById("tripDesc").value.trim();
+        const desc = document.getElementById("trip-description").value.trim();
 
         if (!desc) {
-            box.innerHTML = "<p style='color:red;'>Please enter a trip description.</p>";
+            output.textContent = "Please enter a trip description.";
+            output.style.color = "red";
+            box.style.display = "block";
             return;
         }
 
         if (desc.length > 1000) {
-            box.innerHTML = "<p style='color:red;'>Description too long (max 1000 characters).</p>";
+            output.textContent = "Description too long (max 1000 characters).";
+            output.style.color = "red";
+            box.style.display = "block";
             return;
         }
 
-        // Disable button while generating
         btn.disabled = true;
         btn.textContent = "Generating…";
-        box.innerHTML = "";
+        output.textContent = "";
+        box.style.display = "block";
 
         try {
             const response = await fetch("/trip-summary/", {
@@ -29,15 +34,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (!response.ok) {
                 const err = await response.json();
-                box.innerHTML = `<p style="color:red;">${err.detail}</p>`;
+                output.textContent = err.detail || "Error generating summary.";
+                output.style.color = "red";
                 return;
             }
 
             const data = await response.json();
-            box.innerHTML = `<p>${data.summary}</p>`;
+            output.textContent = data.summary;
+            output.style.color = "black";
 
         } catch (err) {
-            box.innerHTML = `<p style="color:red;">Error: ${err}</p>`;
+            output.textContent = `Error: ${err}`;
+            output.style.color = "red";
         } finally {
             btn.disabled = false;
             btn.textContent = "Generate Summary";

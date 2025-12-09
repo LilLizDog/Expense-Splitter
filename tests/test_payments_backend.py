@@ -6,6 +6,7 @@ from app.main import app
 
 # --- Helpers to build fake supabase responses ---
 
+
 class FakeResponse:
     def __init__(self, data=None, error=None):
         self.data = data
@@ -14,8 +15,8 @@ class FakeResponse:
 
 class FakeSupabaseTable:
     """
-    This is the core mock object for supabase.table("payments").
-    Each test injects its own data into this object.
+    Core mock object for supabase.table(...).
+    For the real tests we only care about the payments table behavior.
     """
 
     def __init__(self, rows):
@@ -23,6 +24,7 @@ class FakeSupabaseTable:
         self._rows = rows
         self._query = {}
         self._update_payload = None
+        self._insert_payload = None
         self._single_mode = False
 
     # ---- filtering ----
@@ -34,7 +36,7 @@ class FakeSupabaseTable:
         return self
 
     def or_(self, expr):
-        # expr like:  "from_user_id.eq.user1,to_user_id.eq.user1"
+        # expr like: "from_user_id.eq.user1,to_user_id.eq.user1"
         parts = []
         for piece in expr.split(","):
             col, _, val = piece.partition(".eq.")
@@ -48,6 +50,12 @@ class FakeSupabaseTable:
     # ---- update ----
     def update(self, payload):
         self._update_payload = payload
+        return self
+
+    # ---- insert ----
+    def insert(self, payload):
+        # Simple insert support so router calls to history tables do not fail
+        self._insert_payload = payload
         return self
 
     def single(self):
@@ -77,6 +85,14 @@ class FakeSupabaseTable:
             for r in rows:
                 r.update(self._update_payload)
 
+        # apply insert (we do not need to read these rows in tests)
+        if self._insert_payload is not None:
+            # If payload is a dict, append as one row; if list, extend
+            if isinstance(self._insert_payload, list):
+                rows.extend(self._insert_payload)
+            elif isinstance(self._insert_payload, dict):
+                rows.append(self._insert_payload)
+
         if self._single_mode:
             return FakeResponse(data=rows[0] if rows else None)
 
@@ -86,15 +102,20 @@ class FakeSupabaseTable:
 class FakeSupabaseClient:
     """
     Mock supabase client root.
-    Allows table("payments") only — that's all your router uses.
+
+    For the payments tests, only the payments table needs real behavior.
+    Other tables (users, history_*) are allowed and safely ignored.
     """
 
     def __init__(self, rows):
         self._rows = rows
 
     def table(self, name):
-        assert name == "payments"
-        return FakeSupabaseTable(self._rows)
+        # Payments table uses the shared in memory rows
+        if name == "payments":
+            return FakeSupabaseTable(self._rows)
+        # Other tables get an empty table so router calls do not crash
+        return FakeSupabaseTable([])
 
 
 # ----------------------------------------------------------------------
@@ -112,18 +133,36 @@ def test_outstanding_payments_summary(monkeypatch):
     # mock rows like your supabase table
     rows = [
         # user owes 30 + 10 = 40
-        {"id": 1, "from_user_id": "friendA", "to_user_id": "user1",
-         "amount": 30.0, "status": "requested"},
-        {"id": 2, "from_user_id": "friendB", "to_user_id": "user1",
-         "amount": 10.0, "status": "requested"},
-
+        {
+            "id": 1,
+            "from_user_id": "friendA",
+            "to_user_id": "user1",
+            "amount": 30.0,
+            "status": "requested",
+        },
+        {
+            "id": 2,
+            "from_user_id": "friendB",
+            "to_user_id": "user1",
+            "amount": 10.0,
+            "status": "requested",
+        },
         # user is owed 50
-        {"id": 3, "from_user_id": "user1", "to_user_id": "friendA",
-         "amount": 50.0, "status": "requested"},
-
+        {
+            "id": 3,
+            "from_user_id": "user1",
+            "to_user_id": "friendA",
+            "amount": 50.0,
+            "status": "requested",
+        },
         # paid payments shouldn't count
-        {"id": 4, "from_user_id": "friendA", "to_user_id": "user1",
-         "amount": 99.0, "status": "paid"},
+        {
+            "id": 4,
+            "from_user_id": "friendA",
+            "to_user_id": "user1",
+            "amount": 99.0,
+            "status": "paid",
+        },
     ]
 
     fake_supabase = FakeSupabaseClient(rows)
@@ -166,7 +205,10 @@ def test_mark_payment_as_paid(monkeypatch):
 
     client = TestClient(app)
 
-    res = client.post("/api/payments/10/pay?user_id=user1", json={"paid_via": "Venmo"})
+    res = client.post(
+        "/api/payments/10/pay?user_id=user1",
+        json={"paid_via": "Venmo"},
+    )
     assert res.status_code == 200
 
     body = res.json()
@@ -207,6 +249,5 @@ def test_user_cannot_update_payments_they_do_not_own(monkeypatch):
     # user1 tries to pay a payment owed by user66
     res = client.post("/api/payments/20/pay?user_id=user1", json={})
 
-    # YOUR router doesn't enforce this yet, so we expect 200.
-    # Let's change that: enforce permission and expect 403.
+    # Your router should enforce this and return 403
     assert res.status_code == 403

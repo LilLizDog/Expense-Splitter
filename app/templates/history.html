@@ -3,53 +3,194 @@
 {% block title %}History | Expense Splitter{% endblock %}
 
 {% block content %}
-<h1>History</h1>
-<p>View past expenses and payments. Use the filters to narrow down by group or person.</p>
-
-<!-- Filter section -->
-<header>
-  <select id="groupFilter">
-    <option value="">All groups</option>
-  </select>
-  <input id="personFilter" placeholder="Filter by person…" />
-
-  <select id="typeFilter">
-    <option value="">All types</option>
-    <option value="received">Received Payments</option>
-    <option value="paid">Paid Expenses</option>
-  </select>
-
-  <button id="btnApply" type="button">Apply filters</button>
-  <button id="btnClear" type="button">Clear</button>
-</header>
-
-<!-- Two-column layout -->
-<div class="columns">
-  <div class="col">
-    <h2>Received Payments</h2>
-    <ul id="receivedList"></ul>
+<div class="page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">History</h1>
+      <p class="page-subtitle">
+        Review your recent transactions across groups and friends.
+      </p>
+    </div>
   </div>
-  <div class="col">
-    <h2>Paid Expenses</h2>
-    <ul id="paidList"></ul>
-  </div>
+
+  <!-- Filters card -->
+  <section class="card">
+    <div class="card-header">
+      <h2 class="card-title">Filters</h2>
+    </div>
+    <div class="card-body">
+      <div class="history-filters">
+        <div class="field">
+          <span class="field-label">Group</span>
+          <select id="groupFilter">
+            <option value="">All groups</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <span class="field-label">Person</span>
+          <input
+            id="personFilter"
+            placeholder="Filter by person..."
+            type="text"
+          />
+        </div>
+
+        <div class="field">
+          <span class="field-label">Type</span>
+          <select id="typeFilter">
+            <option value="">All types</option>
+            <option value="received">Received payments</option>
+            <option value="paid">Paid expenses</option>
+          </select>
+        </div>
+
+        <div class="field history-filter-actions">
+          <button id="btnApply" type="button" class="btn-primary">
+            Apply filters
+          </button>
+          <button id="btnClear" type="button" class="btn-secondary">
+            Clear
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Single combined history list -->
+  <section class="card" style="margin-top: 18px;">
+    <div class="card-header">
+      <h2 class="card-title">Recent transactions</h2>
+    </div>
+    <div class="card-body">
+      <ul id="historyList" class="history-list"></ul>
+      <p id="globalEmpty" class="history-empty"></p>
+    </div>
+  </section>
 </div>
 
-<!-- Global empty-state message when there is no history at all -->
-<p id="globalEmpty" class="empty" style="margin-top: 12px;"></p>
+<style>
+  .history-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-end;
+  }
+
+  .history-filters .field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 160px;
+  }
+
+  .history-filters .field-label {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--muted);
+  }
+
+  .history-filters select,
+  .history-filters input {
+    padding: 8px 10px;
+    border-radius: var(--radius);
+    border: 1px solid #d1d5db;
+    font-size: 0.9rem;
+    outline: none;
+  }
+
+  .history-filters select:focus,
+  .history-filters input:focus {
+    border-color: var(--green);
+    box-shadow: 0 0 0 1px rgba(22, 163, 74, 0.18);
+  }
+
+  .history-filter-actions {
+    flex-direction: row;
+    gap: 8px;
+  }
+
+  .btn-primary {
+    padding: 8px 14px;
+    border-radius: var(--radius);
+    border: none;
+    background: var(--green);
+    color: #ffffff;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+  }
+
+  .btn-primary:hover {
+    background: var(--green-600);
+  }
+
+  .btn-secondary {
+    padding: 8px 14px;
+    border-radius: var(--radius);
+    border: 1px solid #e5e7eb;
+    background: #f3f4f6;
+    color: var(--black);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  .btn-secondary:hover {
+    background: #e5e7eb;
+  }
+
+  .history-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .history-item {
+    padding: 10px 0;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .history-item:last-child {
+    border-bottom: none;
+  }
+
+  .history-main {
+    font-size: 0.92rem;
+    font-weight: 500;
+  }
+
+  .history-meta {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .history-list .empty {
+    color: var(--muted);
+    font-style: italic;
+  }
+
+  .history-empty {
+    margin-top: 12px;
+    font-size: 0.9rem;
+    color: var(--muted);
+    text-align: center;
+  }
+</style>
 {% endblock %}
 
 {% block scripts %}
 <script>
-  // References to HTML elements
+  // Cache DOM elements for filters and list
   const groupEl = document.getElementById("groupFilter");
   const personEl = document.getElementById("personFilter");
   const typeEl = document.getElementById("typeFilter");
-  const receivedList = document.getElementById("receivedList");
-  const paidList = document.getElementById("paidList");
+  const historyList = document.getElementById("historyList");
   const globalEmptyEl = document.getElementById("globalEmpty");
 
-  // Load groups into the dropdown
+  // Load groups into the dropdown from backend
   async function loadFilters() {
     const r = await fetch("/api/history/groups");
     if (!r.ok) return;
@@ -64,7 +205,7 @@
     }
   }
 
-  // Load history data using filters
+  // Fetch history data using the current filters
   async function loadHistory() {
     const params = new URLSearchParams();
     const g = groupEl.value.trim();
@@ -77,63 +218,93 @@
 
     const r = await fetch("/api/history/?" + params.toString());
 
-    // If unauthorized, show message and stop
+    // If user is not logged in show message and stop
     if (r.status === 401) {
-      receivedList.innerHTML = "<li class='empty'>You must be logged in to view history.</li>";
-      paidList.innerHTML = "";
+      historyList.innerHTML =
+        "<li class='empty'>You must be logged in to view history.</li>";
       globalEmptyEl.textContent = "";
       return;
     }
 
     const data = await r.json();
-    renderLists(data.received || [], data.paid || []);
+    renderHistory(data.received || [], data.paid || []);
   }
 
-  // Render the received and paid lists
-  function renderLists(received, paid) {
-    const filterType = typeEl.value.trim();
-    // Received payments section
-    receivedList.innerHTML = "";
-    if (!received.length || (filterType && filterType !== "received")) {
-      if (!received.length && (!filterType || filterType === "received")) {
-        receivedList.innerHTML = "<li class='empty'>No received payments.</li>";
-      }
-    } else {
-      for (const item of received) {
-        const li = document.createElement("li");
-        li.textContent = `${item.from} → you • $${item.amount} • ${item.group} • ${item.date} • ${item.role || "receiver"}`;
-        receivedList.appendChild(li);
-      }
+  // Render a single combined timeline from received and paid arrays
+  function renderHistory(received, paid) {
+    // Merge and tag items so the template knows what to say
+    const items = [];
+
+    for (const item of received) {
+      items.push({
+        kind: "received",
+        from: item.from,
+        to: "you",
+        amount: item.amount,
+        group: item.group,
+        date: item.date,
+        role: item.role || "receiver",
+      });
     }
 
-    // Paid expenses section
-    paidList.innerHTML = "";
-    if (!paid.length || (filterType && filterType !== "paid")) {
-      if (!paid.length && (!filterType || filterType === "paid")) {
-        paidList.innerHTML = "<li class='empty'>No paid expenses.</li>";
-      }
-    } else {
-      for (const item of paid) {
-        const li = document.createElement("li");
-        li.textContent = `You paid ${item.to} • $${item.amount} • ${item.group} • ${item.date} • ${item.role || "payer"}`;
-        paidList.appendChild(li);
-      }
+    for (const item of paid) {
+      items.push({
+        kind: "paid",
+        from: "you",
+        to: item.to,
+        amount: item.amount,
+        group: item.group,
+        date: item.date,
+        role: item.role || "payer",
+      });
     }
 
-    // Global empty-state if BOTH lists are empty
-    const hasReceived = (!filterType || filterType === "received") && received.length > 0;
-    const hasPaid = (!filterType || filterType === "paid") && paid.length > 0;
+    // Sort newest first using the date field
+    items.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-    if (!hasReceived && !hasPaid) {
+    historyList.innerHTML = "";
+
+    if (!items.length) {
+      historyList.innerHTML =
+        "<li class='empty'>No transactions yet.</li>";
       globalEmptyEl.textContent =
         "No history yet. Your past expenses and payments will appear here.";
-    } else {
-      globalEmptyEl.textContent = "";
+      return;
+    }
+
+    globalEmptyEl.textContent = "";
+
+    // Build each history row in a structured way
+    for (const item of items) {
+      const li = document.createElement("li");
+      li.className = "history-item";
+
+      const main = document.createElement("div");
+      main.className = "history-main";
+
+      if (item.kind === "received") {
+        // Show a clear message when you receive money
+        main.textContent = `${item.from} paid you $${item.amount}`;
+      } else {
+        // Show a clear message when you pay someone
+        main.textContent = `You paid ${item.to} $${item.amount}`;
+      }
+
+      const meta = document.createElement("div");
+      meta.className = "history-meta";
+      meta.textContent = `${item.group} • ${item.date} • ${item.role}`;
+
+      li.appendChild(main);
+      li.appendChild(meta);
+      historyList.appendChild(li);
     }
   }
 
-  // Button handlers
-  document.getElementById("btnApply").addEventListener("click", loadHistory);
+  // Wire up filter buttons
+  document
+    .getElementById("btnApply")
+    .addEventListener("click", loadHistory);
+
   document.getElementById("btnClear").addEventListener("click", () => {
     groupEl.value = "";
     personEl.value = "";
@@ -141,7 +312,7 @@
     loadHistory();
   });
 
-  // Initial load
+  // Initial load with filters and data
   loadFilters().then(loadHistory);
 </script>
 {% endblock %}

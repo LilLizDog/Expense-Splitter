@@ -319,8 +319,11 @@ def mark_payment_as_paid(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail=f"Error updating payment: {update_resp.error.message}",
         )
+<<<<<<< HEAD
 
     updated = update_resp.data
+=======
+>>>>>>> 74ab3c988b6b3b1fb1f5cbbab4002d27fc3d3606
     payment = Payment(
         id=str(updated["id"]),
         group_id=str(updated["group_id"]) if updated.get("group_id") is not None else None,
@@ -333,5 +336,68 @@ def mark_payment_as_paid(
         paid_at=updated.get("paid_at"),
         paid_via=updated.get("paid_via"),
     )
+
+    # -----------------------------------------
+    # Write history logs for paid transactions
+    # -----------------------------------------
+
+    # Load payer and receiver names
+    payer_row = (
+        supabase.table("users")
+        .select("name")
+        .eq("id", payment.from_user_id)
+        .single()
+        .execute()
+    ).data or {}
+
+    receiver_row = (
+        supabase.table("users")
+        .select("name")
+        .eq("id", payment.to_user_id)
+        .single()
+        .execute()
+    ).data or {}
+
+    payer_name = payer_row.get("name") or "Unknown"
+    receiver_name = receiver_row.get("name") or "Unknown"
+
+    # Load expense title and group for logging
+    expense_row = (
+        supabase.table("expenses")
+        .select("description, group_id")
+        .eq("id", payment.expense_id)
+        .single()
+        .execute()
+    ).data or {}
+
+    expense_title = expense_row.get("description") or "Expense"
+    # look up group name
+    group_name = (
+        supabase.table("groups")
+        .select("name")
+        .eq("id", expense_row.get("group_id"))
+        .single()
+        .execute()
+    ).data.get("name") if expense_row.get("group_id") else "Unknown Group"
+
+    # Insert paid history if current user is the payer
+    if payment.from_user_id == user_id:
+        supabase.table("history_paid").insert({
+            "user_id": user_id,
+            "to_name": receiver_name,
+            "amount": payment.amount,
+            "group_name": group_name,
+            "expense_title": expense_title,
+        }).execute()
+
+    # Insert received history if current user is the receiver
+    if payment.to_user_id == user_id:
+        supabase.table("history_received").insert({
+            "user_id": user_id,
+            "from_name": payer_name,
+            "amount": payment.amount,
+            "group_name": group_name,
+            "expense_title": expense_title,
+        }).execute()
 
     return MarkPaidResponse(success=True, payment=payment)
