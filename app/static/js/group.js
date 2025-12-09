@@ -1,6 +1,7 @@
 // FILE: static/js/group.js
 // Group detail page: load group, edit name/description, manage members, add member, leave group.
 
+
 // Helper for JSON fetch with credentials.
 async function fetchJson(url, options = {}) {
   const res = await fetch(url, {
@@ -16,6 +17,7 @@ async function fetchJson(url, options = {}) {
   return res.json();
 }
 
+
 // Pick best visible name.
 function pickMemberName(u) {
   return (
@@ -26,6 +28,7 @@ function pickMemberName(u) {
     "Member"
   );
 }
+
 
 // Render members into UL.
 function renderMembers(container, members) {
@@ -43,6 +46,7 @@ function renderMembers(container, members) {
   });
 }
 
+
 // Load friends for dropdown.
 async function loadFriendsForDropdown(selectEl) {
   if (!selectEl) return;
@@ -53,14 +57,17 @@ async function loadFriendsForDropdown(selectEl) {
     });
     if (!resp.ok) return;
 
+
     const data = await resp.json();
     const friends = Array.isArray(data.friends) ? data.friends : [];
+
 
     selectEl.innerHTML = "";
     const defaultOpt = document.createElement("option");
     defaultOpt.value = "";
     defaultOpt.textContent = "Select a friend";
     selectEl.appendChild(defaultOpt);
+
 
     friends.forEach((f) => {
       const opt = document.createElement("option");
@@ -72,6 +79,7 @@ async function loadFriendsForDropdown(selectEl) {
     console.error("Error loading friends:", err);
   }
 }
+
 
 async function initGroupPage() {
   // Get group id from query string.
@@ -86,14 +94,15 @@ async function initGroupPage() {
     }
   }
 
+
   if (!groupId) {
     window.location.href = "/groups";
     return;
   }
 
-  // Grab DOM elements.
-  const nameEl = document.getElementById("group-name");
-  const descEl = document.getElementById("group-desc");
+
+  const nameInput = document.getElementById("group-name-input");
+  const descInput = document.getElementById("group-desc-input");
   const dateEl = document.getElementById("group-date");
   const membersEl = document.getElementById("group-members");
   const saveBtn = document.getElementById("group-save-btn");
@@ -102,26 +111,28 @@ async function initGroupPage() {
   const leaveBtn = document.getElementById("leave-group-btn");
   const tripInput = document.getElementById("trip-description");
 
+
   // Load group info.
   try {
-    const group = await fetchJson(
-      `/api/groups/${encodeURIComponent(groupId)}`
-    );
+    const group = await fetchJson(`/api/groups/${encodeURIComponent(groupId)}`);
+    const nameEl = document.getElementById("group-name");
+const descEl = document.getElementById("group-desc");
 
-    if (nameEl) {
-      nameEl.textContent = group?.name ?? "Group";
-    }
-    if (descEl) {
-      descEl.textContent = group?.description || "";
-    }
-    if (tripInput) {
-      tripInput.value = group?.description || "";
-    }
 
-    if (dateEl && group?.created_at) {
-      dateEl.textContent = new Date(
-        group.created_at
-      ).toLocaleDateString();
+// Set displayed name/description
+if (nameEl) nameEl.textContent = group.name ?? "Group";
+if (descEl) descEl.textContent = group.description || "";
+
+
+// Also load description into trip description textarea
+const tripDescInput = document.getElementById("trip-description");
+if (tripDescInput) tripDescInput.value = group.description || "";
+
+
+
+
+    if (dateEl && group.created_at) {
+      dateEl.textContent = new Date(group.created_at).toLocaleDateString();
     }
   } catch (err) {
     console.error("Failed to load group:", err);
@@ -129,6 +140,7 @@ async function initGroupPage() {
     window.location.href = "/groups";
     return;
   }
+
 
   // Load members.
   async function refreshMembers() {
@@ -150,19 +162,23 @@ async function initGroupPage() {
   }
   await refreshMembers();
 
+
   // Load friends for dropdown.
   loadFriendsForDropdown(addSelect);
 
-  // Save group (name and description).
+
+  // Save group (name + description).
   if (saveBtn) {
     saveBtn.addEventListener("click", async () => {
       const newName = nameEl ? nameEl.textContent.trim() : "";
       const newDesc = tripInput ? tripInput.value : null;
 
+
       if (!newName) {
         alert("Group name cannot be empty.");
         return;
       }
+
 
       try {
         const body = { name: newName, description: newDesc };
@@ -179,10 +195,12 @@ async function initGroupPage() {
           }
         );
 
+
         if (!res.ok) {
           alert("Could not save changes.");
           return;
         }
+
 
         await res.json();
         alert("Group updated.");
@@ -193,6 +211,7 @@ async function initGroupPage() {
     });
   }
 
+
   // Add member to group.
   if (addBtn && addSelect) {
     addBtn.addEventListener("click", async () => {
@@ -202,11 +221,13 @@ async function initGroupPage() {
         return;
       }
 
+
       const friendLinkId = parseInt(rawId, 10);
       if (!Number.isFinite(friendLinkId)) {
         alert("Invalid friend.");
         return;
       }
+
 
       try {
         const res = await fetch(
@@ -222,10 +243,12 @@ async function initGroupPage() {
           }
         );
 
+
         if (!res.ok) {
           alert("Could not add this member.");
           return;
         }
+
 
         await refreshMembers();
       } catch (err) {
@@ -235,10 +258,12 @@ async function initGroupPage() {
     });
   }
 
+
   // Leave group.
   if (leaveBtn) {
     leaveBtn.addEventListener("click", async () => {
       if (!confirm("Are you sure you want to leave this group?")) return;
+
 
       try {
         const res = await fetch(
@@ -250,10 +275,12 @@ async function initGroupPage() {
           }
         );
 
+
         if (!res.ok) {
           alert("Could not leave group.");
           return;
         }
+
 
         alert("You left the group.");
         window.location.href = "/groups";
@@ -264,5 +291,6 @@ async function initGroupPage() {
     });
   }
 }
+
 
 document.addEventListener("DOMContentLoaded", initGroupPage);
