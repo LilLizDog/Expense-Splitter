@@ -27,13 +27,14 @@ templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 # ------------------------
 # ROUTERS
 # ------------------------
-from .routers import groups, expenses, balances, auth
+from .routers import groups, expenses, balances, auth, account
 from .routers import friends, history, settings, payments, dashboard, users
 from .routers.auth import get_current_user
 from app.routers import inbox
 from .routers import trip_summary
 
 app.include_router(auth.router, prefix="/auth")
+app.include_router(account.router)
 app.include_router(groups.router)
 app.include_router(expenses.router)
 app.include_router(balances.router)
@@ -119,21 +120,9 @@ async def get_signup(request: Request):
 @app.get("/account", response_class=HTMLResponse)
 @app.get("/account.html", response_class=HTMLResponse)
 async def get_account(request: Request):
-    mock_user = {
-        "id": "user-123",
-        "email": "liz@example.com",
-        "full_name": "Liz",
-        "username": "liz_b",
-        "phone": "314-555-1234",
-        "display_currency": "USD",
-    }
     return templates.TemplateResponse(request,
         "account.html",
-        {
-            "request": request,
-            "mock_mode": True,
-            "mock_user": mock_user,
-        },
+        {"request": request},
     )
 
 
