@@ -72,14 +72,47 @@ def _resolve_first_name(user_id: str, user_meta: Dict[str, Any], email: str) -> 
 
 def _build_wallet_and_recent(user_id: str) -> Dict[str, Any]:
     """
-    Build wallet totals and recent transactions for the dashboard by
-    reusing the same semantics as the history page.
+    Build wallet totals and recent transactions for the dashboard using
+    the payments table for accurate owed/owing amounts.
 
-    Semantics from this user's perspective:
-      - Creator entries (paid): amount >= 0 means others owe you (green).
-      - Participant entries (received): amount <= 0 means you owe others (red).
+    Wallet calculation:
+      - owed (people owe you): sum of requested payments where from_user_id = you
+      - owing (you owe people): sum of requested payments where to_user_id = you
     """
-    # 1. Expenses created by this user
+    
+    # Get payments where others owe you (you are from_user_id, status = requested)
+    owed_resp = (
+        supabase.table("payments")
+        .select("amount, expense_id, created_at")
+        .eq("from_user_id", user_id)
+        .eq("status", "requested")
+        .execute()
+    )
+    owed_payments = owed_resp.data or []
+    
+    # Get payments where you owe others (you are to_user_id, status = requested)
+    owing_resp = (
+        supabase.table("payments")
+        .select("amount, expense_id, created_at")
+        .eq("to_user_id", user_id)
+        .eq("status", "requested")
+        .execute()
+    )
+    owing_payments = owing_resp.data or []
+    
+    # Calculate totals
+    total_owed = sum(float(p.get("amount", 0)) for p in owed_payments)
+    total_owing = sum(float(p.get("amount", 0)) for p in owing_payments)
+    
+    net_balance = total_owed - total_owing
+    if net_balance > 0:
+        balance_class = "positive"
+    elif net_balance < 0:
+        balance_class = "negative"
+    else:
+        balance_class = "zero"
+    
+    # Get recent expenses for transaction history (from expenses table)
     creator_resp = (
         supabase.table("expenses")
         .select(
@@ -97,6 +130,7 @@ def _build_wallet_and_recent(user_id: str) -> Dict[str, Any]:
     for e in creator_expenses:
         eid = e.get("id")
         if not eid:
+            continue
             continue
         creator_expense_ids.append(eid)
         group_id = e.get("group_id")
