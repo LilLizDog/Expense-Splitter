@@ -15,7 +15,7 @@ class CreateGroup(BaseModel):
     """Payload for creating a group from the add group form."""
     name: str
     description: Optional[str] = None
-    # Friend link row ids selected in the form (do not include current user here)
+    # Friend user ids (UUIDs) selected in the form, do not include current user.
     member_ids: List[str] = []
 
 
@@ -37,31 +37,8 @@ def create_group(payload: CreateGroup, user=Depends(get_current_user)):
     if not name:
         raise HTTPException(status_code=400, detail="Group name cannot be empty")
 
-    # Convert friend_links row ids into real friend UUIDs
-    friend_uuids: List[str] = []
-    for row_id in payload.member_ids:
-        try:
-            res = (
-                supabase.table("friend_links")
-                .select("friend_id")
-                .eq("id", row_id)
-                .single()
-                .execute()
-            )
-        except APIError:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Friend id {row_id} not found",
-            )
-
-        data = res.data or {}
-        friend_id = data.get("friend_id")
-        if not friend_id:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Friend id {row_id} not found",
-            )
-        friend_uuids.append(str(friend_id))
+    # member_ids are friend user ids (UUIDs) coming directly from the form
+    friend_uuids: List[str] = [str(fid) for fid in payload.member_ids if fid]
 
     uid = str(user["id"])
 
@@ -93,7 +70,6 @@ def create_group(payload: CreateGroup, user=Depends(get_current_user)):
         group_row = data
 
     return {"ok": True, "group": group_row}
-
 
 @router.get("/", summary="List groups for current user")
 def get_groups_for_current_user(user=Depends(get_current_user)):
