@@ -1,9 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Expense Splitter — Account</title>
+{# app/templates/account.html #}
+{% extends "base.html" %}
+
+{% block title %}Expense Splitter — Account{% endblock %}
+
+{% block head_extra %}
   <style>
     :root {
       --bg:#f6f7f9; --card:#fff; --muted:#666;
@@ -52,70 +52,115 @@
       .grid { grid-template-columns:1fr; }
       .two { grid-template-columns:1fr; }
     }
+    .value {
+      margin: 2px 0 10px 0;
+      font-size: 14px;
+    }
+    .hidden {
+      display: none;
+    }
   </style>
 
-  <!-- Variables injected by FastAPI  -->
-  <script>
-    window.MOCK_MODE = {{ "true" if mock_mode else "false" }};
-    window.MOCK_USER = {{ mock_user | tojson if mock_user else "null" }};
-    window.SUPABASE_URL = "{{ supabase_url if supabase_url is defined else '' }}";
-    window.SUPABASE_KEY = "{{ supabase_key if supabase_key is defined else '' }}";
-  </script>
-</head>
- 
-<body>
+  <!-- Variables injected by FastAPI -->
+    <script>
+      window.CURRENT_USER = {{ user | tojson }};
+    </script>
+{% endblock %}
+
+{% block content %}
   <div class="wrap">
     <h1>Account</h1>
 
-    <!-- Auth notice (shown only if not logged in, later) -->
-    <div id="authNotice" class="card hidden">
-      <h2>Sign in required</h2>
-      <p class="muted">You are not signed in.</p>
-      <div class="btns">
-        <a class="btn primary" href="/login">Go to Login</a>
-        <a class="btn" href="/">Back home</a>
-      </div>
-    </div>
-
     <!-- Account content -->
-    <div id="appArea" class="grid hidden">
+    <div id="appArea" class="grid">
       <!-- Profile -->
       <div class="card">
         <h2>Your profile</h2>
-        <form id="profileForm" novalidate>
+
+        <!-- VIEW MODE (default, no boxes) -->
+        <div id="profileDisplay">
+          <div class="row">
+            <label>Full name</label>
+            <p id="display_full_name" class="value">
+              {{ user.full_name or "—" }}
+            </p>
+          </div>
+          <div class="row">
+            <label>Username</label>
+            <p id="display_username" class="value">
+              {{ user.username or "—" }}
+            </p>
+          </div>
+          <div class="row">
+            <label>Email</label>
+            <p id="display_email" class="value">
+              {{ user.email or "—" }}
+            </p>
+          </div>
+          <div class="row">
+            <label>Phone</label>
+            <p id="display_phone_number" class="value">
+              {{ user.phone_number or "—" }}
+            </p>
+          </div>
+          <div class="row">
+            <label>Display currency</label>
+            <p id="display_currency" class="value">
+              {{ user.display_currency or "USD" }}
+            </p>
+          </div>
+
+          <div class="btns">
+            <button id="editProfileBtn" class="btn primary" type="button">
+              Update information
+            </button>
+          </div>
+        </div>
+
+        <!-- EDIT MODE (hidden until clicked) -->
+        <form id="profileForm" novalidate style="display: none;">
           <div class="row">
             <label for="full_name">Full name</label>
-            <input id="full_name" name="full_name" type="text" placeholder="Add your name" required/>
+            <input id="full_name" name="full_name" type="text"
+                  value="{{ user.full_name or '' }}" required/>
           </div>
           <div class="row">
             <label for="username">Username</label>
-            <input id="username" name="username" type="text" placeholder="e.g. liz_b" required/>
+            <input id="username" name="username" type="text"
+                  value="{{ user.username or '' }}" required/>
           </div>
           <div class="row">
             <label for="email">Email</label>
-            <input id="email" name="email" type="email" readonly/>
+            <input id="email" name="email" type="email"
+                  value="{{ user.email or '' }}" readonly/>
           </div>
           <div class="row">
-            <label for="phone">Phone</label>
-            <input id="phone" name="phone" type="tel" placeholder="e.g. 314-555-1234"
-                   pattern="^[0-9\-+\(\) ]{7,20}$"/>
+            <label for="phone_number">Phone</label>
+            <input id="phone_number" name="phone_number" type="tel"
+                  value="{{ user.phone_number or '' }}"
+                  placeholder="e.g. 314-555-1234"
+                  pattern="^[0-9\\-+\\(\\) ]{7,20}$"/>
           </div>
           <div class="row">
-            <label for="display_currency">Display currency</label>
-            <select id="display_currency" name="display_currency">
-              <option value="USD">USD</option>
-              <option value="EUR">EUR</option>
-              <option value="JPY">JPY</option>
-              <option value="GBP">GBP</option>
-              <option value="CAD">CAD</option>
+            <label for="currency">Display currency</label>
+            <select id="currency" name="display_currency">
+              <option value="USD" {% if user.display_currency == "USD" %}selected{% endif %}>USD</option>
+              <option value="EUR" {% if user.display_currency == "EUR" %}selected{% endif %}>EUR</option>
+              <option value="JPY" {% if user.display_currency == "JPY" %}selected{% endif %}>JPY</option>
+              <option value="GBP" {% if user.display_currency == "GBP" %}selected{% endif %}>GBP</option>
+              <option value="CAD" {% if user.display_currency == "CAD" %}selected{% endif %}>CAD</option>
             </select>
           </div>
+
           <div class="btns">
             <button type="submit" class="btn primary">Save changes</button>
+            <button type="button" id="cancelEditBtn" class="btn">Cancel</button>
             <span id="profileStatus" class="status"></span>
           </div>
         </form>
       </div>
+
+
 
       <!-- Payment placeholders -->
       <div class="card">
@@ -140,8 +185,8 @@
       </div>
     </div>
   </div>
+{% endblock %}
 
-  <!-- Script logic -->
-   <script type="module" src="/templates/js/account.js"></script>
-</body>
-</html>
+{% block scripts %}
+  <script type="module" src="{{ url_for('static', path='js/account.js') }}"></script>
+{% endblock %}
