@@ -81,6 +81,17 @@ def _db_insert_participants(rows: List[dict]) -> List[dict]:
     return res.data or rows
 
 
+def _db_insert_payments(payment_rows: List[dict]) -> List[dict]:
+    """Insert payment request rows into the payments table."""
+    if not payment_rows:
+        return []
+    res = supabase.table("payments").insert(payment_rows).execute()
+    err = getattr(res, "error", None)
+    if err:
+        raise HTTPException(status_code=500, detail=str(err))
+    return res.data or payment_rows
+
+
 # -----------------------------
 # List endpoints
 # -----------------------------
@@ -273,87 +284,30 @@ def create_expense(
 
     participants = _db_insert_participants(participant_rows)
 
-    # -----------------------------------
-    # Insert into history tables
-    # and create notifications
-    # -----------------------------------
-    if os.getenv("TESTING") != "1":  # Only write history in real mode
-        try:
-            # Lookup group name if applicable
-            group_name = ""
-            if payload.group_id:
-                g_res = (
-                    supabase
-                    .table("groups")
-                    .select("name")
-                    .eq("id", payload.group_id)
-                    .single()
-                    .execute()
-                )
-                if g_res.data:
-                    group_name = g_res.data.get("name") or ""
-
-            # Lookup names for each participant
-            id_to_name = {}
-
-            if payload.member_ids:
-                users_res = (
-                    supabase
-                    .table("users")
-                    .select("id,name,email")
-                    .in_("id", payload.member_ids)
-                    .execute()
-                )
-
-                for u in users_res.data or []:
-                    id_to_name[u["id"]] = (
-                        u.get("name") or u.get("email") or "Unknown"
-                    )
-
-            # Name for the payer (current user)
-            payer_name = user.get("name") or user.get("email") or "Unknown"
-
-            # Notifications for participants
-            for participant_id in payload.member_ids:
-                # Do not notify the payer about their own expense
-                if participant_id == user["id"]:
-                    continue
-
-                supabase.table("notifications").insert(
-                    {
-                        "type": "Expense",
-                        "from_user": user["id"],
-                        "to_user": participant_id,
-                        "group_id": payload.group_id,
-                        "status": "pending",
-                    }
-                ).execute()
-
-            # Payer history
-            supabase.table("history_paid").insert(
-                {
-                    "user_id": user["id"],
-                    "to_name": ", ".join(
-                        id_to_name.get(mid, mid) for mid in payload.member_ids
-                    ),
-                    "amount": total,
-                    "group_name": group_name,
-                }
-            ).execute()
-
-            # Participant history
-            for s in splits:
-                supabase.table("history_received").insert(
-                    {
-                        "user_id": s["member_id"],
-                        "from_name": payer_name,
-                        "amount": s["share"],
-                        "group_name": group_name,
-                    }
-                ).execute()
-
-        except Exception as e:
-            print("History insert failed:", e)
+    # -----------------------------
+    # Create payment requests
+    # -----------------------------
+    # For each participant (except the payer), create a payment request
+    # from that participant to the payer for their share
+    payment_rows = []
+    payer_id = user["id"]
+    
+    for s in splits:
+        member_id = s["member_id"]
+        share = s["share"]
+        
+        # Don't create a payment request for the payer themselves
+        if member_id != payer_id and share > 0:
+            payment_rows.append({
+                "group_id": payload.group_id,
+                "expense_id": expense_id,
+                "from_user_id": payer_id,  # Who paid and is owed
+                "to_user_id": member_id,    # Who owes the money
+                "amount": share,
+                "status": "requested",
+            })
+    
+    payments = _db_insert_payments(payment_rows)
 
     return {
         "ok": True,
@@ -361,6 +315,7 @@ def create_expense(
         "data": {
             "expense": inserted,
             "participants": participants,
+            "payments": payments,
             "user_id": user["id"],
         },
     }
