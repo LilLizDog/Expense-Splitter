@@ -1,143 +1,197 @@
-// templates/js/account.js
+// static/js/account.js
 // Runs as a module inside <script type="module"> in account.html
 
+console.log("account.js loaded!");
+
 const el = (id) => document.getElementById(id);
-const show = (n) => n && n.classList.remove('hidden');
-const hide = (n) => n && n.classList.add('hidden');
- 
-const authNotice   = el('authNotice');
-const appArea      = el('appArea');
-const full_name    = el('full_name');
-const username     = el('username');
-const email        = el('email');
-const phone        = el('phone');
-const currency     = el('display_currency');
-const profileForm  = el('profileForm');
-const profileStatus= el('profileStatus');
-const logoutBtn    = el('logoutBtn');
-const logoutStatus = el('logoutStatus');
-const userIdLine   = el('userIdLine');
+
+// Elements - will be set in initAccountPage
+let profileDisplay, displayFullName, displayUsername, displayEmail, displayPhoneNumber, displayCurrency, editProfileBtn;
+let profileForm, full_name, username, email, phone_number, currency, cancelEditBtn, profileStatus;
+let logoutBtn, logoutStatus;
 
 function setStatus(node, msg, ok = true) {
+  if (!node) return;
   node.textContent = msg || '';
   node.classList.toggle('ok', ok);
   node.classList.toggle('err', !ok);
 }
 
-function populateUser(u) {
-  if (!u) return;
-  email.value     = u.email || '';
-  full_name.value = u.full_name || '';
-  username.value  = u.username || '';
-  phone.value     = u.phone || '';
-  currency.value  = u.display_currency || 'USD';
-  if (u.id) userIdLine.textContent = `User ID: ${u.id}`;
+function showViewMode() {
+  if (profileDisplay) profileDisplay.style.display = "block";
+  if (profileForm) profileForm.style.display = "none";
+  setStatus(profileStatus, "");
 }
 
-function hookMockMode() {
-  hide(authNotice);
-  show(appArea);
-  populateUser(window.MOCK_USER);
-
-  profileForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    if (!full_name.value.trim()) return setStatus(profileStatus, 'Name is required', false);
-    if (!username.value.trim())  return setStatus(profileStatus, 'Username is required', false);
-    if (phone.value && !phone.checkValidity()) return setStatus(profileStatus, 'Invalid phone', false);
-    setStatus(profileStatus, 'Saved', true);
-  });
-
-  logoutBtn.addEventListener('click', () => {
-    setStatus(logoutStatus, 'Logged out (mock)', true);
-    show(authNotice); hide(appArea);
-  });
+function showEditMode() {
+  if (profileDisplay) profileDisplay.style.display = "none";
+  if (profileForm) profileForm.style.display = "block";
+  setStatus(profileStatus, "");
 }
 
-async function hookRealMode() {
-  let createClient;
+
+function validateForm() {
+  if (!full_name.value.trim()) {
+    setStatus(profileStatus, 'Name is required', false);
+    return false;
+  }
+  if (!username.value.trim()) {
+    setStatus(profileStatus, 'Username is required', false);
+    return false;
+  }
+  if (phone_number.value && !phone_number.checkValidity()) {
+    setStatus(profileStatus, 'Invalid phone', false);
+    return false;
+  }
+  return true;
+}
+
+async function saveProfile() {
+  if (!validateForm()) return;
+
+  const payload = {
+    full_name: full_name.value.trim(),
+    username:  username.value.trim(),
+    phone_number: phone_number.value.trim(),
+    display_currency: currency.value,
+  };
+
+  console.log("Saving profile with payload:", payload);
+
+  let resp;
   try {
-    ({ createClient } = await import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm"));
+    resp = await fetch("/api/account", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
   } catch (e) {
-    console.error("Failed to load supabase-js:", e);
-    show(authNotice); hide(appArea);
+    console.error("Network error saving profile:", e);
+    setStatus(profileStatus, "Network error", false);
     return;
   }
 
-  const url = window.SUPABASE_URL;
-  const key = window.SUPABASE_KEY; // anon key only
-  if (!url || !key) {
-    console.error("Supabase keys missing in template");
-    show(authNotice); hide(appArea);
+  if (!resp.ok) {
+    const errorText = await resp.text();
+    console.error("Save failed with status", resp.status, ":", errorText);
+    setStatus(profileStatus, "Save failed", false);
     return;
   }
 
-  const supabase = createClient(url, key);
+  const data = await resp.json();
+  console.log("Server response:", data);
+  const user = data.user || {};
 
-  async function loadProfile(user) {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single();
+  // Update the view and form from the server response
+  displayFullName.textContent    = user.full_name || "—";
+  displayUsername.textContent    = user.username || "—";
+  displayEmail.textContent       = user.email || "—";
+  displayPhoneNumber.textContent = user.phone_number || "—";
+  displayCurrency.textContent    = user.display_currency || "USD";
 
-    if (error && error.code !== 'PGRST116') {
-      setStatus(profileStatus, 'Failed to load profile', false);
-      return;
-    }
-    populateUser({
-      id: user.id,
-      email: user.email,
-      full_name: data?.full_name,
-      username: data?.username,
-      phone: data?.phone,
-      display_currency: data?.display_currency || 'USD',
+  full_name.value     = user.full_name || "";
+  username.value      = user.username || "";
+  email.value         = user.email || "";
+  phone_number.value  = user.phone_number || "";
+  currency.value      = user.display_currency || "USD";
+
+  setStatus(profileStatus, "Saved", true);
+  showViewMode();
+}
+
+function initAccountPage() {
+  // Get all elements after DOM is loaded
+  profileDisplay = el('profileDisplay');
+  displayFullName = el('display_full_name');
+  displayUsername = el('display_username');
+  displayEmail = el('display_email');
+  displayPhoneNumber = el('display_phone_number');
+  displayCurrency = el('display_currency');
+  editProfileBtn = el('editProfileBtn');
+  
+  profileForm = el('profileForm');
+  full_name = el('full_name');
+  username = el('username');
+  email = el('email');
+  phone_number = el('phone_number');
+  currency = el('currency');
+  cancelEditBtn = el('cancelEditBtn');
+  profileStatus = el('profileStatus');
+  
+  logoutBtn = el('logoutBtn');
+  logoutStatus = el('logoutStatus');
+
+  console.log("Initializing account page...");
+  console.log("Elements found:", {
+    profileDisplay: !!profileDisplay,
+    profileForm: !!profileForm,
+    editProfileBtn: !!editProfileBtn,
+    cancelEditBtn: !!cancelEditBtn,
+    full_name: !!full_name,
+    username: !!username,
+    email: !!email,
+    phone_number: !!phone_number,
+    currency: !!currency
+  });
+
+  showViewMode(); // HTML already has initial values from Jinja
+
+  if (editProfileBtn) {
+    editProfileBtn.addEventListener("click", () => {
+      console.log("Edit button clicked");
+      showEditMode();
+    });
+  } else {
+    console.error("editProfileBtn not found!");
+  }
+
+  if (cancelEditBtn) {
+    cancelEditBtn.addEventListener("click", () => {
+      // Reset form to current display values
+      full_name.value    = displayFullName.textContent === "—" ? "" : displayFullName.textContent;
+      username.value     = displayUsername.textContent === "—" ? "" : displayUsername.textContent;
+      email.value        = displayEmail.textContent === "—" ? "" : displayEmail.textContent;
+      phone_number.value = displayPhoneNumber.textContent === "—" ? "" : displayPhoneNumber.textContent;
+      currency.value     = displayCurrency.textContent || "USD";
+      showViewMode();
     });
   }
 
-  async function saveProfile(user) {
-    if (!full_name.value.trim()) return setStatus(profileStatus, 'Name is required', false);
-    if (!username.value.trim())  return setStatus(profileStatus, 'Username is required', false);
-    if (phone.value && !phone.checkValidity()) return setStatus(profileStatus, 'Invalid phone', false);
-
-    const payload = {
-      id: user.id,
-      full_name: full_name.value.trim(),
-      username: username.value.trim(),
-      phone: phone.value.trim(),
-      display_currency: currency.value,
-    };
-
-    const { error } = await supabase.from('profiles').upsert(payload);
-    if (error) return setStatus(profileStatus, 'Save failed', false);
-    setStatus(profileStatus, 'Saved', true);
+  if (profileForm) {
+    profileForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      console.log("Form submitted");
+      saveProfile();
+    });
+  } else {
+    console.error("profileForm not found!");
   }
 
-  const { data, error } = await supabase.auth.getSession();
-  const user = data?.session?.user || null;
-  if (error || !user) {
-    show(authNotice); hide(appArea);
-    return;
+  // Handle logout
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", async () => {
+      try {
+        // Sign out from Supabase if client is available
+        if (window.sb && window.sb.auth) {
+          await window.sb.auth.signOut();
+        }
+        // Redirect to login page
+        window.location.href = "/login";
+      } catch (err) {
+        console.error("Error during logout:", err);
+        // Still redirect even if there's an error
+        window.location.href = "/login";
+      }
+    });
   }
-
-  hide(authNotice); show(appArea);
-  await loadProfile(user);
-
-  profileForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    await saveProfile(user);
-  });
-
-  logoutBtn.addEventListener('click', async () => {
-    const { error: signOutErr } = await supabase.auth.signOut();
-    if (signOutErr) return setStatus(logoutStatus, 'Logout failed', false);
-    setStatus(logoutStatus, 'Logged out', true);
-    show(authNotice); hide(appArea);
-  });
 }
 
-// boot
-if (window.MOCK_MODE) {
-  hookMockMode();
+// Wait for DOM to be ready before initializing
+console.log("Setting up DOMContentLoaded listener, readyState:", document.readyState);
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initAccountPage);
 } else {
-  hookRealMode();
+  // DOM is already ready
+  console.log("DOM already ready, initializing now");
+  initAccountPage();
 }
