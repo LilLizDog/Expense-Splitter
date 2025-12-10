@@ -1,8 +1,6 @@
 {% extends "base.html" %}
 
-
 {% block title %}Group - Expense Splitter{% endblock %}
-
 
 {% block styles %}
 <style>
@@ -20,11 +18,9 @@
     cursor: pointer;
   }
 
-
   .btn:hover {
     border-color: #d1d5db;
   }
-
 
   .btn.primary {
     background: var(--green);
@@ -32,11 +28,9 @@
     color: #ffffff;
   }
 
-
   .btn.primary:hover {
     background: var(--green-600);
   }
-
 
   .btn-danger {
     border-color: var(--red);
@@ -44,11 +38,9 @@
     background: #fef2f2;
   }
 
-
   .btn-danger:hover {
     border-color: #b91c1c;
   }
-
 
   .actions {
     display: flex;
@@ -56,27 +48,22 @@
     flex-wrap: wrap;
   }
 
-
   .group-shell {
     max-width: 920px;
     margin-inline: auto;
   }
 
-
   .group-header {
     margin-bottom: 16px;
   }
 
-
   .group-header h1 {
-    margin: 0 0 4px;
+    margin: 6px 0 4px;
   }
-
 
   .group-header p {
     margin: 0;
   }
-
 
   .group-back {
     display: inline-flex;
@@ -86,11 +73,9 @@
     font-size: 0.9rem;
   }
 
-
   .group-back span:first-child {
     font-size: 1.1rem;
   }
-
 
   .group-layout {
     display: grid;
@@ -99,13 +84,11 @@
     align-items: flex-start;
   }
 
-
   @media (max-width: 768px) {
     .group-layout {
       grid-template-columns: 1fr;
     }
   }
-
 
   .field {
     display: flex;
@@ -114,13 +97,11 @@
     margin-bottom: 14px;
   }
 
-
   .field label {
     font-size: 0.9rem;
     font-weight: 600;
     color: var(--muted);
   }
-
 
   .field input,
   .field textarea,
@@ -134,25 +115,21 @@
     resize: vertical;
   }
 
-
   .group-meta {
     font-size: 0.9rem;
     color: var(--muted);
     margin-top: 4px;
   }
 
-
   .member-section,
   .add-member-section {
     margin-bottom: 24px;
   }
 
-
   .member-section h2,
   .add-member-section h2 {
     margin: 0 0 10px;
   }
-
 
   .member-list {
     list-style: none;
@@ -163,7 +140,6 @@
     gap: 8px;
   }
 
-
   .member-list li {
     background: #fff;
     border-radius: 12px;
@@ -172,7 +148,6 @@
     font-size: 0.95rem;
   }
 
-
   /* Disabled options for users already in the group */
   #group-add-member-select option.option-disabled {
     color: var(--muted);
@@ -180,10 +155,8 @@
 </style>
 {% endblock %}
 
-
 {% block content %}
 <section class="panel group-shell">
-
 
   <!-- Back to groups -->
   <a href="/groups" class="btn group-back">
@@ -191,36 +164,38 @@
     <span>Back to groups</span>
   </a>
 
-
-  <h1 id="group-name" style="margin:6px 0 4px;"></h1>
-  <p id="group-desc" class="muted" style="margin:0 0 8px;"></p>
-  <p class="muted" style="margin:0 0 16px;">
-    Created on: <span id="group-date"></span>
-  </p>
-    <!-- Trip Summary Feature -->
-  <hr style="margin: 24px 0;">
-
-
-  <h3>Trip Summary</h3>
-
-
-  <textarea
-      id="trip-description"
-      placeholder="Enter or edit the trip description…"
-      style="width:100%; min-height: 100px; margin-top:8px;"
-  ></textarea>
-
-
-  <button id="generate-summary-btn" class="btn" style="margin-top:10px;">
-      Generate Trip Summary
-  </button>
-
-
-  <div id="trip-summary-output" class="panel" style="margin-top:16px; display:none;">
-      <h4>Summary</h4>
-      <p id="trip-summary-text"></p>
+  <!-- Group header -->
+  <div class="group-header">
+    <h1 id="group-name"></h1>
+    <p id="group-desc" class="muted" style="margin-bottom: 8px;"></p>
+    <p class="muted" style="margin: 0 0 16px;">
+      Created on: <span id="group-date"></span>
+    </p>
   </div>
 
+  <!-- Two column layout -->
+  <div class="group-layout">
+
+    <!-- Left: trip summary and group level actions -->
+    <div>
+      <hr style="margin: 24px 0;">
+
+      <h3>Trip Summary</h3>
+
+      <textarea
+        id="trip-description"
+        placeholder="Enter or edit the trip description…"
+        style="width:100%; min-height: 100px; margin-top:8px;"
+      ></textarea>
+
+      <button id="generate-summary-btn" class="btn" style="margin-top:10px;">
+        Generate Trip Summary
+      </button>
+
+      <div id="trip-summary-output" class="panel" style="margin-top:16px; display:none;">
+        <h4>Summary</h4>
+        <p id="trip-summary-text"></p>
+      </div>
 
       <div class="actions" style="margin-top: 12px;">
         <button id="group-save-btn" class="btn primary" type="button">
@@ -229,11 +204,8 @@
       </div>
     </div>
 
-
     <!-- Right: members and add member -->
     <div>
-
-
       <!-- Members -->
       <div class="member-section">
         <h2>Members</h2>
@@ -241,19 +213,17 @@
           <li class="muted">Loading members...</li>
         </ul>
 
-
-        <button id="leave-group-btn"
-                class="btn btn-danger"
-                type="button">
+        <button
+          id="leave-group-btn"
+          class="btn btn-danger"
+          type="button">
           Leave group
         </button>
       </div>
 
-
       <!-- Add member -->
       <div class="add-member-section">
         <h2>Add member</h2>
-
 
         <div class="field">
           <label for="group-add-member-select">Choose member to add</label>
@@ -262,26 +232,18 @@
           </select>
         </div>
 
-
         <div class="actions" style="margin-top: 8px;">
           <button id="group-add-member-btn" class="btn primary" type="button">
             Add to group
           </button>
         </div>
-
-
       </div>
-
-
     </div>
-
 
   </div>
 
-
 </section>
 {% endblock %}
-
 
 {% block scripts %}
 <script type="module" src="/static/js/group.js"></script>
