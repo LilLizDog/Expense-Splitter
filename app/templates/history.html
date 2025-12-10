@@ -8,7 +8,7 @@
     <div>
       <h1 class="page-title">History</h1>
       <p class="page-subtitle">
-        Review your recent transactions across groups and friends.
+        See expenses you created and expenses others created for you.
       </p>
     </div>
   </div>
@@ -31,7 +31,7 @@
           <span class="field-label">Person</span>
           <input
             id="personFilter"
-            placeholder="Filter by person..."
+            placeholder="Filter by creator..."
             type="text"
           />
         </div>
@@ -40,8 +40,8 @@
           <span class="field-label">Type</span>
           <select id="typeFilter">
             <option value="">All types</option>
-            <option value="received">Received payments</option>
-            <option value="paid">Paid expenses</option>
+            <option value="credit">Credit</option>
+            <option value="debit">Debit</option>
           </select>
         </div>
 
@@ -57,14 +57,33 @@
     </div>
   </section>
 
-  <!-- Single combined history list -->
+  <!-- Table-style history -->
   <section class="card" style="margin-top: 18px;">
     <div class="card-header">
-      <h2 class="card-title">Recent transactions</h2>
+      <h2 class="card-title">Recent history</h2>
     </div>
     <div class="card-body">
-      <ul id="historyList" class="history-list"></ul>
+      <table class="history-table">
+        <thead>
+          <tr>
+            <th class="col-date">Date</th>
+            <th class="col-desc">Description</th>
+            <th class="col-amount">Amount</th>
+          </tr>
+        </thead>
+        <tbody id="historyBody"></tbody>
+      </table>
       <p id="globalEmpty" class="history-empty"></p>
+
+      <div id="historyPagination" class="history-pagination">
+        <button id="pagePrev" class="page-btn" type="button">
+          ‹
+        </button>
+        <span id="pageInfo"></span>
+        <button id="pageNext" class="page-btn" type="button">
+          ›
+        </button>
+      </div>
     </div>
   </section>
 </div>
@@ -141,35 +160,45 @@
     background: #e5e7eb;
   }
 
-  .history-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
+  .history-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
   }
 
-  .history-item {
-    padding: 10px 0;
+  .history-table th,
+  .history-table td {
+    padding: 8px 10px;
     border-bottom: 1px solid #e5e7eb;
+    text-align: left;
   }
 
-  .history-item:last-child {
-    border-bottom: none;
-  }
-
-  .history-main {
-    font-size: 0.92rem;
-    font-weight: 500;
-  }
-
-  .history-meta {
+  .history-table th {
     font-size: 0.8rem;
+    font-weight: 600;
     color: var(--muted);
-    margin-top: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
   }
 
-  .history-list .empty {
-    color: var(--muted);
-    font-style: italic;
+  .col-date {
+    width: 120px;
+    white-space: nowrap;
+  }
+
+  .col-amount {
+    width: 120px;
+    text-align: right;
+  }
+
+  .amount-positive {
+    color: var(--green-600);
+    font-weight: 600;
+  }
+
+  .amount-negative {
+    color: var(--red);
+    font-weight: 600;
   }
 
   .history-empty {
@@ -178,19 +207,68 @@
     color: var(--muted);
     text-align: center;
   }
+
+  .history-name {
+    color: var(--green-600);
+    font-weight: 600;
+  }
+
+  .history-pagination {
+    margin-top: 10px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+
+  .page-btn {
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid #d1d5db;
+    background: #ffffff;
+    cursor: pointer;
+  }
+
+  .page-btn:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
 </style>
 {% endblock %}
 
 {% block scripts %}
 <script>
-  // Cache DOM elements for filters and list
+  // Number of rows per page for the history table
+  const ROWS_PER_PAGE = 10;
+
+  // Global state for all items and current page
+  let allItems = [];
+  let currentPage = 1;
+
+  // Cache DOM elements used for filters and table rendering
   const groupEl = document.getElementById("groupFilter");
   const personEl = document.getElementById("personFilter");
   const typeEl = document.getElementById("typeFilter");
-  const historyList = document.getElementById("historyList");
+  const historyBody = document.getElementById("historyBody");
   const globalEmptyEl = document.getElementById("globalEmpty");
+  const pagePrev = document.getElementById("pagePrev");
+  const pageNext = document.getElementById("pageNext");
+  const pageInfo = document.getElementById("pageInfo");
 
-  // Load groups into the dropdown from backend
+  // Format a date string as MM/DD/YYYY for display
+  function formatDate(value) {
+    if (!value) return "";
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return value;
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    const yyyy = d.getFullYear();
+    return `${mm}/${dd}/${yyyy}`;
+  }
+
+  // Load group filter options from backend
   async function loadFilters() {
     const r = await fetch("/api/history/groups");
     if (!r.ok) return;
@@ -205,102 +283,193 @@
     }
   }
 
-  // Fetch history data using the current filters
+  // Fetch history based on current filters
   async function loadHistory() {
     const params = new URLSearchParams();
     const g = groupEl.value.trim();
     const p = personEl.value.trim();
-    const t = typeEl.value.trim();
 
     if (g) params.append("group", g);
     if (p) params.append("person", p);
-    if (t) params.append("type", t);
 
     const r = await fetch("/api/history/?" + params.toString());
 
-    // If user is not logged in show message and stop
     if (r.status === 401) {
-      historyList.innerHTML =
-        "<li class='empty'>You must be logged in to view history.</li>";
-      globalEmptyEl.textContent = "";
+      historyBody.innerHTML = "";
+      globalEmptyEl.textContent = "You must be logged in to view history.";
+      allItems = [];
+      updatePaginationInfo();
       return;
     }
 
     const data = await r.json();
-    renderHistory(data.received || [], data.paid || []);
+    buildItems(data.received || [], data.paid || []);
   }
 
-  // Render a single combined timeline from received and paid arrays
-  function renderHistory(received, paid) {
-    // Merge and tag items so the template knows what to say
+  // Combine arrays from server and apply client side filtering and 0 hiding
+  function buildItems(received, paid) {
     const items = [];
 
+    // Received entries are expenses you are a participant in
     for (const item of received) {
+      const amt = Number(item.amount || 0);
+      if (amt === 0) continue; // Skip zero amount entries
       items.push({
         kind: "received",
-        from: item.from,
-        to: "you",
-        amount: item.amount,
-        group: item.group,
         date: item.date,
-        role: item.role || "receiver",
+        amount: amt,
+        group: item.group || "",
+        creatorName: item.creator_name || "Someone",
       });
     }
 
+    // Paid entries are expenses you created
     for (const item of paid) {
+      const amt = Number(item.amount || 0);
+      if (amt === 0) continue; // Skip zero amount entries
       items.push({
         kind: "paid",
-        from: "you",
-        to: item.to,
-        amount: item.amount,
-        group: item.group,
         date: item.date,
-        role: item.role || "payer",
+        amount: amt,
+        group: item.group || "",
+        creatorName: item.creator_name || "",
       });
     }
 
-    // Sort newest first using the date field
+    // Sort newest first by date
     items.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-    historyList.innerHTML = "";
+    // Apply type filter (credit or debit) on the sign of amount
+    const typeFilter = typeEl.value.trim();
+    let filtered = items;
+    if (typeFilter === "credit") {
+      filtered = items.filter((i) => i.amount > 0);
+    } else if (typeFilter === "debit") {
+      filtered = items.filter((i) => i.amount < 0);
+    }
 
-    if (!items.length) {
-      historyList.innerHTML =
-        "<li class='empty'>No transactions yet.</li>";
+    allItems = filtered;
+    currentPage = 1;
+    renderPage();
+  }
+
+  // Render one page of history from allItems
+  function renderPage() {
+    historyBody.innerHTML = "";
+
+    if (!allItems.length) {
       globalEmptyEl.textContent =
-        "No history yet. Your past expenses and payments will appear here.";
+        "No history yet. Expenses you create or are added to will appear here.";
+      updatePaginationInfo();
       return;
     }
 
     globalEmptyEl.textContent = "";
 
-    // Build each history row in a structured way
-    for (const item of items) {
-      const li = document.createElement("li");
-      li.className = "history-item";
-
-      const main = document.createElement("div");
-      main.className = "history-main";
-
-      if (item.kind === "received") {
-        // Show a clear message when you receive money
-        main.textContent = `${item.from} paid you $${item.amount}`;
-      } else {
-        // Show a clear message when you pay someone
-        main.textContent = `You paid ${item.to} $${item.amount}`;
-      }
-
-      const meta = document.createElement("div");
-      meta.className = "history-meta";
-      meta.textContent = `${item.group} • ${item.date} • ${item.role}`;
-
-      li.appendChild(main);
-      li.appendChild(meta);
-      historyList.appendChild(li);
+    const totalPages = Math.max(1, Math.ceil(allItems.length / ROWS_PER_PAGE));
+    if (currentPage > totalPages) {
+      currentPage = totalPages;
     }
+
+    const start = (currentPage - 1) * ROWS_PER_PAGE;
+    const end = start + ROWS_PER_PAGE;
+    const pageItems = allItems.slice(start, end);
+
+    for (const item of pageItems) {
+      const tr = document.createElement("tr");
+
+      // Date column
+      const tdDate = document.createElement("td");
+      tdDate.textContent = formatDate(item.date);
+      tr.appendChild(tdDate);
+
+      // Description column
+      const tdDesc = document.createElement("td");
+      let descHtml;
+    if (item.kind === "received") {
+      const creator = `<span class="history-name">${item.creatorName}</span>`;
+      if (item.group) {
+        descHtml =
+          `${creator} created an expense for ` +
+          `<span class="history-name">you</span> in `
+          + `"${item.group}"`;
+      } else {
+        descHtml =
+          `${creator} created an expense for ` +
+          `<span class="history-name">you</span>`;
+      }
+    } else {
+      const you = `<span class="history-name">You</span>`;
+      if (item.group) {
+        descHtml = `${you} created an expense in "${item.group}"`;
+      } else {
+        descHtml = `${you} created an expense`;
+      }
+    }
+
+      tdDesc.innerHTML = descHtml;
+      tr.appendChild(tdDesc);
+
+      // Amount column
+      const tdAmount = document.createElement("td");
+      tdAmount.className = "col-amount";
+      const amt = item.amount;
+      const absAmt = Math.abs(amt).toFixed(2);
+      const sign = amt > 0 ? "+" : amt < 0 ? "-" : "";
+      tdAmount.textContent = `${sign}$${absAmt}`;
+      if (amt > 0) {
+        tdAmount.classList.add("amount-positive");
+      } else if (amt < 0) {
+        tdAmount.classList.add("amount-negative");
+      }
+      tr.appendChild(tdAmount);
+
+      historyBody.appendChild(tr);
+    }
+
+    updatePaginationInfo();
   }
 
-  // Wire up filter buttons
+  // Update pagination controls and text
+  function updatePaginationInfo() {
+    const totalPages = Math.max(
+      1,
+      Math.ceil(allItems.length / ROWS_PER_PAGE) || 1
+    );
+    const hasItems = allItems.length > 0;
+
+    if (!hasItems) {
+      pageInfo.textContent = "";
+      pagePrev.disabled = true;
+      pageNext.disabled = true;
+      return;
+    }
+
+    pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+    pagePrev.disabled = currentPage <= 1;
+    pageNext.disabled = currentPage >= totalPages;
+  }
+
+  // Pagination button handlers
+  pagePrev.addEventListener("click", () => {
+    if (currentPage > 1) {
+      currentPage -= 1;
+      renderPage();
+    }
+  });
+
+  pageNext.addEventListener("click", () => {
+    const totalPages = Math.max(
+      1,
+      Math.ceil(allItems.length / ROWS_PER_PAGE)
+    );
+    if (currentPage < totalPages) {
+      currentPage += 1;
+      renderPage();
+    }
+  });
+
+  // Wire filter buttons
   document
     .getElementById("btnApply")
     .addEventListener("click", loadHistory);
@@ -312,7 +481,7 @@
     loadHistory();
   });
 
-  // Initial load with filters and data
+  // Initial load
   loadFilters().then(loadHistory);
 </script>
 {% endblock %}

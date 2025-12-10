@@ -3,145 +3,230 @@
 
 {% block title %}Expense Splitter — Account{% endblock %}
 
-{% block head_extra %}
-  <style>
-    :root {
-      --bg:#f6f7f9; --card:#fff; --muted:#666;
-      --ink:#111; --pri:#0b63d1; --pri2:#084f9e;
-      --ok:#157347; --bad:#a5282c;
-    }
-    * { box-sizing:border-box; }
-    body {
-      margin:40px 0; background:var(--bg);
-      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-      color:var(--ink); display:flex; flex-direction:column; align-items:center;
-    }
-    h1 { margin:0 0 18px 0; font-size:28px; }
-    h2 { margin:0 0 12px 0; font-size:18px; }
-    .wrap { width:min(920px, 92vw); display:grid; gap:16px; }
-    .grid { display:grid; grid-template-columns: 1fr 1fr; gap:16px; }
-    .card {
-      background:var(--card); border-radius:12px;
-      box-shadow:0 8px 24px rgba(0,0,0,.06); padding:20px;
-    }
-    form { display:grid; gap:12px; }
-    .row { display:grid; gap:6px; }
-    label { font-size:12px; color:#444; }
-    input, select {
-      width:100%; padding:10px 12px;
-      border:1px solid #d0d7de; border-radius:8px; font-size:14px;
-    }
-    input[readonly] { background:#f1f3f5; color:#444; }
-    .btn {
-      padding:10px 12px; border-radius:8px;
-      border:1px solid #d0d7de; background:#fff;
-      cursor:pointer; font-weight:600;
-    }
-    .btn.primary { background:var(--pri); color:#fff; border:0; }
-    .btn.primary:hover { background:var(--pri2); }
-    .btn.ghost { background:#fff; border:1px dashed #ccc; color:#444; }
-    .btn.danger { background:#fff; border:1px solid #e0a2a4; color:var(--bad); }
-    .btns { display:flex; gap:10px; }
-    .muted { color:var(--muted); font-size:12px; }
-    .status { font-size:13px; }
-    .status.ok { color:var(--ok); }
-    .status.err { color:var(--bad); }
-    .hidden { display:none; }
-    .two { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-    @media (max-width:860px){
-      .grid { grid-template-columns:1fr; }
-      .two { grid-template-columns:1fr; }
-    }
-    .value {
-      margin: 2px 0 10px 0;
-      font-size: 14px;
-    }
-    .hidden {
-      display: none;
-    }
-  </style>
+{% block styles %}
+<style>
+  .account-page {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 16px 20px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
 
-  <!-- Variables injected by FastAPI -->
-    <script>
-      window.CURRENT_USER = {{ user | tojson }};
-    </script>
+  .account-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .account-title {
+    font-size: 1.6rem;
+    font-weight: 650;
+  }
+
+  .account-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1.4fr);
+    gap: 16px;
+  }
+
+  @media (max-width: 900px) {
+    .account-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  .account-card {
+    background: var(--card);
+    border-radius: 12px;
+    border: 1px solid #eef2f7;
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .account-card-header {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+
+  .profile-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .profile-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .profile-row label {
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+
+  .profile-row .value {
+    font-size: 0.95rem;
+  }
+
+  .account-actions {
+    margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .account-status {
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+
+  .account-page .btn {
+    font-size: 0.9rem;
+    padding: 8px 14px;
+    border-radius: 999px;
+  }
+
+  .account-page .btn.primary {
+    background: var(--green-600);
+    border-color: var(--green-600);
+    color: #fff;
+  }
+
+  .account-page .btn.primary:hover {
+    background: var(--green);
+    border-color: var(--green);
+  }
+
+  .account-page .btn.ghost {
+    background: #fff;
+    border-style: dashed;
+    border-color: #d0d7de;
+    color: var(--muted);
+  }
+
+  .account-page .btn.danger {
+    background: #fff;
+    border-color: var(--red);
+    color: var(--red);
+  }
+
+  .payment-grid {
+    margin-top: 10px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 8px;
+  }
+
+  .session-note {
+    margin-top: 6px;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+
+  #profileForm {
+    display: grid;
+    gap: 10px;
+  }
+
+  #profileForm input,
+  #profileForm select {
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid #d0d7de;
+    font-size: 0.9rem;
+  }
+
+  #profileForm input[readonly] {
+    background: #f5f5f5;
+    color: var(--muted);
+  }
+</style>
 {% endblock %}
 
 {% block content %}
-  <div class="wrap">
-    <h1>Account</h1>
+  <div class="account-page">
+    <div class="account-header">
+      <h1 class="account-title">Account</h1>
+    </div>
 
-    <!-- Account content -->
-    <div id="appArea" class="grid">
+    <div id="appArea" class="account-grid">
       <!-- Profile -->
-      <div class="card">
-        <h2>Your profile</h2>
+      <div class="account-card">
+        <h2 class="account-card-header">Your profile</h2>
 
-        <!-- VIEW MODE (default, no boxes) -->
-        <div id="profileDisplay">
-          <div class="row">
+        <!-- VIEW MODE -->
+        <div id="profileDisplay" class="profile-fields">
+          <div class="profile-row">
             <label>Full name</label>
             <p id="display_full_name" class="value">
               {{ user.full_name or "—" }}
             </p>
           </div>
-          <div class="row">
+          <div class="profile-row">
             <label>Username</label>
             <p id="display_username" class="value">
               {{ user.username or "—" }}
             </p>
           </div>
-          <div class="row">
+          <div class="profile-row">
             <label>Email</label>
             <p id="display_email" class="value">
               {{ user.email or "—" }}
             </p>
           </div>
-          <div class="row">
+          <div class="profile-row">
             <label>Phone</label>
             <p id="display_phone_number" class="value">
               {{ user.phone_number or "—" }}
             </p>
           </div>
-          <div class="row">
+          <div class="profile-row">
             <label>Display currency</label>
             <p id="display_currency" class="value">
               {{ user.display_currency or "USD" }}
             </p>
           </div>
 
-          <div class="btns">
+          <div class="account-actions">
             <button id="editProfileBtn" class="btn primary" type="button">
               Update information
             </button>
           </div>
         </div>
 
-        <!-- EDIT MODE (hidden until clicked) -->
+        <!-- EDIT MODE -->
         <form id="profileForm" novalidate style="display: none;">
-          <div class="row">
+          <div class="profile-row">
             <label for="full_name">Full name</label>
             <input id="full_name" name="full_name" type="text"
-                  value="{{ user.full_name or '' }}" required/>
+                   value="{{ user.full_name or '' }}" required />
           </div>
-          <div class="row">
+          <div class="profile-row">
             <label for="username">Username</label>
             <input id="username" name="username" type="text"
-                  value="{{ user.username or '' }}" required/>
+                   value="{{ user.username or '' }}" required />
           </div>
-          <div class="row">
+          <div class="profile-row">
             <label for="email">Email</label>
             <input id="email" name="email" type="email"
-                  value="{{ user.email or '' }}" readonly/>
+                   value="{{ user.email or '' }}" readonly />
           </div>
-          <div class="row">
+          <div class="profile-row">
             <label for="phone_number">Phone</label>
             <input id="phone_number" name="phone_number" type="tel"
-                  value="{{ user.phone_number or '' }}"
-                  placeholder="e.g. 314-555-1234"
-                  pattern="^[0-9\\-+\\(\\) ]{7,20}$"/>
+                   value="{{ user.phone_number or '' }}"
+                   placeholder="e.g. 314-555-1234"
+                   pattern="^[0-9\\-+\\(\\) ]{7,20}$" />
           </div>
-          <div class="row">
+          <div class="profile-row">
             <label for="currency">Display currency</label>
             <select id="currency" name="display_currency">
               <option value="USD" {% if user.display_currency == "USD" %}selected{% endif %}>USD</option>
@@ -152,21 +237,19 @@
             </select>
           </div>
 
-          <div class="btns">
+          <div class="account-actions">
             <button type="submit" class="btn primary">Save changes</button>
             <button type="button" id="cancelEditBtn" class="btn">Cancel</button>
-            <span id="profileStatus" class="status"></span>
+            <span id="profileStatus" class="account-status"></span>
           </div>
         </form>
       </div>
 
-
-
       <!-- Payment placeholders -->
-      <div class="card">
-        <h2>Payment methods</h2>
-        <p class="muted">Placeholders — link real accounts later.</p>
-        <div class="two">
+      <div class="account-card">
+        <h2 class="account-card-header">Payment methods</h2>
+        <p class="account-status">Placeholders, link real accounts later.</p>
+        <div class="payment-grid">
           <button class="btn ghost" disabled>Link Stripe</button>
           <button class="btn ghost" disabled>Link PayPal</button>
           <button class="btn ghost" disabled>Link Venmo</button>
@@ -175,18 +258,22 @@
       </div>
 
       <!-- Logout -->
-      <div class="card">
-        <h2>Session</h2>
-        <div class="btns">
+      <div class="account-card">
+        <h2 class="account-card-header">Session</h2>
+        <div class="account-actions">
           <button id="logoutBtn" class="btn danger" type="button">Log out</button>
-          <span id="logoutStatus" class="status"></span>
+          <span id="logoutStatus" class="account-status"></span>
         </div>
-        <p id="userIdLine" class="muted"></p>
+        <p id="userIdLine" class="session-note"></p>
       </div>
     </div>
   </div>
 {% endblock %}
 
 {% block scripts %}
+  <script>
+    // Expose current user to account.js in case it needs it
+    window.CURRENT_USER = {{ user | tojson }};
+  </script>
   <script type="module" src="{{ url_for('static', path='js/account.js') }}"></script>
 {% endblock %}

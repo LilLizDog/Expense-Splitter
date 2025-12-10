@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Request, Depends, Body
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import APIRouter, Request, Depends
+from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+
 from app.core.supabase_client import supabase
 from app.routers.auth import get_current_user
 
@@ -8,123 +9,96 @@ router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 
 
-# ------------------------
 # Inbox page
-# ------------------------
 @router.get("/inbox", response_class=HTMLResponse)
 async def inbox_page(request: Request):
+    """Render the inbox page shell."""
     return templates.TemplateResponse(
         "inbox.html",
-        {"request": request}
+        {"request": request},
     )
 
 
-# ------------------------
-# Messages data
-# ------------------------
-@router.get("/inbox/data")
-async def inbox_data(current_user=Depends(get_current_user)):
-    """
-    Fetch messages for the logged-in user, grouped by group_id.
-    """
-    try:
-        # Fetch messages and include sender username
-        result = (
-            supabase.table("Messages")
-            .select("*, sender:Users(id, username)")
-            .or_(f"sender_id.eq.{current_user['id']},reciever_id.eq.{current_user['id']}")
-            .order("created_at", desc=True)
-            .execute()
+# Notifications helper
+def _build_notifications(rows):
+    """Attach usernames and group names to raw notification rows."""
+    if not rows:
+        return []
+
+    from_user_ids = set()
+    group_ids = set()
+
+    for n in rows:
+        fu = n.get("from_user")
+        if fu:
+            from_user_ids.add(fu)
+        gid = n.get("group_id")
+        if gid:
+            group_ids.add(gid)
+
+    user_map = {}
+    if from_user_ids:
+        try:
+            ures = (
+                supabase.table("users")
+                .select("id, username")
+                .in_("id", list(from_user_ids))
+                .execute()
+            )
+            for u in ures.data or []:
+                user_map[u["id"]] = u.get("username") or "Unknown"
+        except Exception as e:
+            print("Error fetching notification users:", e)
+
+    group_map = {}
+    if group_ids:
+        try:
+            gres = (
+                supabase.table("groups")
+                .select("id, name")
+                .in_("id", list(group_ids))
+                .execute()
+            )
+            for g in gres.data or []:
+                group_map[g["id"]] = g.get("name") or None
+        except Exception as e:
+            print("Error fetching notification groups:", e)
+
+    result = []
+    for n in rows:
+        result.append(
+            {
+                "id": n["id"],
+                "type": n.get("type"),
+                "from_user": user_map.get(n.get("from_user"), "Unknown"),
+                "group_id": n.get("group_id"),
+                "group_name": group_map.get(n.get("group_id")),
+                "status": n.get("status"),
+                "created_at": n.get("created_at"),
+            }
         )
-    except Exception as e:
-        print("Error fetching messages:", e)
-        return []
 
-    if not result.data:
-        return []
-
-    threads = {}
-    for row in result.data:
-        sender_name = row.get("sender", {}).get("username", "Unknown")
-        threads[row["group_id"]] = {
-            "thread_id": row["group_id"],
-            "name": sender_name,
-            "last_message": row.get("content", "")
-        }
-
-    return list(threads.values())
+    return result
 
 
-# ------------------------
-# Notifications data
-# ------------------------
+# Notifications endpoint
 @router.get("/inbox/notifications")
 async def inbox_notifications(current_user=Depends(get_current_user)):
     """
-    Fetch pending notifications for the logged-in user with friendly names.
+    Return all notifications for the logged in user (newest first).
+    No message threads, only info notifications.
     """
     try:
-        result = (
+        res = (
             supabase.table("notifications")
-            .select("*, from_user:Users(id, username), group:Groups(id, name)")
+            .select("*")
             .eq("to_user", current_user["id"])
-            .eq("status", "pending")
+            .order("created_at", desc=True)
             .execute()
         )
     except Exception as e:
         print("Error fetching notifications:", e)
         return []
 
-    if not result.data:
-        return []
-
-    notifications = []
-    for n in result.data:
-        notif = {
-            "id": n["id"],
-            "type": n["type"],
-            "from_user": n.get("from_user", {}).get("username", "Unknown"),
-            "group_name": n.get("group", {}).get("name") if n.get("type") == "Group Invite" else None
-        }
-        notifications.append(notif)
-
-    return notifications
-
-
-# ------------------------
-# Handle Accept/Decline
-# ------------------------
-@router.post("/inbox/notifications/{notif_id}")
-async def handle_notification(notif_id: int, payload: dict = Body(...), current_user=Depends(get_current_user)):
-    action = payload.get("action")
-    try:
-        notif_res = supabase.table("notifications").select("*").eq("id", notif_id).execute()
-        if not notif_res.data:
-            return JSONResponse({"success": False, "error": "Notification not found"})
-
-        notif = notif_res.data[0]
-
-        if notif["to_user"] != current_user["id"]:
-            return JSONResponse({"success": False, "error": "Unauthorized"})
-
-        # Handle friend request
-        if notif["type"] == "Friend Request" and action == "accept":
-            supabase.table("friends").insert({
-                "user_id": current_user["id"],
-                "friend_id": notif["from_user"]
-            }).execute()
-        # Handle group invite
-        elif notif["type"] == "Group Invite" and action == "accept":
-            supabase.table("group_members").insert({
-                "group_id": notif["group_id"],
-                "user_id": current_user["id"]
-            }).execute()
-
-        # Update notification status
-        supabase.table("notifications").update({"status": action}).eq("id", notif_id).execute()
-
-        return {"success": True}
-
-    except Exception as e:
-        print("Error handling notification:", e)
-        return {"success": False, "error": str(e)}
+    rows = res.data or []
+    return _build_notifications(rows)
