@@ -1,15 +1,12 @@
 # This file handles history-related API endpoints using Supabase
 # It pulls data from Supabase to show a user's recent activity history
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, Query, HTTPException, Depends
 from typing import Optional
 from ..core.supabase_client import supabase # Connect to our shared Supabase client
+from .auth import get_current_user # Uses real auth user
 
 # Sets up the router for history-related routes with prefix /api/history
 router = APIRouter(prefix="/api/history", tags=["History"])
-
-# Temporary function for a fake logged-in user
-def get_current_user_id() -> str:
-    return "demo-user-1"
 
 # GET Retrieves the user's history of received payments and paid expenses
 @router.get("/")
@@ -17,8 +14,9 @@ def get_history(
     group: Optional[str] = Query(None), # Optional group filter
     person: Optional[str] = Query(None), #Optional person filter
     entry_type: Optional[str] = Query(None, alias="type"), # Optional type filter
+    current_user=Depends(get_current_user),
 ):
-    user_id = get_current_user_id()
+    user_id = current_user["id"]
 
     # Get all the received payments for this user from the history_received table
     recv_resp = (
@@ -103,8 +101,8 @@ def get_history(
 
 # GET Retrieves all unique groups from both history tables for this user
 @router.get("/groups")
-def get_history_groups():
-    user_id = get_current_user_id()
+def get_history_groups(current_user=Depends(get_current_user)):
+    user_id = current_user["id"]
 
     # Grab all group names from both history tables
     recv_resp = (

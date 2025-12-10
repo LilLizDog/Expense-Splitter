@@ -273,6 +273,82 @@ def create_expense(
 
     participants = _db_insert_participants(participant_rows)
 
+    # -----------------------------------
+    # Insert into history tables
+    # -----------------------------------
+    if os.getenv("TESTING") != "1":  # Only write history in real mode
+        try:
+            # Lookup group name if applicable
+            group_name = ""
+            if payload.group_id:
+                g_res = (
+                    supabase
+                    .table("groups")
+                    .select("name")
+                    .eq("id", payload.group_id)
+                    .single()
+                    .execute()
+                )
+                if g_res.data:
+                    group_name = g_res.data.get("name") or ""
+
+            expense_title = payload.description or ""
+
+            # --------------------------------------
+            # Lookup names for each participant
+            # --------------------------------------
+            id_to_name = {}
+
+            if payload.member_ids:
+                users_res = (
+                    supabase
+                    .table("users")
+                    .select("id,name,email")
+                    .in_("id", payload.member_ids)
+                    .execute()
+                )
+
+                for u in users_res.data or []:
+                    id_to_name[u["id"]] = (
+                        u.get("name") or u.get("email") or "Unknown"
+                    )
+
+            # Name for the payer (current user)
+            payer_name = user.get("name") or user.get("email") or "Unknown"
+
+            # ----------------------------------------------------
+            # Insert payer's history (this user paid money)
+            # ----------------------------------------------------
+            supabase.table("history_paid").insert(
+                {
+                    "user_id": user["id"],
+                    # Turn member_ids into readable names
+                    "to_name": ", ".join(
+                        id_to_name.get(mid, mid) for mid in payload.member_ids
+                    ),
+                    "amount": total,
+                    "group_name": group_name,
+                }
+            ).execute()
+
+            # ----------------------------------------------------
+            # Insert each participant’s received history
+            # ----------------------------------------------------
+            for s in splits:
+                supabase.table("history_received").insert(
+                    {
+                        "user_id": s["member_id"],  # receiver of money
+                        "from_name": payer_name,
+                        "amount": s["share"],
+                        "group_name": group_name,
+                    }
+                ).execute()
+
+        except Exception as e:
+            print("History insert failed:", e)
+
+
+
     return {
         "ok": True,
         "message": "created",
