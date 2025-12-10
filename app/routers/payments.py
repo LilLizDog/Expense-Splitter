@@ -373,6 +373,8 @@ def mark_payment_as_paid(
     if body.paid_via:
         update_payload["paid_via"] = body.paid_via
 
+    print(f"Updating payment {payment_id} with payload: {update_payload}")
+
     update_resp = (
         supabase.table("payments")
         .update(update_payload)
@@ -381,10 +383,13 @@ def mark_payment_as_paid(
     )
 
     if hasattr(update_resp, "error") and update_resp.error:
+        print(f"Update error: {update_resp.error}")
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail=f"Error updating payment: {update_resp.error.message}",
         )
+
+    print(f"Payment {payment_id} updated successfully. Updated data: {update_resp.data}")
 
     # Fetch the updated payment
     fetch_resp = (

@@ -4,7 +4,7 @@
 
 from typing import Optional, List
 
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, HTTPException, Query, Request, Depends
 from pydantic import BaseModel
 
 from app.routers.auth import get_current_user
@@ -51,7 +51,7 @@ def _get_friend_profiles(friend_ids: List[str]):
 
 @router.get("/")
 def list_friends(
-  request: Request,
+  current_user=Depends(get_current_user),
   q: Optional[str] = Query(None),
   group: Optional[str] = Query(None),
 ):
@@ -62,8 +62,7 @@ def list_friends(
     - q matches name, username, or email
     - group matches note (acts as a simple tag filter)
   """
-  user = get_current_user(request)
-  owner_id = user["id"]
+  owner_id = current_user["id"]
 
   # Load all friend links for this owner.
   links_resp = (

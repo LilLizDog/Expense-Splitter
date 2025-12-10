@@ -545,17 +545,33 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function loadFriends() {
     const sel = friendSelect;
-    if (!sel) return;
+    if (!sel) {
+      console.error("friendSelect element not found");
+      return;
+    }
 
+    console.log("Loading friends...");
+    
     try {
       const res = await fetch("/api/friends", {
         headers: { Accept: "application/json" },
       });
 
+      console.log("Friends API response status:", res.status);
+      
+      if (!res.ok) {
+        console.error("Friends API failed:", res.status, res.statusText);
+        const errorText = await res.text();
+        console.error("Error details:", errorText);
+        sel.innerHTML = '<option disabled>Error loading friends</option>';
+        return;
+      }
+
       const json = await res.json();
       console.log("friends API response:", json);
 
       const friends = Array.isArray(json.friends) ? json.friends : [];
+      console.log("Number of friends:", friends.length);
 
       sel.innerHTML =
         '<option value="" disabled selected>Select a friend...</option>';
@@ -569,6 +585,7 @@ document.addEventListener("DOMContentLoaded", () => {
           f.id;
 
         if (!userId) {
+          console.warn("Friend missing user ID:", f);
           return;
         }
 
@@ -588,6 +605,8 @@ document.addEventListener("DOMContentLoaded", () => {
       if (friends.length === 0) {
         sel.innerHTML = '<option disabled>No friends found</option>';
       }
+      
+      console.log("Friends loaded successfully");
     } catch (err) {
       console.error("Failed to load friends", err);
       sel.innerHTML = '<option disabled>Error loading friends</option>';
