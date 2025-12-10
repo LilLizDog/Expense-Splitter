@@ -15,6 +15,7 @@
       --bg: #f6f7f8;
       --card: #ffffff;
       --muted: #6b7280;
+      --border-subtle: #e5e7eb;
 
       --sidebar-w: 220px;
       --radius: 14px;
@@ -23,6 +24,7 @@
     }
 
     * { box-sizing: border-box; }
+
     body{
       margin:0;
       background: var(--bg);
@@ -35,7 +37,8 @@
     /* Top Bar */
     .topbar{
       position: sticky; top:0; z-index:40;
-      height:56px; background:#fff;
+      height:56px;
+      background: var(--card);
       box-shadow: var(--shadow);
       display:flex; align-items:center; gap:12px;
       padding:0 14px;
@@ -69,7 +72,8 @@
       position:fixed; left:0; top:56px; z-index:50;
       width:0; padding:0;
       height: calc(100dvh - 56px);
-      background:#fff; box-shadow:var(--shadow);
+      background: var(--card);
+      box-shadow:var(--shadow);
       overflow:hidden;
       transform:translateX(-100%);
       transition: transform .25s ease, width .25s ease, padding .25s ease;
@@ -113,7 +117,9 @@
       border-radius:var(--radius);
       box-shadow:var(--shadow);
       padding:16px;
+      border: 1px solid var(--border-subtle);
     }
+
     .panel-row{ display:grid; gap:16px; }
     .grid-2{ grid-template-columns:1.35fr .65fr; }
     @media (max-width:1024px){
@@ -183,7 +189,6 @@
           <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M6 20c0-3.314 2.686-6 6-6s6 2.686 6 6"/></svg>
           Account
         </a>
-       
         <a href="/settings">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.09A1.65 1.65 0 0 0 12 3V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.09a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           Settings
@@ -204,6 +209,56 @@
 
   <!-- Protect all pages that extend base.html -->
   <script src="/static/js/guard_protected.js"></script>
+
+  <!-- Global user preferences (theme and font) -->
+  <script>
+    function applyTheme(theme) {
+      const root = document.documentElement;
+
+      if (theme === "forest") {
+        // Soft green theme - keep text colors the same
+        root.style.setProperty("--bg", "#e8f5ec");
+        root.style.setProperty("--card", "#ffffff");
+        root.style.setProperty("--border-subtle", "#c4ddce");
+      } else {
+        // Default light theme
+        root.style.setProperty("--bg", "#f6f7f8");
+        root.style.setProperty("--card", "#ffffff");
+        root.style.setProperty("--border-subtle", "#e5e7eb");
+      }
+    }
+
+    function applyFont(size) {
+      if (size === "large") {
+        document.body.style.fontSize = "18px";
+      } else if (size === "xlarge") {
+        document.body.style.fontSize = "20px";
+      } else {
+        document.body.style.fontSize = "16px";
+      }
+    }
+
+    async function loadUserPreferences() {
+      try {
+        const r = await fetch("/api/settings/");
+        if (!r.ok) {
+          return;
+        }
+        const data = await r.json();
+        applyTheme(data.theme || "light");
+        applyFont(data.font_size || "normal");
+      } catch (err) {
+        console.error("Failed to load settings", err);
+      }
+    }
+
+    // Expose for the settings page so it can reuse these
+    window.applyTheme = applyTheme;
+    window.applyFont = applyFont;
+
+    // Apply saved preferences on every page
+    loadUserPreferences();
+  </script>
 
   {% block scripts %}{% endblock %}
 </body>

@@ -2,25 +2,14 @@
 
 {% block title %}Inbox | Expense Splitter{% endblock %}
 
-{% block styles %}
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss/dist/tailwind.min.css">
-{% endblock %}
-
 {% block content %}
-<div class="max-w-3xl mx-auto mt-6">
-    <input id="searchInput" type="text" placeholder="Search messages..." 
-        class="w-full p-2 border rounded mb-4">
-
-    <h2 class="text-xl font-bold mb-2">Notifications</h2>
-    <ul id="notificationsList" class="bg-white shadow rounded divide-y mb-6">
-        <!-- JS will insert friend requests / group invites here -->
-    </ul>
-
-    <h2 class="text-xl font-bold mb-2">Messages</h2>
-    <ul id="threadList" class="bg-white shadow rounded divide-y">
-        <!-- JS will insert message threads here -->
-    </ul>
-</div>
+<section class="panel">
+  <h1 class="text-xl font-bold mb-3">Inbox</h1>
+  <ul id="notificationsList" class="divide-y">
+    <!-- Filled by inbox.js -->
+    <li class="p-3 text-gray-500">Loading notifications...</li>
+  </ul>
+</section>
 {% endblock %}
 
 {% block scripts %}

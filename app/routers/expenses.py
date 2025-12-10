@@ -275,6 +275,7 @@ def create_expense(
 
     # -----------------------------------
     # Insert into history tables
+    # and create notifications
     # -----------------------------------
     if os.getenv("TESTING") != "1":  # Only write history in real mode
         try:
@@ -292,11 +293,7 @@ def create_expense(
                 if g_res.data:
                     group_name = g_res.data.get("name") or ""
 
-            expense_title = payload.description or ""
-
-            # --------------------------------------
             # Lookup names for each participant
-            # --------------------------------------
             id_to_name = {}
 
             if payload.member_ids:
@@ -316,13 +313,26 @@ def create_expense(
             # Name for the payer (current user)
             payer_name = user.get("name") or user.get("email") or "Unknown"
 
-            # ----------------------------------------------------
-            # Insert payer's history (this user paid money)
-            # ----------------------------------------------------
+            # Notifications for participants
+            for participant_id in payload.member_ids:
+                # Do not notify the payer about their own expense
+                if participant_id == user["id"]:
+                    continue
+
+                supabase.table("notifications").insert(
+                    {
+                        "type": "Expense",
+                        "from_user": user["id"],
+                        "to_user": participant_id,
+                        "group_id": payload.group_id,
+                        "status": "pending",
+                    }
+                ).execute()
+
+            # Payer history
             supabase.table("history_paid").insert(
                 {
                     "user_id": user["id"],
-                    # Turn member_ids into readable names
                     "to_name": ", ".join(
                         id_to_name.get(mid, mid) for mid in payload.member_ids
                     ),
@@ -331,13 +341,11 @@ def create_expense(
                 }
             ).execute()
 
-            # ----------------------------------------------------
-            # Insert each participant’s received history
-            # ----------------------------------------------------
+            # Participant history
             for s in splits:
                 supabase.table("history_received").insert(
                     {
-                        "user_id": s["member_id"],  # receiver of money
+                        "user_id": s["member_id"],
                         "from_name": payer_name,
                         "amount": s["share"],
                         "group_name": group_name,
@@ -346,8 +354,6 @@ def create_expense(
 
         except Exception as e:
             print("History insert failed:", e)
-
-
 
     return {
         "ok": True,
