@@ -81,6 +81,17 @@ def _db_insert_participants(rows: List[dict]) -> List[dict]:
     return res.data or rows
 
 
+def _db_insert_payments(payment_rows: List[dict]) -> List[dict]:
+    """Insert payment request rows into the payments table."""
+    if not payment_rows:
+        return []
+    res = supabase.table("payments").insert(payment_rows).execute()
+    err = getattr(res, "error", None)
+    if err:
+        raise HTTPException(status_code=500, detail=str(err))
+    return res.data or payment_rows
+
+
 # -----------------------------
 # List endpoints
 # -----------------------------
@@ -273,12 +284,38 @@ def create_expense(
 
     participants = _db_insert_participants(participant_rows)
 
+    # -----------------------------
+    # Create payment requests
+    # -----------------------------
+    # For each participant (except the payer), create a payment request
+    # from that participant to the payer for their share
+    payment_rows = []
+    payer_id = user["id"]
+    
+    for s in splits:
+        member_id = s["member_id"]
+        share = s["share"]
+        
+        # Don't create a payment request for the payer themselves
+        if member_id != payer_id and share > 0:
+            payment_rows.append({
+                "group_id": payload.group_id,
+                "expense_id": expense_id,
+                "from_user_id": payer_id,  # Who paid and is owed
+                "to_user_id": member_id,    # Who owes the money
+                "amount": share,
+                "status": "requested",
+            })
+    
+    payments = _db_insert_payments(payment_rows)
+
     return {
         "ok": True,
         "message": "created",
         "data": {
             "expense": inserted,
             "participants": participants,
+            "payments": payments,
             "user_id": user["id"],
         },
     }

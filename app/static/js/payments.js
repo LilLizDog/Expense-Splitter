@@ -93,9 +93,9 @@ function renderPaymentRow(p, allowPay) {
   if (allowPay) {
     const btn = document.createElement("button");
     btn.className = "btn primary";
-    btn.textContent = "Mark as Paid";
-    btn.addEventListener("click", async () => {
-      await markPaid(p.id);
+    btn.textContent = "Pay";
+    btn.addEventListener("click", () => {
+      showPaymentOptions(li, p.id);
     });
     right.appendChild(btn);
   }
@@ -105,24 +105,68 @@ function renderPaymentRow(p, allowPay) {
   return li;
 }
 
-async function markPaid(paymentId) {
+function showPaymentOptions(li, paymentId) {
+  // Remove existing payment panel if any
+  const existing = li.querySelector(".payment-methods-panel");
+  if (existing) {
+    existing.remove();
+    return;
+  }
+
+  const panel = document.createElement("div");
+  panel.className = "payment-methods-panel";
+  panel.style.marginTop = "12px";
+  panel.style.padding = "12px";
+  panel.style.background = "#f8f9fa";
+  panel.style.borderRadius = "8px";
+  panel.style.border = "1px solid #e5e7eb";
+
+  const title = document.createElement("div");
+  title.textContent = "Select payment method:";
+  title.style.marginBottom = "8px";
+  title.style.fontWeight = "600";
+  title.style.fontSize = "0.9rem";
+  panel.appendChild(title);
+
+  const methods = ["Venmo", "Zelle", "Cash App", "Stripe", "Paid in Cash"];
+  const buttonsContainer = document.createElement("div");
+  buttonsContainer.style.display = "flex";
+  buttonsContainer.style.flexWrap = "wrap";
+  buttonsContainer.style.gap = "8px";
+
+  methods.forEach(method => {
+    const methodBtn = document.createElement("button");
+    methodBtn.className = "btn";
+    methodBtn.textContent = method;
+    methodBtn.style.fontSize = "0.85rem";
+    methodBtn.addEventListener("click", async () => {
+      await markPaid(paymentId, method);
+      panel.remove();
+    });
+    buttonsContainer.appendChild(methodBtn);
+  });
+
+  panel.appendChild(buttonsContainer);
+  li.appendChild(panel);
+}
+
+async function markPaid(paymentId, method = "Cash") {
   try {
     const resp = await fetch(`/api/payments/${paymentId}/pay`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ paid_via: "Cash" }),
+      body: JSON.stringify({ paid_via: method }),
     });
 
     if (resp.ok) {
       await loadPayments();
     } else {
-      // Try to surface a useful error if it's forbidden / bad request
       let msg = "Failed to mark payment as paid";
       try {
         const data = await resp.json();
         if (data.detail) msg = data.detail;
       } catch {
-        // ignore JSON parse errors
+        /* ignore */
       }
       alert(msg);
     }

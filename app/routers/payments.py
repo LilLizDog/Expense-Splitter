@@ -1,31 +1,78 @@
 # app/routers/payments.py
 
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
 
 from app.core.supabase_client import supabase
+from .auth import get_current_user
 
 router = APIRouter(prefix="/api/payments", tags=["payments"])
 
 
 # --------- helpers ---------
 
-def get_current_user_id(request: Request) -> str:
+def get_current_user_id(current_user=Depends(get_current_user)) -> str:
     """
-    Very light "auth":
-    - First try X-User-Id header
-    - Then ?user_id= query param
-    - Fallback to a mock user so the page still works in dev
+    Use the authenticated Supabase user.
+    Raises 401 if not logged in (handled by get_current_user).
     """
-    user_id = request.headers.get("X-User-Id") or request.query_params.get("user_id")
-    if user_id:
-        return str(user_id)
+    return str(current_user["id"])
 
-    # fallback mock for local dev
-    return "user_mock_1"
+
+def _attach_expense_names(payment_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """
+    Given a list of raw payment rows (each may have expense_id),
+    fetch matching expenses and attach `expense_name` from expenses.description.
+    """
+    if not payment_rows:
+        return []
+    
+    expense_ids = {
+        row["expense_id"]
+        for row in payment_rows
+        if row.get("expense_id") is not None
+    }
+
+    if not expense_ids:
+        # No expense IDs, just add None for expense_name
+        for row in payment_rows:
+            row["expense_name"] = None
+        return payment_rows
+
+    try:
+        exp_resp = (
+            supabase.table("expenses")
+            .select("id, description")
+            .in_("id", list(expense_ids))
+            .execute()
+        )
+
+        if hasattr(exp_resp, "error") and exp_resp.error:
+            print(f"Error fetching expense descriptions: {exp_resp.error}")
+            # Continue without expense names rather than failing
+            for row in payment_rows:
+                row["expense_name"] = None
+            return payment_rows
+
+        exp_rows = exp_resp.data or []
+        desc_by_id: Dict[str, Optional[str]] = {
+            row["id"]: row.get("description") for row in exp_rows
+        }
+
+        for row in payment_rows:
+            eid = row.get("expense_id")
+            row["expense_name"] = desc_by_id.get(eid) if eid in desc_by_id else None
+
+        return payment_rows
+    except Exception as e:
+        print(f"Exception in _attach_expense_names: {e}")
+        # Continue without expense names rather than failing
+        for row in payment_rows:
+            row["expense_name"] = None
+        return payment_rows
 
 
 # --------- Pydantic models (what we send back to JS) ---------
@@ -41,14 +88,14 @@ class Payment(BaseModel):
     created_at: Optional[str]
     paid_at: Optional[str] = None
     paid_via: Optional[str] = None
-    # optional - frontend currently uses expense_name only in mock mode
+    # pulled from expenses.description
     expense_name: Optional[str] = None
 
 
 class BalanceSummary(BaseModel):
     user_id: str
-    amount_owed_by_user: float        # things user still needs to pay (to_user_id = user, status='requested')
-    amount_owed_to_user: float        # things others still owe them (from_user_id = user, status='requested')
+    amount_owed_by_user: float        # user still needs to pay (to_user_id = user, status='requested')
+    amount_owed_to_user: float        # others still owe user (from_user_id = user, status='requested')
 
 
 class MarkPaidRequest(BaseModel):
@@ -63,14 +110,10 @@ class MarkPaidResponse(BaseModel):
 # --------- endpoints ---------
 
 @router.get("/summary", response_model=BalanceSummary)
-def get_balance_summary(request: Request, user_id: str = Depends(get_current_user_id)):
+def get_balance_summary(user_id: str = Depends(get_current_user_id)):
     """
     Compute outstanding balances for this user from the payments table.
-    - amount_owed_by_user: sum of pending payments WHERE to_user_id = user AND status='requested'
-    - amount_owed_to_user: sum of pending payments WHERE from_user_id = user AND status='requested'
     """
-
-    # "user still owes others"
     owed_by_resp = (
         supabase.table("payments")
         .select("amount")
@@ -84,7 +127,6 @@ def get_balance_summary(request: Request, user_id: str = Depends(get_current_use
             detail=f"Error fetching owed_by_user: {owed_by_resp.error.message}",
         )
 
-    # "others still owe user"
     owed_to_resp = (
         supabase.table("payments")
         .select("amount")
@@ -112,95 +154,127 @@ def get_balance_summary(request: Request, user_id: str = Depends(get_current_use
 
 
 @router.get("/past", response_model=List[Payment])
-def get_past_payments(request: Request, user_id: str = Depends(get_current_user_id)):
+def get_past_payments(user_id: str = Depends(get_current_user_id)):
     """
     Fetch *paid* payments involving this user (either side of the transaction).
-    This feeds the 'Past Payments' column on the page.
     """
-    resp = (
-        supabase.table("payments")
-        .select(
-            "id, group_id, expense_id, from_user_id, to_user_id, amount, "
-            "status, created_at, paid_at, paid_via"
+    print(f"Fetching past payments for user_id: {user_id}")
+    
+    try:
+        resp = (
+            supabase.table("payments")
+            .select(
+                "id, group_id, expense_id, from_user_id, to_user_id, amount, "
+                "status, created_at, paid_at, paid_via"
+            )
+            .eq("status", "paid")
+            .or_(f"from_user_id.eq.{user_id},to_user_id.eq.{user_id}")
+            .order("created_at", desc=True)
+            .execute()
         )
-        .eq("status", "paid")
-        .or_(f"from_user_id.eq.{user_id},to_user_id.eq.{user_id}")
-        .order("created_at", desc=True)
-        .execute()
-    )
 
-    if hasattr(resp, "error") and resp.error:
+        if hasattr(resp, "error") and resp.error:
+            print(f"Supabase error: {resp.error}")
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"Error fetching past payments: {resp.error.message}",
+            )
+
+        print(f"Found {len(resp.data or [])} past payments")
+        rows = _attach_expense_names(resp.data or [])
+
+        return [
+            Payment(
+                id=str(row["id"]),
+                group_id=str(row["group_id"]) if row.get("group_id") is not None else None,
+                expense_id=str(row["expense_id"]) if row.get("expense_id") is not None else None,
+                from_user_id=row["from_user_id"],
+                to_user_id=row["to_user_id"],
+                amount=float(row["amount"]),
+                status=row["status"],
+                created_at=row.get("created_at"),
+                paid_at=row.get("paid_at"),
+                paid_via=row.get("paid_via"),
+                expense_name=row.get("expense_name"),
+            )
+            for row in rows
+        ]
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Exception in get_past_payments: {e}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Error fetching past payments: {resp.error.message}",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error fetching past payments: {str(e)}"
         )
-
-    rows = resp.data or []
-    return [
-        Payment(
-            id=str(row["id"]),
-            group_id=str(row["group_id"]) if row.get("group_id") is not None else None,
-            expense_id=str(row["expense_id"]) if row.get("expense_id") is not None else None,
-            from_user_id=row["from_user_id"],
-            to_user_id=row["to_user_id"],
-            amount=float(row["amount"]),
-            status=row["status"],
-            created_at=row.get("created_at"),
-            paid_at=row.get("paid_at"),
-            paid_via=row.get("paid_via"),
-        )
-        for row in rows
-    ]
 
 
 @router.get("/outstanding", response_model=List[Payment])
-def get_outstanding_payments(request: Request, user_id: str = Depends(get_current_user_id)):
+def get_outstanding_payments(user_id: str = Depends(get_current_user_id)):
     """
     Fetch *requested* payments that this user still owes.
-    This feeds the 'Outstanding Payments' column on the page.
     """
-    resp = (
-        supabase.table("payments")
-        .select(
-            "id, group_id, expense_id, from_user_id, to_user_id, amount, "
-            "status, created_at, paid_at, paid_via"
+    print(f"Fetching outstanding payments for user_id: {user_id}")
+    
+    try:
+        resp = (
+            supabase.table("payments")
+            .select(
+                "id, group_id, expense_id, from_user_id, to_user_id, amount, "
+                "status, created_at, paid_at, paid_via"
+            )
+            .eq("status", "requested")
+            .eq("to_user_id", user_id)
+            .order("created_at", desc=True)
+            .execute()
         )
-        .eq("status", "requested")
-        .eq("to_user_id", user_id)
-        .order("created_at", desc=True)
-        .execute()
-    )
 
-    if hasattr(resp, "error") and resp.error:
+        if hasattr(resp, "error") and resp.error:
+            print(f"Supabase error: {resp.error}")
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"Error fetching outstanding payments: {resp.error.message}",
+            )
+
+        print(f"Found {len(resp.data or [])} outstanding payments")
+        
+        rows = _attach_expense_names(resp.data or [])
+
+        return [
+            Payment(
+                id=str(row["id"]),
+                group_id=str(row["group_id"]) if row.get("group_id") is not None else None,
+                expense_id=str(row["expense_id"]) if row.get("expense_id") is not None else None,
+                from_user_id=row["from_user_id"],
+                to_user_id=row["to_user_id"],
+                amount=float(row["amount"]),
+                status=row["status"],
+                created_at=row.get("created_at"),
+                paid_at=row.get("paid_at"),
+                paid_via=row.get("paid_via"),
+                expense_name=row.get("expense_name"),
+            )
+            for row in rows
+        ]
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Exception in get_outstanding_payments: {e}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Error fetching outstanding payments: {resp.error.message}",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error fetching outstanding payments: {str(e)}"
         )
-
-    rows = resp.data or []
-    return [
-        Payment(
-            id=str(row["id"]),
-            group_id=str(row["group_id"]) if row.get("group_id") is not None else None,
-            expense_id=str(row["expense_id"]) if row.get("expense_id") is not None else None,
-            from_user_id=row["from_user_id"],
-            to_user_id=row["to_user_id"],
-            amount=float(row["amount"]),
-            status=row["status"],
-            created_at=row.get("created_at"),
-            paid_at=row.get("paid_at"),
-            paid_via=row.get("paid_via"),
-        )
-        for row in rows
-    ]
 
 
 @router.get("", response_model=List[Payment])
-def get_all_payments(request: Request, user_id: str = Depends(get_current_user_id)):
+def get_all_payments(user_id: str = Depends(get_current_user_id)):
     """
     Fetch ALL payments involving this user (requested + paid).
-    Frontend can split into 'Requested' and 'Past', but the page is
-    now using /outstanding and /past for clarity.
+    Mainly for debugging / future use.
     """
     resp = (
         supabase.table("payments")
@@ -219,7 +293,8 @@ def get_all_payments(request: Request, user_id: str = Depends(get_current_user_i
             detail=f"Error fetching payments: {resp.error.message}",
         )
 
-    rows = resp.data or []
+    rows = _attach_expense_names(resp.data or [])
+
     return [
         Payment(
             id=str(row["id"]),
@@ -232,6 +307,7 @@ def get_all_payments(request: Request, user_id: str = Depends(get_current_user_i
             created_at=row.get("created_at"),
             paid_at=row.get("paid_at"),
             paid_via=row.get("paid_via"),
+            expense_name=row.get("expense_name"),
         )
         for row in rows
     ]
@@ -241,7 +317,6 @@ def get_all_payments(request: Request, user_id: str = Depends(get_current_user_i
 def mark_payment_as_paid(
     payment_id: str,
     body: MarkPaidRequest,
-    request: Request,
     user_id: str = Depends(get_current_user_id),
 ):
     """
@@ -253,7 +328,6 @@ def mark_payment_as_paid(
     - optionally stores paid_via
     """
 
-    # 1) Fetch the payment first
     fetch_resp = (
         supabase.table("payments")
         .select(
@@ -278,21 +352,18 @@ def mark_payment_as_paid(
             detail="Payment not found",
         )
 
-    # 2) Security: verify user is allowed to pay
     if row["to_user_id"] != user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You cannot pay for someone else's payment.",
         )
 
-    # 3) Only allow transition from requested -> paid
     if row["status"] != "requested":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Payment is not in a payable state.",
         )
 
-    # 4) Perform the update
     now_iso = datetime.now(timezone.utc).isoformat()
 
     update_payload = {
@@ -306,11 +377,6 @@ def mark_payment_as_paid(
         supabase.table("payments")
         .update(update_payload)
         .eq("id", payment_id)
-        .select(
-            "id, group_id, expense_id, from_user_id, to_user_id, amount, "
-            "status, created_at, paid_at, paid_via"
-        )
-        .single()
         .execute()
     )
 
@@ -320,7 +386,20 @@ def mark_payment_as_paid(
             detail=f"Error updating payment: {update_resp.error.message}",
         )
 
-    updated = update_resp.data
+    # Fetch the updated payment
+    fetch_resp = (
+        supabase.table("payments")
+        .select(
+            "id, group_id, expense_id, from_user_id, to_user_id, amount, "
+            "status, created_at, paid_at, paid_via"
+        )
+        .eq("id", payment_id)
+        .single()
+        .execute()
+    )
+
+    updated = _attach_expense_names([fetch_resp.data])[0]
+
     payment = Payment(
         id=str(updated["id"]),
         group_id=str(updated["group_id"]) if updated.get("group_id") is not None else None,
@@ -332,69 +411,7 @@ def mark_payment_as_paid(
         created_at=updated.get("created_at"),
         paid_at=updated.get("paid_at"),
         paid_via=updated.get("paid_via"),
+        expense_name=updated.get("expense_name"),
     )
-
-    # -----------------------------------------
-    # Write history logs for paid transactions
-    # -----------------------------------------
-
-    # Load payer and receiver names
-    payer_row = (
-        supabase.table("users")
-        .select("name")
-        .eq("id", payment.from_user_id)
-        .single()
-        .execute()
-    ).data or {}
-
-    receiver_row = (
-        supabase.table("users")
-        .select("name")
-        .eq("id", payment.to_user_id)
-        .single()
-        .execute()
-    ).data or {}
-
-    payer_name = payer_row.get("name") or "Unknown"
-    receiver_name = receiver_row.get("name") or "Unknown"
-
-    # Load expense title and group for logging
-    expense_row = (
-        supabase.table("expenses")
-        .select("description, group_id")
-        .eq("id", payment.expense_id)
-        .single()
-        .execute()
-    ).data or {}
-
-    expense_title = expense_row.get("description") or "Expense"
-    # look up group name
-    group_name = (
-        supabase.table("groups")
-        .select("name")
-        .eq("id", expense_row.get("group_id"))
-        .single()
-        .execute()
-    ).data.get("name") if expense_row.get("group_id") else "Unknown Group"
-
-    # Insert paid history if current user is the payer
-    if payment.from_user_id == user_id:
-        supabase.table("history_paid").insert({
-            "user_id": user_id,
-            "to_name": receiver_name,
-            "amount": payment.amount,
-            "group_name": group_name,
-            "expense_title": expense_title,
-        }).execute()
-
-    # Insert received history if current user is the receiver
-    if payment.to_user_id == user_id:
-        supabase.table("history_received").insert({
-            "user_id": user_id,
-            "from_name": payer_name,
-            "amount": payment.amount,
-            "group_name": group_name,
-            "expense_title": expense_title,
-        }).execute()
 
     return MarkPaidResponse(success=True, payment=payment)
